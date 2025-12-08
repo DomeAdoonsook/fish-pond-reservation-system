@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title : 'ระบบจัดการบ่อเลี้ยงปลา' %> - คณะประมง</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="wrapper">
+    <!-- Sidebar -->
+    <nav id="sidebar" class="bg-dark">
+      <div class="sidebar-header p-3">
+        <h4 class="text-white mb-0">
+          <i class="bi bi-water"></i> บ่อเลี้ยงปลา
+        </h4>
+        <small class="text-muted">คณะประมง</small>
+      </div>
+
+      <ul class="list-unstyled components p-3">
+        <li class="<%= page === 'dashboard' ? 'active' : '' %>">
+          <a href="/admin">
+            <i class="bi bi-grid-3x3-gap"></i> ผังบ่อ
+          </a>
+        </li>
+        <li class="<%= page === 'requests' ? 'active' : '' %>">
+          <a href="/admin/requests">
+            <i class="bi bi-clipboard-check"></i> คำขอจอง
+            <% if (pendingCount > 0) { %>
+              <span class="badge bg-warning text-dark ms-2"><%= pendingCount %></span>
+            <% } %>
+          </a>
+        </li>
+        <li class="<%= page === 'active' ? 'active' : '' %>">
+          <a href="/admin/active">
+            <i class="bi bi-play-circle"></i> กำลังใช้งาน
+          </a>
+        </li>
+        <li class="<%= page === 'history' ? 'active' : '' %>">
+          <a href="/admin/history">
+            <i class="bi bi-clock-history"></i> ประวัติ
+          </a>
+        </li>
+        <li class="<%= page === 'settings' ? 'active' : '' %>">
+          <a href="/admin/settings">
+            <i class="bi bi-gear"></i> ตั้งค่า
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer p-3 border-top border-secondary">
+        <div class="d-flex align-items-center text-white-50">
+          <i class="bi bi-person-circle me-2"></i>
+          <span><%= admin.name %></span>
+        </div>
+        <a href="/admin/logout" class="btn btn-outline-light btn-sm mt-2 w-100">
+          <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
+        </a>
+      </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div id="content">
+      <!-- Top Navbar -->
+      <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container-fluid">
+          <button type="button" id="sidebarCollapse" class="btn btn-dark">
+            <i class="bi bi-list"></i>
+          </button>
+          <span class="navbar-brand ms-3 mb-0 h5">
+            <% if (page === 'dashboard') { %>
+              <i class="bi bi-grid-3x3-gap"></i> ผังบ่อเลี้ยงปลา
+            <% } else if (page === 'requests') { %>
+              <i class="bi bi-clipboard-check"></i> คำขอจอง
+            <% } else if (page === 'active') { %>
+              <i class="bi bi-play-circle"></i> กำลังใช้งาน
+            <% } else if (page === 'history') { %>
+              <i class="bi bi-clock-history"></i> ประวัติ
+            <% } else if (page === 'settings') { %>
+              <i class="bi bi-gear"></i> ตั้งค่า
+            <% } else if (page === 'pond') { %>
+              <i class="bi bi-droplet"></i> รายละเอียดบ่อ
+            <% } %>
+          </span>
+        </div>
+      </nav>
+
+      <!-- Main Content -->
+      <div class="container-fluid p-4">
+        <%- body %>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/main.js"></script>
+  <% if (typeof scripts !== 'undefined') { %>
+    <%- scripts %>
+  <% } %>
+</body>
+</html>

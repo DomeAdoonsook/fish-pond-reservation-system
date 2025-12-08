@@ -1,0 +1,353 @@
+/* ========== Base Styles ========== */
+* {
+  font-family: 'Sarabun', sans-serif;
+}
+
+body {
+  background-color: #f4f6f9;
+}
+
+/* ========== Sidebar ========== */
+.wrapper {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+#sidebar {
+  min-width: 250px;
+  max-width: 250px;
+  min-height: 100vh;
+  transition: all 0.3s;
+}
+
+#sidebar.active {
+  margin-left: -250px;
+}
+
+#sidebar .sidebar-header {
+  background: rgba(0,0,0,0.1);
+}
+
+#sidebar ul.components {
+  padding: 20px 0;
+}
+
+#sidebar ul li a {
+  padding: 12px 20px;
+  display: block;
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+#sidebar ul li a:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+#sidebar ul li.active a {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border-left-color: #27ae60;
+}
+
+#sidebar ul li a i {
+  margin-right: 10px;
+}
+
+#sidebar .sidebar-footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+}
+
+/* ========== Content ========== */
+#content {
+  width: 100%;
+  min-height: 100vh;
+  transition: all 0.3s;
+}
+
+/* ========== Status Cards ========== */
+.status-card {
+  border-radius: 15px;
+  border: none;
+  transition: transform 0.2s;
+}
+
+.status-card:hover {
+  transform: translateY(-2px);
+}
+
+.status-card .status-icon {
+  font-size: 2.5rem;
+  opacity: 0.7;
+}
+
+/* ========== Legend ========== */
+.legend-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+/* ========== Pond Layout (Map-like) ========== */
+.pond-layout {
+  display: flex;
+  gap: 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, #4a7c59 0%, #6b9b7a 100%);
+  border-radius: 15px;
+  overflow-x: auto;
+}
+
+.pond-section-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pond-section-right {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  min-width: 200px;
+}
+
+.pond-row {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.pond-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pond-right-top {
+  display: flex;
+  gap: 10px;
+}
+
+.zone-f {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.zone-g {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pond-row-g {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+}
+
+.zone-e {
+  margin-top: 10px;
+}
+
+/* Pond Box Base */
+.pond-box {
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+  border: 2px solid rgba(255,255,255,0.6);
+}
+
+.pond-box:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.35);
+  z-index: 10;
+}
+
+/* Pond Sizes */
+.pond-large {
+  width: 120px;
+  height: 80px;
+}
+
+.pond-medium {
+  width: 90px;
+  height: 70px;
+}
+
+.pond-small {
+  width: 60px;
+  height: 50px;
+}
+
+.pond-tiny {
+  width: 45px;
+  height: 35px;
+}
+
+/* Pond Status Colors */
+.pond-box.available {
+  background: linear-gradient(135deg, #2d6a4f, #40916c);
+}
+
+.pond-box.occupied {
+  background: linear-gradient(135deg, #b71c1c, #e53935);
+}
+
+.pond-box.pending {
+  background: linear-gradient(135deg, #e65100, #fb8c00);
+}
+
+.pond-box.maintenance {
+  background: linear-gradient(135deg, #37474f, #546e7a);
+}
+
+.pond-code {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pond-tiny .pond-code {
+  font-size: 9px;
+}
+
+.pond-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 8px;
+  margin-top: 1px;
+  opacity: 0.9;
+}
+
+.pond-info small {
+  line-height: 1.1;
+}
+
+/* Pond Tooltip */
+.pond-tooltip {
+  position: absolute;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  padding: 12px;
+  min-width: 180px;
+  z-index: 1000;
+  display: none;
+  pointer-events: none;
+}
+
+.pond-tooltip.show {
+  display: block;
+}
+
+.pond-tooltip h6 {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.pond-tooltip .info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.pond-tooltip .info-row .label {
+  color: #666;
+}
+
+/* ========== Request Cards ========== */
+.request-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.request-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+/* ========== Tables ========== */
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table thead th {
+  border-bottom: none;
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 768px) {
+  #sidebar {
+    margin-left: -250px;
+  }
+
+  #sidebar.active {
+    margin-left: 0;
+  }
+
+  .status-card .card-body {
+    padding: 1rem;
+  }
+
+  .status-card h2 {
+    font-size: 1.5rem;
+  }
+
+  .pond-map-container {
+    max-height: 50vh;
+  }
+}
+
+/* ========== Toast ========== */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+}
+
+/* ========== Animations ========== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card {
+  animation: fadeIn 0.3s ease;
+}
+
+/* ========== Custom Scrollbar ========== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
