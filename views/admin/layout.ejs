@@ -56,9 +56,15 @@
           <i class="bi bi-person-circle me-2"></i>
           <span><%= admin.name %></span>
         </div>
-        <a href="/admin/logout" class="btn btn-danger btn-sm w-100">
-          <i class="bi bi-box-arrow-right me-2"></i>ออกจากระบบ
-        </a>
+        <% if (typeof isLoggedIn !== 'undefined' && isLoggedIn) { %>
+          <a href="/admin/logout" class="btn btn-danger btn-sm w-100">
+            <i class="bi bi-box-arrow-right me-2"></i>ออกจากระบบ
+          </a>
+        <% } else { %>
+          <a href="/admin/login" class="btn btn-primary btn-sm w-100">
+            <i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบ
+          </a>
+        <% } %>
       </div>
     </nav>
 
