@@ -33,15 +33,12 @@ app.set('views', path.join(__dirname, 'views'));
 const apiRoutes = require('./routes/api');
 const adminRoutes = require('./routes/admin');
 const lineRoutes = require('./routes/line');
+const publicRoutes = require('./routes/public');
 
 app.use('/api', apiRoutes);
 app.use('/admin', adminRoutes);
 app.use('/webhook', lineRoutes);
-
-// หน้าแรก - redirect ไป dashboard
-app.get('/', (req, res) => {
-  res.redirect('/admin');
-});
+app.use('/', publicRoutes);
 
 // Cron Job - ตรวจสอบการจองที่หมดอายุ ทุกวันเที่ยงคืน
 const { checkExpiredReservations } = require('./utils/scheduler');

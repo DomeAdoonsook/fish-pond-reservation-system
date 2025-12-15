@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ผังบ่อ - ระบบจัดการบ่อเลี้ยงปลา</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <!-- Top Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="/">
+        <i class="bi bi-water me-2"></i>บ่อเลี้ยงปลา - คณะประมง
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link active" href="/">
+              <i class="bi bi-grid-3x3-gap"></i> ผังบ่อ
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/active">
+              <i class="bi bi-play-circle"></i> กำลังใช้งาน
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/history">
+              <i class="bi bi-clock-history"></i> ประวัติ
+            </a>
+          </li>
+        </ul>
+        <div class="d-flex">
+          <a href="/admin/login" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-person-circle me-1"></i>สำหรับเจ้าหน้าที่
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container py-4">
+    <!-- Status Summary -->
+    <div class="row mb-4">
+      <div class="col-md-3 col-6 mb-3">
+        <div class="card status-card bg-success text-white">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h2 class="mb-0"><%= status.available %></h2>
+                <span>บ่อว่าง</span>
+              </div>
+              <i class="bi bi-check-circle status-icon"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="card status-card bg-danger text-white">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h2 class="mb-0"><%= status.occupied %></h2>
+                <span>ใช้งาน</span>
+              </div>
+              <i class="bi bi-x-circle status-icon"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="card status-card bg-warning text-dark">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h2 class="mb-0"><%= status.pending %></h2>
+                <span>รออนุมัติ</span>
+              </div>
+              <i class="bi bi-hourglass-split status-icon"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="card status-card bg-secondary text-white">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h2 class="mb-0"><%= status.maintenance %></h2>
+                <span>ปิดปรับปรุง</span>
+              </div>
+              <i class="bi bi-tools status-icon"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="card mb-4">
+      <div class="card-body py-2">
+        <div class="d-flex flex-wrap gap-4">
+          <span><span class="legend-dot bg-success"></span> ว่าง</span>
+          <span><span class="legend-dot bg-danger"></span> ใช้งาน</span>
+          <span><span class="legend-dot bg-warning"></span> รออนุมัติ</span>
+          <span><span class="legend-dot bg-secondary"></span> ปิดปรับปรุง</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pond Map -->
+    <div class="card">
+      <div class="card-header">
+        <span><i class="bi bi-map me-2"></i>ผังบ่อเลี้ยงปลา</span>
+      </div>
+      <div class="card-body">
+        <div class="pond-layout">
+          <!-- Left Section: Zone A, B, C, D -->
+          <div class="pond-section-left">
+            <!-- Zone A: Row 1 -->
+            <div class="pond-row">
+              <% const zoneA = ponds.filter(p => p.zone === 'A').sort((a,b) => {
+                const numA = parseInt(a.pond_code.replace('A',''));
+                const numB = parseInt(b.pond_code.replace('A',''));
+                return numA - numB;
+              }); %>
+              <% [4,3,2,1].forEach(function(num) {
+                const pond = zoneA.find(p => p.pond_code === 'A' + num);
+                if (pond) { %>
+                <a href="/pond/<%= pond.id %>" class="pond-box <%= num === 1 ? 'pond-large' : (num === 3 ? 'pond-medium' : 'pond-small') %> <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>" style="text-decoration: none;">
+                  <div class="pond-code"><%= pond.pond_code %></div>
+                  <% if (pond.user_name) { %><div class="pond-info"><small><%= pond.fish_type %></small></div><% } %>
+                </a>
+              <% }}); %>
+            </div>
+
+            <!-- Zone B: Row 2 -->
+            <div class="pond-row">
+              <% const zoneB = ponds.filter(p => p.zone === 'B'); %>
+              <% [7,6,5,4,3,2,1].forEach(function(num) {
+                const pond = zoneB.find(p => p.pond_code === 'B' + num);
+                if (pond) { %>
+                <a href="/pond/<%= pond.id %>" class="pond-box pond-small <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>" style="text-decoration: none;">
+                  <div class="pond-code"><%= pond.pond_code %></div>
+                  <% if (pond.user_name) { %><div class="pond-info"><small><%= pond.fish_type %></small></div><% } %>
+                </a>
+              <% }}); %>
+            </div>
+
+            <!-- Zone C: Rows 3-5 -->
+            <div class="pond-row">
+              <% const zoneC = ponds.filter(p => p.zone === 'C'); %>
+              <% [6,5,4,3,2,1].forEach(function(num) {
+                const pond = zoneC.find(p => p.pond_code === 'C' + num);
+                if (pond) { %>
+                <a href="/pond/<%= pond.id %>" class="pond-box pond-small <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>" style="text-decoration: none;">
+                  <div class="pond-code"><%= pond.pond_code %></div>
+                  <% if (pond.user_name) { %><div class="pond-info"><small><%= pond.fish_type %></small></div><% } %>
+                </a>
+              <% }}); %>
+            </div>
+            <div class="pond-row">
+              <% [14,13,12,11,10,9,8,7].forEach(function(num) {
+                const pond = zoneC.find(p => p.pond_code === 'C' + num);
+                if (pond) { %>
+                <a href="/pond/<%= pond.id %>" class="pond-box pond-small <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>" style="text-decoration: none;">
+                  <div class="pond-code"><%= pond.pond_code %></div>
+                  <% if (pond.user_name) { %><div class="pond-info"><small><%= pond.fish_type %></small></div><% } %>
+                </a>
+              <% }}); %>
+            </div>
+
+            <!-- Zone D: Row 6 -->
+            <div class="pond-row">
+              <% const zoneD = ponds.filter(p => p.zone === 'D'); %>
+              <% [6,5,4,3,2,1].forEach(function(num) {
+                const pond = zoneD.find(p => p.pond_code === 'D' + num);
+                if (pond) { %>
+                <a href="/pond/<%= pond.id %>" class="pond-box pond-small <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>" style="text-decoration: none;">
+                  <div class="pond-code"><%= pond.pond_code %></div>
+                  <% if (pond.user_name) { %><div class="pond-info"><small><%= pond.fish_type %></small></div><% } %>
+                </a>
+              <% }}); %>
+            </div>
+          </div>
+
+          <!-- Right Section: Zone F, G, E -->
+          <div class="pond-section-right">
+            <!-- Zone F (vertical) & Zone G -->
+            <div class="pond-right-top">
+              <div class="pond-col zone-f">
+                <% const zoneF = ponds.filter(p => p.zone === 'F'); %>
+                <% [8,7,6,5,4,3,2,1].forEach(function(num) {
+                  const pond = zoneF.find(p => p.pond_code === 'F' + num);
+                  if (pond) { %>
+                  <a href="/pond/<%= pond.id %>" class="pond-box pond-tiny <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>" style="text-decoration: none;">
+                    <div class="pond-code"><%= pond.pond_code %></div>
+                  </a>
+                <% }}); %>
+              </div>
+              <div class="pond-col zone-g">
+                <div class="pond-row-g">
+                  <% const zoneG = ponds.filter(p => p.zone === 'G'); %>
+                  <% [1,2,3,4,5,6,7,8,10].forEach(function(num) {
+                    const pond = zoneG.find(p => p.pond_code === 'G' + num);
+                    if (pond) { %>
+                    <a href="/pond/<%= pond.id %>" class="pond-box pond-tiny <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>" style="text-decoration: none;">
+                      <div class="pond-code"><%= pond.pond_code %></div>
+                    </a>
+                  <% }}); %>
+                </div>
+              </div>
+            </div>
+
+            <!-- Zone E (bottom right) -->
+            <div class="pond-row zone-e">
+              <% const zoneE = ponds.filter(p => p.zone === 'E'); %>
+              <% [1,2,3,4,5].forEach(function(num) {
+                const pond = zoneE.find(p => p.pond_code === 'E' + num);
+                if (pond) { %>
+                <a href="/pond/<%= pond.id %>" class="pond-box pond-small <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>" style="text-decoration: none;">
+                  <div class="pond-code"><%= pond.pond_code %></div>
+                  <% if (pond.user_name) { %><div class="pond-info"><small><%= pond.fish_type %></small></div><% } %>
+                </a>
+              <% }}); %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-dark text-white-50 py-3 mt-4">
+    <div class="container text-center">
+      <small>ระบบจัดการบ่อเลี้ยงปลา - คณะประมง</small>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
