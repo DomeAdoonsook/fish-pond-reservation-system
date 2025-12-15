@@ -52,13 +52,15 @@
       </ul>
 
       <div class="sidebar-footer p-3 border-top border-secondary">
-        <div class="d-flex align-items-center text-white-50">
-          <i class="bi bi-person-circle me-2"></i>
-          <span><%= admin.name %></span>
+        <div class="d-flex align-items-center justify-content-between">
+          <div class="text-white-50">
+            <i class="bi bi-person-circle me-2"></i>
+            <span><%= admin.name %></span>
+          </div>
+          <a href="/admin/logout" class="btn btn-danger btn-sm" title="ออกจากระบบ">
+            <i class="bi bi-box-arrow-right"></i>
+          </a>
         </div>
-        <a href="/admin/logout" class="btn btn-outline-light btn-sm mt-2 w-100">
-          <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
-        </a>
       </div>
     </nav>
 
