@@ -17,7 +17,8 @@ body {
 #sidebar {
   min-width: 250px;
   max-width: 250px;
-  min-height: 100vh;
+  height: auto;
+  min-height: auto;
   transition: all 0.3s;
 }
 
@@ -58,8 +59,7 @@ body {
 }
 
 #sidebar .sidebar-footer {
-  position: absolute;
-  bottom: 0;
+  position: relative;
   width: 100%;
 }
 
