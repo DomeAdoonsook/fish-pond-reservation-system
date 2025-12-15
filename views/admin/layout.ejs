@@ -86,10 +86,16 @@
             <% } %>
           </span>
           <div class="ms-auto">
-            <span class="me-3 text-muted"><i class="bi bi-person-circle me-1"></i><%= admin.name %></span>
-            <a href="/admin/logout" class="btn btn-outline-danger btn-sm">
-              <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
-            </a>
+            <% if (typeof isLoggedIn !== 'undefined' && isLoggedIn) { %>
+              <span class="me-3 text-muted"><i class="bi bi-person-circle me-1"></i><%= admin.name %></span>
+              <a href="/admin/logout" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
+              </a>
+            <% } else { %>
+              <a href="/admin/login" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-box-arrow-in-right"></i> เข้าสู่ระบบ
+              </a>
+            <% } %>
           </div>
         </div>
       </nav>

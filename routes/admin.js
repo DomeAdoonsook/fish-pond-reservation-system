@@ -13,6 +13,12 @@ const requireLogin = (req, res, next) => {
   next();
 };
 
+// Middleware สำหรับหน้าสาธารณะ (ดูได้ไม่ต้อง login)
+const optionalLogin = (req, res, next) => {
+  // ไม่บังคับ login แต่ถ้า login แล้วก็ใช้ได้
+  next();
+};
+
 // หน้า Login
 router.get('/login', (req, res) => {
   if (req.session.admin) {
@@ -40,14 +46,15 @@ router.get('/logout', (req, res) => {
   res.redirect('/admin/login');
 });
 
-// หน้าหลัก - Dashboard
-router.get('/', requireLogin, (req, res) => {
+// หน้าหลัก - Dashboard (ไม่ต้อง login)
+router.get('/', optionalLogin, (req, res) => {
   const ponds = Pond.getAll();
   const status = Pond.getStatusCount();
   const pendingCount = Reservation.getPending().length;
 
   res.render('admin/dashboard', {
-    admin: req.session.admin,
+    admin: req.session.admin || { name: 'ผู้เยี่ยมชม' },
+    isLoggedIn: !!req.session.admin,
     ponds,
     status,
     pendingCount,
@@ -55,13 +62,14 @@ router.get('/', requireLogin, (req, res) => {
   });
 });
 
-// หน้าอนุมัติคำขอ
+// หน้าอนุมัติคำขอ (ต้อง login)
 router.get('/requests', requireLogin, (req, res) => {
   const pending = Reservation.getPending();
   const pendingCount = pending.length;
 
   res.render('admin/requests', {
     admin: req.session.admin,
+    isLoggedIn: true,
     reservations: pending,
     pendingCount,
     page: 'requests'
@@ -114,13 +122,14 @@ router.post('/requests/:id/reject', requireLogin, async (req, res) => {
   }
 });
 
-// หน้าการจอง Active
-router.get('/active', requireLogin, (req, res) => {
+// หน้าการจอง Active (ไม่ต้อง login)
+router.get('/active', optionalLogin, (req, res) => {
   const active = Reservation.getActive();
   const pendingCount = Reservation.getPending().length;
 
   res.render('admin/active', {
-    admin: req.session.admin,
+    admin: req.session.admin || { name: 'ผู้เยี่ยมชม' },
+    isLoggedIn: !!req.session.admin,
     reservations: active,
     pendingCount,
     page: 'active'
@@ -145,21 +154,22 @@ router.post('/reservations/:id/complete', requireLogin, (req, res) => {
   }
 });
 
-// หน้าประวัติ
-router.get('/history', requireLogin, (req, res) => {
+// หน้าประวัติ (ไม่ต้อง login)
+router.get('/history', optionalLogin, (req, res) => {
   const reservations = Reservation.getAll();
   const pendingCount = Reservation.getPending().length;
 
   res.render('admin/history', {
-    admin: req.session.admin,
+    admin: req.session.admin || { name: 'ผู้เยี่ยมชม' },
+    isLoggedIn: !!req.session.admin,
     reservations,
     pendingCount,
     page: 'history'
   });
 });
 
-// หน้ารายละเอียดบ่อ
-router.get('/pond/:id', requireLogin, (req, res) => {
+// หน้ารายละเอียดบ่อ (ไม่ต้อง login)
+router.get('/pond/:id', optionalLogin, (req, res) => {
   const pond = Pond.getById(req.params.id);
   const history = Reservation.getHistoryByPondId(req.params.id);
   const pendingCount = Reservation.getPending().length;
@@ -169,7 +179,8 @@ router.get('/pond/:id', requireLogin, (req, res) => {
   }
 
   res.render('admin/pond-detail', {
-    admin: req.session.admin,
+    admin: req.session.admin || { name: 'ผู้เยี่ยมชม' },
+    isLoggedIn: !!req.session.admin,
     pond,
     history,
     pendingCount,
@@ -195,12 +206,13 @@ router.post('/pond/:id/status', requireLogin, (req, res) => {
   }
 });
 
-// หน้าตั้งค่า
+// หน้าตั้งค่า (ต้อง login)
 router.get('/settings', requireLogin, (req, res) => {
   const pendingCount = Reservation.getPending().length;
 
   res.render('admin/settings', {
     admin: req.session.admin,
+    isLoggedIn: true,
     pendingCount,
     page: 'settings'
   });
