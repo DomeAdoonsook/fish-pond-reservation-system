@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ขอยกเลิกการจอง - คณะประมง</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <!-- Top Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="/">
+        <i class="bi bi-water me-2"></i>บ่อเลี้ยงปลา - คณะประมง
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="/">
+              <i class="bi bi-grid-3x3-gap"></i> ผังบ่อ
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/active">
+              <i class="bi bi-play-circle"></i> กำลังใช้งาน
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/history">
+              <i class="bi bi-clock-history"></i> ประวัติ
+            </a>
+          </li>
+        </ul>
+        <div class="d-flex">
+          <a href="/admin/login" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-person-circle me-1"></i>สำหรับเจ้าหน้าที่
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container py-4">
+    <div class="mb-3">
+      <a href="/pond/<%= reservation.pond_id %>" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>กลับไปรายละเอียดบ่อ
+      </a>
+    </div>
+
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">
+              <i class="bi bi-x-circle me-2"></i>ขอยกเลิกการจอง
+            </h5>
+          </div>
+          <div class="card-body">
+            <% if (error) { %>
+              <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i><%= error %>
+              </div>
+            <% } %>
+
+            <!-- ข้อมูลการจอง -->
+            <div class="alert alert-secondary mb-4">
+              <h6 class="mb-3"><i class="bi bi-info-circle me-2"></i>ข้อมูลการจองที่ต้องการยกเลิก</h6>
+              <div class="row">
+                <div class="col-md-6 mb-2">
+                  <strong>รหัสการจอง:</strong> #REQ-<%= String(reservation.id).padStart(4, '0') %>
+                </div>
+                <div class="col-md-6 mb-2">
+                  <strong>บ่อ:</strong> <%= reservation.pond_code %> (โซน <%= reservation.zone %>)
+                </div>
+                <div class="col-md-6 mb-2">
+                  <strong>ผู้จอง:</strong> <%= reservation.user_name %>
+                </div>
+                <div class="col-md-6 mb-2">
+                  <strong>ชนิดปลา:</strong> <%= reservation.fish_type %>
+                </div>
+                <div class="col-md-6 mb-2">
+                  <strong>จำนวน:</strong> <%= reservation.fish_quantity ? reservation.fish_quantity.toLocaleString() : '-' %> ตัว
+                </div>
+                <div class="col-md-6 mb-2">
+                  <strong>ระยะเวลา:</strong> <%= reservation.start_date %> - <%= reservation.end_date %>
+                </div>
+              </div>
+            </div>
+
+            <form method="POST" action="/cancel-request/<%= reservation.id %>">
+              <div class="mb-3">
+                <label class="form-label">เบอร์โทรติดต่อกลับ</label>
+                <input type="text" class="form-control" name="phone" placeholder="เช่น 081-234-5678">
+                <small class="text-muted">กรอกเบอร์โทรเพื่อให้เจ้าหน้าที่ติดต่อกลับได้</small>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label">เหตุผลในการขอยกเลิก</label>
+                <textarea class="form-control" name="reason" rows="4" placeholder="ระบุเหตุผลในการขอยกเลิก..."></textarea>
+              </div>
+
+              <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>หมายเหตุ:</strong> คำขอยกเลิกจะถูกส่งไปยังเจ้าหน้าที่เพื่อพิจารณา การยกเลิกจะสมบูรณ์เมื่อได้รับการอนุมัติจากเจ้าหน้าที่
+              </div>
+
+              <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="/pond/<%= reservation.pond_id %>" class="btn btn-secondary">
+                  <i class="bi bi-arrow-left me-1"></i>ยกเลิก
+                </a>
+                <button type="submit" class="btn btn-danger">
+                  <i class="bi bi-send me-1"></i>ส่งคำขอยกเลิก
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-dark text-white-50 py-3 mt-4">
+    <div class="container text-center">
+      <small>ระบบจัดการบ่อเลี้ยงปลา - คณะประมง</small>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

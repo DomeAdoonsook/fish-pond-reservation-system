@@ -3,6 +3,7 @@ const router = express.Router();
 const Admin = require('../models/Admin');
 const Pond = require('../models/Pond');
 const Reservation = require('../models/Reservation');
+const CancellationRequest = require('../models/CancellationRequest');
 const Log = require('../models/Log');
 
 // Middleware ตรวจสอบ login
@@ -287,6 +288,81 @@ router.post('/pond-positions', requireLogin, (req, res) => {
       const pos = positions[pondCode];
       Pond.updatePosition(pondCode, pos.left, pos.top, pos.width, pos.height);
     });
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// หน้าคำขอยกเลิก (ต้อง login)
+router.get('/cancel-requests', requireLogin, (req, res) => {
+  const pending = CancellationRequest.getPending();
+  const pendingCount = Reservation.getPending().length;
+  const cancelPendingCount = pending.length;
+
+  res.render('admin/cancel-requests', {
+    admin: req.session.admin,
+    isLoggedIn: true,
+    requests: pending,
+    pendingCount,
+    cancelPendingCount,
+    page: 'cancel-requests'
+  });
+});
+
+// อนุมัติคำขอยกเลิก
+router.post('/cancel-requests/:id/approve', requireLogin, async (req, res) => {
+  try {
+    const request = CancellationRequest.getById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ error: 'ไม่พบคำขอยกเลิก' });
+    }
+
+    // อนุมัติคำขอยกเลิก
+    CancellationRequest.approve(req.params.id, req.session.admin.id);
+
+    // ยกเลิกการจอง
+    Reservation.cancel(request.reservation_id);
+
+    Log.create('cancellation_request_approved', {
+      pond_id: request.pond_id,
+      reservation_id: request.reservation_id,
+      admin_id: req.session.admin.id,
+      details: { cancel_request_id: req.params.id }
+    });
+
+    // ส่งแจ้งเตือน LINE
+    const { sendCancellationApprovalNotification } = require('../utils/lineNotify');
+    await sendCancellationApprovalNotification(request);
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ปฏิเสธคำขอยกเลิก
+router.post('/cancel-requests/:id/reject', requireLogin, async (req, res) => {
+  try {
+    const request = CancellationRequest.getById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ error: 'ไม่พบคำขอยกเลิก' });
+    }
+
+    const reason = req.body.reason || '';
+    CancellationRequest.reject(req.params.id, req.session.admin.id, reason);
+
+    Log.create('cancellation_request_rejected', {
+      pond_id: request.pond_id,
+      reservation_id: request.reservation_id,
+      admin_id: req.session.admin.id,
+      details: { cancel_request_id: req.params.id, reason }
+    });
+
+    // ส่งแจ้งเตือน LINE
+    const { sendCancellationRejectionNotification } = require('../utils/lineNotify');
+    await sendCancellationRejectionNotification(request, reason);
 
     res.json({ success: true });
   } catch (error) {

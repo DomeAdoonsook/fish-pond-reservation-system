@@ -77,12 +77,28 @@ db.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
+  -- ตาราง cancellation_requests (คำขอยกเลิกการจอง)
+  CREATE TABLE IF NOT EXISTS cancellation_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    reservation_id INTEGER NOT NULL,
+    reason TEXT,
+    phone TEXT,
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
+    processed_by INTEGER,
+    processed_at DATETIME,
+    reject_reason TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (reservation_id) REFERENCES reservations(id),
+    FOREIGN KEY (processed_by) REFERENCES admins(id)
+  );
+
   -- Index สำหรับ query ที่ใช้บ่อย
   CREATE INDEX IF NOT EXISTS idx_ponds_zone ON ponds(zone);
   CREATE INDEX IF NOT EXISTS idx_ponds_status ON ponds(status);
   CREATE INDEX IF NOT EXISTS idx_reservations_status ON reservations(status);
   CREATE INDEX IF NOT EXISTS idx_reservations_pond_id ON reservations(pond_id);
   CREATE INDEX IF NOT EXISTS idx_reservations_line_user_id ON reservations(line_user_id);
+  CREATE INDEX IF NOT EXISTS idx_cancellation_requests_status ON cancellation_requests(status);
 `);
 
 // เพิ่ม column phone ถ้ายังไม่มี

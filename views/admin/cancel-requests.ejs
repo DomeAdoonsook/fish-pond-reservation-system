@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>คำขอยกเลิก - ระบบจัดการบ่อเลี้ยงปลา</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="wrapper">
+    <nav id="sidebar" class="bg-dark">
+      <div class="sidebar-header p-3">
+        <h4 class="text-white mb-0"><i class="bi bi-water"></i> บ่อเลี้ยงปลา</h4>
+        <small class="text-muted">คณะประมง</small>
+      </div>
+      <ul class="list-unstyled components p-3">
+        <li><a href="/admin"><i class="bi bi-grid-3x3-gap"></i> ผังบ่อ</a></li>
+        <li>
+          <a href="/admin/requests">
+            <i class="bi bi-clipboard-check"></i> คำขอจอง
+            <% if (pendingCount > 0) { %><span class="badge bg-warning text-dark ms-2"><%= pendingCount %></span><% } %>
+          </a>
+        </li>
+        <li class="active">
+          <a href="/admin/cancel-requests">
+            <i class="bi bi-x-circle"></i> คำขอยกเลิก
+            <% if (cancelPendingCount > 0) { %><span class="badge bg-danger ms-2"><%= cancelPendingCount %></span><% } %>
+          </a>
+        </li>
+        <li><a href="/admin/active"><i class="bi bi-play-circle"></i> กำลังใช้งาน</a></li>
+        <li><a href="/admin/history"><i class="bi bi-clock-history"></i> ประวัติ</a></li>
+        <li><a href="/admin/settings"><i class="bi bi-gear"></i> ตั้งค่า</a></li>
+      </ul>
+      <div class="sidebar-footer p-3 border-top border-secondary">
+        <div class="d-flex align-items-center text-white-50">
+          <i class="bi bi-person-circle me-2"></i><span><%= admin.name %></span>
+        </div>
+        <a href="/admin/logout" class="btn btn-outline-light btn-sm mt-2 w-100"><i class="bi bi-box-arrow-right"></i> ออกจากระบบ</a>
+      </div>
+    </nav>
+
+    <div id="content">
+      <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container-fluid">
+          <button type="button" id="sidebarCollapse" class="btn btn-dark"><i class="bi bi-list"></i></button>
+          <span class="navbar-brand ms-3 mb-0 h5"><i class="bi bi-x-circle"></i> คำขอยกเลิกการจอง</span>
+        </div>
+      </nav>
+
+      <div class="container-fluid p-4">
+        <% if (requests.length === 0) { %>
+          <div class="card">
+            <div class="card-body text-center py-5">
+              <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+              <h5 class="mt-3 text-muted">ไม่มีคำขอยกเลิกที่รอดำเนินการ</h5>
+            </div>
+          </div>
+        <% } else { %>
+          <div class="row">
+            <% requests.forEach(function(r) { %>
+              <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 cancel-request-card" id="cancel-request-<%= r.id %>">
+                  <div class="card-header bg-danger text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <span class="fw-bold">#CANCEL-<%= String(r.id).padStart(4, '0') %></span>
+                      <span class="badge bg-light text-dark">รอดำเนินการ</span>
+                    </div>
+                  </div>
+                  <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-droplet text-primary"></i> บ่อ <%= r.pond_code %></h5>
+                    <hr>
+                    <table class="table table-sm table-borderless mb-0">
+                      <tr><td class="text-muted" width="40%">รหัสการจอง:</td><td class="fw-bold">#REQ-<%= String(r.reservation_id).padStart(4, '0') %></td></tr>
+                      <tr><td class="text-muted">ผู้จอง:</td><td class="fw-bold"><%= r.user_name %></td></tr>
+                      <tr><td class="text-muted">ชนิดปลา:</td><td><%= r.fish_type %></td></tr>
+                      <tr><td class="text-muted">จำนวน:</td><td><%= r.fish_quantity ? r.fish_quantity.toLocaleString() : 0 %> ตัว</td></tr>
+                      <tr><td class="text-muted">ระยะเวลา:</td><td><%= r.start_date %> - <%= r.end_date %></td></tr>
+                      <% if (r.phone) { %>
+                        <tr><td class="text-muted">โทรติดต่อ:</td><td><%= r.phone %></td></tr>
+                      <% } %>
+                    </table>
+                    <% if (r.reason) { %>
+                      <hr>
+                      <div class="text-muted small">
+                        <strong>เหตุผล:</strong> <%= r.reason %>
+                      </div>
+                    <% } %>
+                  </div>
+                  <div class="card-footer">
+                    <div class="d-flex gap-2">
+                      <button class="btn btn-success flex-fill" onclick="approveCancel(<%= r.id %>)">
+                        <i class="bi bi-check-lg"></i> อนุมัติยกเลิก
+                      </button>
+                      <button class="btn btn-secondary flex-fill" onclick="showRejectModal(<%= r.id %>)">
+                        <i class="bi bi-x-lg"></i> ปฏิเสธ
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        <% } %>
+
+        <!-- Reject Modal -->
+        <div class="modal fade" id="rejectModal" tabindex="-1">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>ปฏิเสธคำขอยกเลิก</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <input type="hidden" id="rejectId">
+                <p>คุณต้องการปฏิเสธคำขอยกเลิกนี้ หมายความว่าการจองจะยังคงอยู่</p>
+                <div class="mb-3">
+                  <label class="form-label">เหตุผล (ถ้ามี)</label>
+                  <textarea class="form-control" id="rejectReason" rows="3" placeholder="ระบุเหตุผลที่ปฏิเสธ..."></textarea>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-warning" onclick="rejectCancel()">
+                  <i class="bi bi-x-lg"></i> ยืนยันปฏิเสธ
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/main.js"></script>
+  <script>
+    async function approveCancel(id) {
+      if (!confirm('ยืนยันการอนุมัติยกเลิกการจอง? บ่อจะถูกปลดปล่อยให้ว่าง')) return;
+      try {
+        const res = await fetch('/admin/cancel-requests/' + id + '/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('cancel-request-' + id).remove();
+          showToast('อนุมัติยกเลิกเรียบร้อย', 'success');
+          updateCancelPendingCount();
+        }
+      } catch (err) {
+        showToast('เกิดข้อผิดพลาด', 'danger');
+      }
+    }
+
+    function showRejectModal(id) {
+      document.getElementById('rejectId').value = id;
+      document.getElementById('rejectReason').value = '';
+      new bootstrap.Modal(document.getElementById('rejectModal')).show();
+    }
+
+    async function rejectCancel() {
+      const id = document.getElementById('rejectId').value;
+      const reason = document.getElementById('rejectReason').value;
+      try {
+        const res = await fetch('/admin/cancel-requests/' + id + '/reject', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason })
+        });
+        const data = await res.json();
+        if (data.success) {
+          bootstrap.Modal.getInstance(document.getElementById('rejectModal')).hide();
+          document.getElementById('cancel-request-' + id).remove();
+          showToast('ปฏิเสธคำขอยกเลิกเรียบร้อย', 'warning');
+          updateCancelPendingCount();
+        }
+      } catch (err) {
+        showToast('เกิดข้อผิดพลาด', 'danger');
+      }
+    }
+
+    function updateCancelPendingCount() {
+      const badge = document.querySelector('a[href="/admin/cancel-requests"] .badge');
+      const cards = document.querySelectorAll('.cancel-request-card');
+      if (badge) {
+        if (cards.length > 0) {
+          badge.textContent = cards.length;
+        } else {
+          badge.remove();
+          location.reload();
+        }
+      }
+    }
+  </script>
+</body>
+</html>

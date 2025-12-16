@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Pond = require('../models/Pond');
 const Reservation = require('../models/Reservation');
+const CancellationRequest = require('../models/CancellationRequest');
 
 // หน้าแรก - ผังบ่อ
 router.get('/', (req, res) => {
@@ -131,6 +132,88 @@ router.get('/booking/success/:id', (req, res) => {
 
   res.render('public/booking-success', {
     reservation
+  });
+});
+
+// หน้าฟอร์มขอยกเลิกการจอง
+router.get('/cancel-request/:reservationId', (req, res) => {
+  const reservation = Reservation.getById(req.params.reservationId);
+
+  if (!reservation) {
+    return res.redirect('/');
+  }
+
+  // ตรวจสอบว่าการจองยังใช้งานอยู่หรือไม่
+  if (reservation.status !== 'approved' && reservation.status !== 'pending') {
+    return res.redirect('/pond/' + reservation.pond_id + '?error=invalid_status');
+  }
+
+  // ตรวจสอบว่ามีคำขอยกเลิกที่รอดำเนินการอยู่แล้วหรือไม่
+  if (CancellationRequest.hasPendingRequest(req.params.reservationId)) {
+    return res.redirect('/pond/' + reservation.pond_id + '?error=pending_cancel');
+  }
+
+  res.render('public/cancel-request', {
+    reservation,
+    error: null
+  });
+});
+
+// ส่งคำขอยกเลิกการจอง
+router.post('/cancel-request/:reservationId', async (req, res) => {
+  const reservation = Reservation.getById(req.params.reservationId);
+
+  if (!reservation) {
+    return res.redirect('/');
+  }
+
+  // ตรวจสอบว่าการจองยังใช้งานอยู่หรือไม่
+  if (reservation.status !== 'approved' && reservation.status !== 'pending') {
+    return res.redirect('/pond/' + reservation.pond_id);
+  }
+
+  // ตรวจสอบว่ามีคำขอยกเลิกที่รอดำเนินการอยู่แล้วหรือไม่
+  if (CancellationRequest.hasPendingRequest(req.params.reservationId)) {
+    return res.render('public/cancel-request', {
+      reservation,
+      error: 'มีคำขอยกเลิกที่รอดำเนินการอยู่แล้ว'
+    });
+  }
+
+  const { reason, phone } = req.body;
+
+  try {
+    const requestId = CancellationRequest.create({
+      reservation_id: reservation.id,
+      reason: reason || null,
+      phone: phone || null
+    });
+
+    // ส่งแจ้งเตือน LINE ให้ Admin
+    const { notifyAdminCancellationRequest } = require('../utils/lineNotify');
+    const request = CancellationRequest.getById(requestId);
+    await notifyAdminCancellationRequest(request);
+
+    res.redirect('/cancel-request/success/' + requestId);
+  } catch (error) {
+    console.error('Cancel request error:', error);
+    res.render('public/cancel-request', {
+      reservation,
+      error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง'
+    });
+  }
+});
+
+// หน้ายืนยันการส่งคำขอยกเลิกสำเร็จ
+router.get('/cancel-request/success/:id', (req, res) => {
+  const request = CancellationRequest.getById(req.params.id);
+
+  if (!request) {
+    return res.redirect('/');
+  }
+
+  res.render('public/cancel-request-success', {
+    request
   });
 });
 

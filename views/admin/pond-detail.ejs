@@ -35,6 +35,11 @@
           </a>
         </li>
         <li>
+          <a href="/admin/cancel-requests">
+            <i class="bi bi-x-circle"></i> คำขอยกเลิก
+          </a>
+        </li>
+        <li>
           <a href="/admin/active">
             <i class="bi bi-play-circle"></i> กำลังใช้งาน
           </a>
@@ -123,6 +128,13 @@
                     </td>
                   </tr>
                 </table>
+
+                <% if (!pond.user_name && pond.status !== 'maintenance') { %>
+                  <hr>
+                  <a href="/booking/<%= pond.id %>" class="btn btn-primary w-100">
+                    <i class="bi bi-calendar-plus me-2"></i>จองบ่อนี้
+                  </a>
+                <% } %>
 
                 <% if (pond.user_name) { %>
                   <hr>

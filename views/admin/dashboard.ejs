@@ -147,6 +147,13 @@
           </a>
         </li>
         <% } %>
+        <% if (isLoggedIn) { %>
+        <li>
+          <a href="/admin/cancel-requests">
+            <i class="bi bi-x-circle"></i> คำขอยกเลิก
+          </a>
+        </li>
+        <% } %>
         <li>
           <a href="/admin/active">
             <i class="bi bi-play-circle"></i> กำลังใช้งาน
