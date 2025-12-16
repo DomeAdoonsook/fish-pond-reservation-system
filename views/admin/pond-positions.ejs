@@ -110,6 +110,9 @@
           <small class="text-muted">ลากบ่อไปวางตำแหน่งที่ต้องการ คลิกเพื่อเลือก แล้วลากมุมขวาล่างเพื่อปรับขนาด</small>
         </div>
         <div class="d-flex gap-2">
+          <button class="btn btn-info" onclick="exportPositions()">
+            <i class="bi bi-download me-1"></i>Export JSON
+          </button>
           <button class="btn btn-warning" onclick="resetPositions()">
             <i class="bi bi-arrow-counterclockwise me-1"></i>รีเซ็ต
           </button>
@@ -417,6 +420,36 @@
       .catch(err => {
         alert('เกิดข้อผิดพลาด: ' + err.message);
       });
+    }
+
+    function exportPositions() {
+      // สร้าง JSON ที่พร้อม copy ไปใส่ใน code
+      const json = JSON.stringify(currentPositions, null, 2);
+
+      // สร้าง modal แสดง JSON
+      const modal = document.createElement('div');
+      modal.innerHTML = `
+        <div class="modal fade show" style="display:block; background:rgba(0,0,0,0.5);" onclick="this.remove()">
+          <div class="modal-dialog modal-lg" onclick="event.stopPropagation()">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-code me-2"></i>Export ตำแหน่งบ่อ</h5>
+                <button type="button" class="btn-close" onclick="this.closest('.modal').parentElement.remove()"></button>
+              </div>
+              <div class="modal-body">
+                <p class="text-muted">Copy JSON นี้แล้วส่งให้ developer เพื่อ hardcode ลงใน code</p>
+                <textarea class="form-control" rows="15" readonly style="font-family: monospace; font-size: 12px;">${json}</textarea>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-primary" onclick="navigator.clipboard.writeText(\`${json.replace(/`/g, '\\`')}\`); alert('Copied!'); this.closest('.modal').parentElement.remove();">
+                  <i class="bi bi-clipboard me-1"></i>Copy to Clipboard
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
     }
 
     // Click outside to deselect
