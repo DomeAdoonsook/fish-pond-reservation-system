@@ -91,12 +91,16 @@ async function notifyAdminNewRequest(reservation) {
           footer: {
             type: 'box',
             layout: 'vertical',
+            spacing: 'sm',
             contents: [{
-              type: 'text',
-              text: '🔗 ไปที่ Dashboard เพื่ออนุมัติ',
-              size: 'sm',
-              color: '#666666',
-              align: 'center'
+              type: 'button',
+              style: 'primary',
+              color: '#27ae60',
+              action: {
+                type: 'uri',
+                label: 'ไปหน้าอนุมัติ',
+                uri: `${process.env.BASE_URL || 'http://localhost:3000'}/admin/requests`
+              }
             }]
           }
         }
@@ -465,12 +469,16 @@ async function notifyAdminCancellationRequest(request) {
           footer: {
             type: 'box',
             layout: 'vertical',
+            spacing: 'sm',
             contents: [{
-              type: 'text',
-              text: '🔗 ไปที่ Dashboard เพื่อดำเนินการ',
-              size: 'sm',
-              color: '#666666',
-              align: 'center'
+              type: 'button',
+              style: 'primary',
+              color: '#e74c3c',
+              action: {
+                type: 'uri',
+                label: 'ไปหน้าอนุมัติยกเลิก',
+                uri: `${process.env.BASE_URL || 'http://localhost:3000'}/admin/cancel-requests`
+              }
             }]
           }
         }
