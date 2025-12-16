@@ -235,28 +235,8 @@
       'G10': { left: 88, top: 48.89, width: 2, height: 2 }
     };
 
-    // ตำแหน่งปัจจุบัน (clone จาก default)
+    // ตำแหน่งปัจจุบัน (ใช้ค่า hardcoded เท่านั้นเพื่อให้ขนาดเท่ากันทุกบ่อ)
     let currentPositions = JSON.parse(JSON.stringify(defaultPositions));
-
-    // โหลดตำแหน่งที่บันทึกไว้จาก database
-    const savedPositions = {};
-    <% ponds.forEach(function(pond) { %>
-      <% if (pond.position_x !== null) { %>
-        savedPositions['<%= pond.pond_code %>'] = {
-          left: <%= pond.position_x || 0 %>,
-          top: <%= pond.position_y || 0 %>,
-          width: <%= pond.width || 5 %>,
-          height: <%= pond.height || 5 %>
-        };
-      <% } %>
-    <% }); %>
-
-    // ใช้ตำแหน่งที่บันทึกไว้ ถ้ามี
-    Object.keys(savedPositions).forEach(code => {
-      if (savedPositions[code].left > 0) {
-        currentPositions[code] = savedPositions[code];
-      }
-    });
 
     let selectedPond = null;
     let isDragging = false;
