@@ -65,14 +65,14 @@ router.get('/', optionalLogin, (req, res) => {
   });
 });
 
-// หน้าอนุมัติคำขอ (ต้อง login)
-router.get('/requests', requireLogin, (req, res) => {
+// หน้าอนุมัติคำขอ (ดูได้ไม่ต้อง login)
+router.get('/requests', optionalLogin, (req, res) => {
   const pending = Reservation.getPending();
   const pendingCount = pending.length;
 
   res.render('admin/requests', {
-    admin: req.session.admin,
-    isLoggedIn: true,
+    admin: req.session.admin || { name: 'ผู้เยี่ยมชม' },
+    isLoggedIn: !!req.session.admin,
     reservations: pending,
     pendingCount,
     page: 'requests'
@@ -295,15 +295,15 @@ router.post('/pond-positions', requireLogin, (req, res) => {
   }
 });
 
-// หน้าคำขอยกเลิก (ต้อง login)
-router.get('/cancel-requests', requireLogin, (req, res) => {
+// หน้าคำขอยกเลิก (ดูได้ไม่ต้อง login)
+router.get('/cancel-requests', optionalLogin, (req, res) => {
   const pending = CancellationRequest.getPending();
   const pendingCount = Reservation.getPending().length;
   const cancelPendingCount = pending.length;
 
   res.render('admin/cancel-requests', {
-    admin: req.session.admin,
-    isLoggedIn: true,
+    admin: req.session.admin || { name: 'ผู้เยี่ยมชม' },
+    isLoggedIn: !!req.session.admin,
     requests: pending,
     pendingCount,
     cancelPendingCount,

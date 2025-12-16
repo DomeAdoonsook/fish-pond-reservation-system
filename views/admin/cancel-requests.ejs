@@ -90,14 +90,18 @@
                     <% } %>
                   </div>
                   <div class="card-footer">
-                    <div class="d-flex gap-2">
-                      <button class="btn btn-success flex-fill" onclick="approveCancel(<%= r.id %>)">
-                        <i class="bi bi-check-lg"></i> อนุมัติยกเลิก
-                      </button>
-                      <button class="btn btn-secondary flex-fill" onclick="showRejectModal(<%= r.id %>)">
-                        <i class="bi bi-x-lg"></i> ปฏิเสธ
-                      </button>
-                    </div>
+                    <% if (isLoggedIn) { %>
+                      <div class="d-flex gap-2">
+                        <button class="btn btn-success flex-fill" onclick="approveCancel(<%= r.id %>)">
+                          <i class="bi bi-check-lg"></i> อนุมัติยกเลิก
+                        </button>
+                        <button class="btn btn-secondary flex-fill" onclick="showRejectModal(<%= r.id %>)">
+                          <i class="bi bi-x-lg"></i> ปฏิเสธ
+                        </button>
+                      </div>
+                    <% } else { %>
+                      <a href="/admin/login" class="btn btn-outline-primary w-100"><i class="bi bi-box-arrow-in-right"></i> เข้าสู่ระบบเพื่ออนุมัติ</a>
+                    <% } %>
                   </div>
                 </div>
               </div>

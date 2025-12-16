@@ -76,10 +76,14 @@
                     </table>
                   </div>
                   <div class="card-footer">
-                    <div class="d-flex gap-2">
-                      <button class="btn btn-success flex-fill" onclick="approveRequest(<%= r.id %>)"><i class="bi bi-check-lg"></i> อนุมัติ</button>
-                      <button class="btn btn-danger flex-fill" onclick="showRejectModal(<%= r.id %>)"><i class="bi bi-x-lg"></i> ไม่อนุมัติ</button>
-                    </div>
+                    <% if (isLoggedIn) { %>
+                      <div class="d-flex gap-2">
+                        <button class="btn btn-success flex-fill" onclick="approveRequest(<%= r.id %>)"><i class="bi bi-check-lg"></i> อนุมัติ</button>
+                        <button class="btn btn-danger flex-fill" onclick="showRejectModal(<%= r.id %>)"><i class="bi bi-x-lg"></i> ไม่อนุมัติ</button>
+                      </div>
+                    <% } else { %>
+                      <a href="/admin/login" class="btn btn-outline-primary w-100"><i class="bi bi-box-arrow-in-right"></i> เข้าสู่ระบบเพื่ออนุมัติ</a>
+                    <% } %>
                   </div>
                 </div>
               </div>
