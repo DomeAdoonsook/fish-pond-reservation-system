@@ -8,6 +8,61 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="/css/style.css" rel="stylesheet">
+  <style>
+    .pond-map-container {
+      position: relative;
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .pond-map-container img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .pond-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .pond-area {
+      position: absolute;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    .pond-area:hover {
+      transform: scale(1.05);
+      z-index: 10;
+      box-shadow: 0 0 10px rgba(255,255,255,0.8);
+    }
+    .pond-area.available {
+      background: rgba(40, 167, 69, 0.7);
+      border: 2px solid #28a745;
+    }
+    .pond-area.occupied {
+      background: rgba(220, 53, 69, 0.7);
+      border: 2px solid #dc3545;
+    }
+    .pond-area.pending {
+      background: rgba(255, 193, 7, 0.7);
+      border: 2px solid #ffc107;
+      color: #333;
+    }
+    .pond-area.maintenance {
+      background: rgba(108, 117, 125, 0.7);
+      border: 2px solid #6c757d;
+    }
+  </style>
 </head>
 <body>
   <div class="wrapper">
@@ -26,6 +81,7 @@
             <i class="bi bi-grid-3x3-gap"></i> ผังบ่อ
           </a>
         </li>
+        <% if (isLoggedIn) { %>
         <li>
           <a href="/admin/requests">
             <i class="bi bi-clipboard-check"></i> คำขอจอง
@@ -34,6 +90,7 @@
             <% } %>
           </a>
         </li>
+        <% } %>
         <li>
           <a href="/admin/active">
             <i class="bi bi-play-circle"></i> กำลังใช้งาน
@@ -44,14 +101,22 @@
             <i class="bi bi-clock-history"></i> ประวัติ
           </a>
         </li>
+        <% if (isLoggedIn) { %>
+        <li>
+          <a href="/admin/pond-positions">
+            <i class="bi bi-pin-map"></i> จัดตำแหน่งบ่อ
+          </a>
+        </li>
         <li>
           <a href="/admin/settings">
             <i class="bi bi-gear"></i> ตั้งค่า
           </a>
         </li>
+        <% } %>
       </ul>
 
       <div class="sidebar-footer p-3 border-top border-secondary">
+        <% if (isLoggedIn) { %>
         <div class="d-flex align-items-center text-white-50">
           <i class="bi bi-person-circle me-2"></i>
           <span><%= admin.name %></span>
@@ -59,6 +124,11 @@
         <a href="/admin/logout" class="btn btn-outline-light btn-sm mt-2 w-100">
           <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
         </a>
+        <% } else { %>
+        <a href="/admin/login" class="btn btn-outline-light btn-sm w-100">
+          <i class="bi bi-person-circle me-2"></i>เข้าสู่ระบบ
+        </a>
+        <% } %>
       </div>
     </nav>
 
@@ -146,130 +216,104 @@
           </div>
         </div>
 
-        <!-- Pond Map -->
+        <!-- Pond Map with Image Background -->
         <div class="card">
           <div class="card-header">
             <span><i class="bi bi-map me-2"></i>ผังบ่อเลี้ยงปลา</span>
+            <% if (isLoggedIn) { %>
+            <a href="/admin/pond-positions" class="btn btn-sm btn-outline-primary float-end">
+              <i class="bi bi-pin-map me-1"></i>จัดตำแหน่งบ่อ
+            </a>
+            <% } %>
           </div>
-          <div class="card-body">
-            <div class="pond-layout">
-              <!-- Left Section: Zone A, B, C, D -->
-              <div class="pond-section-left">
-                <!-- Zone A: Row 1 -->
-                <div class="pond-row">
-                  <% const zoneA = ponds.filter(p => p.zone === 'A').sort((a,b) => {
-                    const numA = parseInt(a.pond_code.replace('A',''));
-                    const numB = parseInt(b.pond_code.replace('A',''));
-                    return numA - numB;
-                  }); %>
-                  <% [4,3,2,1].forEach(function(num) {
-                    const pond = zoneA.find(p => p.pond_code === 'A' + num);
-                    if (pond) { %>
-                    <div class="pond-box <%= num === 1 ? 'pond-large' : (num === 3 ? 'pond-medium' : 'pond-small') %> <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>"
-                         onclick="showPondModal(<%= pond.id %>)" data-pond-id="<%= pond.id %>">
-                      <div class="pond-code"><%= pond.pond_code %></div>
-                      <% if (pond.user_name) { %><div class="pond-info"><small><%= pond.fish_type %></small></div><% } %>
-                    </div>
-                  <% }}); %>
-                </div>
+          <div class="card-body p-2" style="background: #f0f0f0;">
+            <div class="pond-map-container">
+              <img src="/images/pond-map-bg.png" alt="ผังบ่อเลี้ยงปลา">
+              <div class="pond-overlay">
+                <%
+                // ตำแหน่งเริ่มต้น (ใช้กรณียังไม่มีข้อมูลใน database)
+                const defaultPositions = {
+                  'A4': { left: 2.5, top: 8, width: 6, height: 12 },
+                  'A3': { left: 10, top: 8, width: 10, height: 12 },
+                  'A2': { left: 32, top: 8, width: 5, height: 7 },
+                  'A1': { left: 42, top: 6, width: 14, height: 16 },
+                  'B7': { left: 2.5, top: 22, width: 3.5, height: 5 },
+                  'B6': { left: 6.5, top: 22, width: 3.5, height: 5 },
+                  'B5': { left: 11, top: 22, width: 4, height: 5 },
+                  'B4': { left: 16, top: 22, width: 4, height: 5 },
+                  'B3': { left: 23, top: 17, width: 6, height: 14 },
+                  'B2': { left: 32, top: 22, width: 9, height: 9 },
+                  'B1': { left: 42, top: 22, width: 12, height: 9 },
+                  'C6': { left: 2.5, top: 29, width: 11, height: 14 },
+                  'C5': { left: 15, top: 33, width: 5, height: 9 },
+                  'C4': { left: 21, top: 33, width: 5, height: 9 },
+                  'C3': { left: 27, top: 33, width: 6, height: 9 },
+                  'C2': { left: 34, top: 33, width: 6, height: 9 },
+                  'C1': { left: 41, top: 33, width: 6, height: 9 },
+                  'C14': { left: 2.5, top: 45, width: 4, height: 8 },
+                  'C13': { left: 7, top: 45, width: 4.5, height: 8 },
+                  'C12': { left: 12, top: 45, width: 5, height: 8 },
+                  'C11': { left: 18, top: 45, width: 5, height: 8 },
+                  'C10': { left: 24, top: 45, width: 5, height: 8 },
+                  'C9': { left: 30, top: 45, width: 5, height: 8 },
+                  'C8': { left: 36, top: 45, width: 5, height: 8 },
+                  'C7': { left: 42, top: 45, width: 5, height: 8 },
+                  'D5': { left: 18, top: 55, width: 4.5, height: 6 },
+                  'D4': { left: 24, top: 55, width: 5, height: 6 },
+                  'D3': { left: 30, top: 55, width: 5, height: 6 },
+                  'D2': { left: 36, top: 55, width: 5, height: 6 },
+                  'D1': { left: 42, top: 55, width: 5, height: 6 },
+                  'D6': { left: 30, top: 76, width: 9, height: 14 },
+                  'E1': { left: 52, top: 64, width: 4, height: 6 },
+                  'E2': { left: 56.5, top: 64, width: 4, height: 6 },
+                  'E3': { left: 61, top: 64, width: 5, height: 6 },
+                  'E4': { left: 67, top: 58, width: 4, height: 5 },
+                  'E5': { left: 71.5, top: 58, width: 4, height: 5 },
+                  'F8': { left: 54, top: 8, width: 3.5, height: 6 },
+                  'F7': { left: 54, top: 15, width: 3.5, height: 5 },
+                  'F6': { left: 54, top: 21, width: 3.5, height: 5 },
+                  'F5': { left: 54, top: 27, width: 3.5, height: 5 },
+                  'F4': { left: 54, top: 33, width: 3.5, height: 5 },
+                  'F3': { left: 54, top: 39, width: 3.5, height: 5 },
+                  'F2': { left: 54, top: 45, width: 3.5, height: 5 },
+                  'F1': { left: 54, top: 51, width: 3.5, height: 6 },
+                  'G1': { left: 62, top: 33, width: 6, height: 9 },
+                  'G2': { left: 62, top: 44, width: 6, height: 9 },
+                  'G3': { left: 77, top: 10, width: 5, height: 6 },
+                  'G4': { left: 77, top: 17, width: 5, height: 6 },
+                  'G5': { left: 77, top: 24, width: 5, height: 6 },
+                  'G6': { left: 77, top: 31, width: 5, height: 6 },
+                  'G7': { left: 77, top: 38, width: 5, height: 6 },
+                  'G8': { left: 77, top: 45, width: 5, height: 6 },
+                  'G10': { left: 83, top: 55, width: 5, height: 6 }
+                };
 
-                <!-- Zone B: Row 2 -->
-                <div class="pond-row">
-                  <% const zoneB = ponds.filter(p => p.zone === 'B'); %>
-                  <% [7,6,5,4,3,2,1].forEach(function(num) {
-                    const pond = zoneB.find(p => p.pond_code === 'B' + num);
-                    if (pond) { %>
-                    <div class="pond-box pond-small <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>"
-                         onclick="showPondModal(<%= pond.id %>)" data-pond-id="<%= pond.id %>">
-                      <div class="pond-code"><%= pond.pond_code %></div>
-                      <% if (pond.user_name) { %><div class="pond-info"><small><%= pond.fish_type %></small></div><% } %>
-                    </div>
-                  <% }}); %>
-                </div>
+                // ใช้ตำแหน่งจาก database ถ้ามี ไม่งั้นใช้ค่าเริ่มต้น
+                const pondPositions = Object.assign({}, defaultPositions, savedPositions || {});
 
-                <!-- Zone C: Rows 3-5 -->
-                <div class="pond-row">
-                  <% const zoneC = ponds.filter(p => p.zone === 'C'); %>
-                  <% [6,5,4,3,2,1].forEach(function(num) {
-                    const pond = zoneC.find(p => p.pond_code === 'C' + num);
-                    if (pond) { %>
-                    <div class="pond-box pond-small <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>"
-                         onclick="showPondModal(<%= pond.id %>)" data-pond-id="<%= pond.id %>">
-                      <div class="pond-code"><%= pond.pond_code %></div>
-                      <% if (pond.user_name) { %><div class="pond-info"><small><%= pond.fish_type %></small></div><% } %>
-                    </div>
-                  <% }}); %>
-                </div>
-                <div class="pond-row">
-                  <% [14,13,12,11,10,9,8,7].forEach(function(num) {
-                    const pond = zoneC.find(p => p.pond_code === 'C' + num);
-                    if (pond) { %>
-                    <div class="pond-box pond-small <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>"
-                         onclick="showPondModal(<%= pond.id %>)" data-pond-id="<%= pond.id %>">
-                      <div class="pond-code"><%= pond.pond_code %></div>
-                      <% if (pond.user_name) { %><div class="pond-info"><small><%= pond.fish_type %></small></div><% } %>
-                    </div>
-                  <% }}); %>
-                </div>
-
-                <!-- Zone D: Row 6 -->
-                <div class="pond-row">
-                  <% const zoneD = ponds.filter(p => p.zone === 'D'); %>
-                  <% [6,5,4,3,2,1].forEach(function(num) {
-                    const pond = zoneD.find(p => p.pond_code === 'D' + num);
-                    if (pond) { %>
-                    <div class="pond-box pond-small <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>"
-                         onclick="showPondModal(<%= pond.id %>)" data-pond-id="<%= pond.id %>">
-                      <div class="pond-code"><%= pond.pond_code %></div>
-                      <% if (pond.user_name) { %><div class="pond-info"><small><%= pond.fish_type %></small></div><% } %>
-                    </div>
-                  <% }}); %>
-                </div>
-              </div>
-
-              <!-- Right Section: Zone F, G, E -->
-              <div class="pond-section-right">
-                <!-- Zone F (vertical) & Zone G -->
-                <div class="pond-right-top">
-                  <div class="pond-col zone-f">
-                    <% const zoneF = ponds.filter(p => p.zone === 'F'); %>
-                    <% [8,7,6,5,4,3,2,1].forEach(function(num) {
-                      const pond = zoneF.find(p => p.pond_code === 'F' + num);
-                      if (pond) { %>
-                      <div class="pond-box pond-tiny <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>"
-                           onclick="showPondModal(<%= pond.id %>)" data-pond-id="<%= pond.id %>">
-                        <div class="pond-code"><%= pond.pond_code %></div>
-                      </div>
-                    <% }}); %>
+                ponds.forEach(function(pond) {
+                  const pos = pondPositions[pond.pond_code];
+                  if (pos) {
+                    let statusClass = 'available';
+                    if (pond.user_name) {
+                      statusClass = 'occupied';
+                    } else if (pond.status === 'maintenance') {
+                      statusClass = 'maintenance';
+                    } else if (pond.status === 'pending') {
+                      statusClass = 'pending';
+                    }
+                %>
+                  <div class="pond-area <%= statusClass %>"
+                       data-pond-id="<%= pond.id %>"
+                       data-pond-code="<%= pond.pond_code %>"
+                       onclick="showPondModal(<%= pond.id %>)"
+                       style="left: <%= pos.left %>%; top: <%= pos.top %>%; width: <%= pos.width %>%; height: <%= pos.height %>%;">
+                    <%= pond.pond_code %>
                   </div>
-                  <div class="pond-col zone-g">
-                    <div class="pond-row-g">
-                      <% const zoneG = ponds.filter(p => p.zone === 'G'); %>
-                      <% [1,2,3,4,5,6,7,8,10].forEach(function(num) {
-                        const pond = zoneG.find(p => p.pond_code === 'G' + num);
-                        if (pond) { %>
-                        <div class="pond-box pond-tiny <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>"
-                             onclick="showPondModal(<%= pond.id %>)" data-pond-id="<%= pond.id %>">
-                          <div class="pond-code"><%= pond.pond_code %></div>
-                        </div>
-                      <% }}); %>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Zone E (bottom right) -->
-                <div class="pond-row zone-e">
-                  <% const zoneE = ponds.filter(p => p.zone === 'E'); %>
-                  <% [1,2,3,4,5].forEach(function(num) {
-                    const pond = zoneE.find(p => p.pond_code === 'E' + num);
-                    if (pond) { %>
-                    <div class="pond-box pond-small <%= pond.user_name ? 'occupied' : (pond.status === 'maintenance' ? 'maintenance' : 'available') %>"
-                         onclick="showPondModal(<%= pond.id %>)" data-pond-id="<%= pond.id %>">
-                      <div class="pond-code"><%= pond.pond_code %></div>
-                      <% if (pond.user_name) { %><div class="pond-info"><small><%= pond.fish_type %></small></div><% } %>
-                    </div>
-                  <% }}); %>
-                </div>
+                <%
+                  }
+                });
+                %>
               </div>
             </div>
           </div>
@@ -303,7 +347,77 @@
   <script src="/js/main.js"></script>
   <script>
     const pondsData = <%- JSON.stringify(ponds) %>;
+    const pondModal = new bootstrap.Modal(document.getElementById('pondModal'));
+
+    function showPondModal(pondId) {
+      const pond = pondsData.find(p => p.id === pondId);
+      if (!pond) return;
+
+      document.getElementById('modalPondCode').textContent = 'บ่อ ' + pond.pond_code;
+      document.getElementById('modalViewDetail').href = '/admin/pond/' + pondId;
+
+      let statusBadge = '';
+      let statusText = '';
+      if (pond.user_name) {
+        statusBadge = '<span class="badge bg-danger">ใช้งาน</span>';
+        statusText = 'กำลังใช้งานโดย ' + pond.user_name;
+      } else if (pond.status === 'maintenance') {
+        statusBadge = '<span class="badge bg-secondary">ปิดปรับปรุง</span>';
+        statusText = 'บ่อปิดปรับปรุง';
+      } else {
+        statusBadge = '<span class="badge bg-success">ว่าง</span>';
+        statusText = 'พร้อมให้จอง';
+      }
+
+      let html = `
+        <table class="table table-sm table-borderless">
+          <tr>
+            <td class="text-muted" width="35%">รหัสบ่อ:</td>
+            <td class="fw-bold">${pond.pond_code}</td>
+          </tr>
+          <tr>
+            <td class="text-muted">โซน:</td>
+            <td>${pond.zone}</td>
+          </tr>
+          <tr>
+            <td class="text-muted">ขนาด:</td>
+            <td>${pond.size === 'large' ? 'ใหญ่' : pond.size === 'medium' ? 'กลาง' : 'เล็ก'}</td>
+          </tr>
+          <tr>
+            <td class="text-muted">สถานะ:</td>
+            <td>${statusBadge}</td>
+          </tr>
+        </table>
+      `;
+
+      if (pond.user_name) {
+        html += `
+          <hr>
+          <h6><i class="bi bi-person me-2"></i>ข้อมูลการใช้งาน</h6>
+          <table class="table table-sm table-borderless">
+            <tr>
+              <td class="text-muted" width="35%">ผู้ใช้:</td>
+              <td class="fw-bold">${pond.user_name}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">ชนิดปลา:</td>
+              <td>${pond.fish_type || '-'}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">จำนวน:</td>
+              <td>${pond.fish_quantity ? pond.fish_quantity.toLocaleString() + ' ตัว' : '-'}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">อายุปลา:</td>
+              <td><span class="badge bg-info">${pond.fish_age_days || 0} วัน</span></td>
+            </tr>
+          </table>
+        `;
+      }
+
+      document.getElementById('modalPondBody').innerHTML = html;
+      pondModal.show();
+    }
   </script>
-  <script src="/js/pond-map.js"></script>
 </body>
 </html>

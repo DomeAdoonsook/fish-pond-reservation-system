@@ -51,6 +51,7 @@ router.get('/', optionalLogin, (req, res) => {
   const ponds = Pond.getAll();
   const status = Pond.getStatusCount();
   const pendingCount = Reservation.getPending().length;
+  const savedPositions = Pond.getPositions();
 
   res.render('admin/dashboard', {
     admin: req.session.admin || { name: 'ผู้เยี่ยมชม' },
@@ -58,6 +59,7 @@ router.get('/', optionalLogin, (req, res) => {
     ponds,
     status,
     pendingCount,
+    savedPositions,
     page: 'dashboard'
   });
 });
