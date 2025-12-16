@@ -619,6 +619,322 @@ function formatThaiDate(dateStr) {
   return `${day} ${month} ${year}`;
 }
 
+// ===== Equipment Notifications =====
+
+// แจ้ง Admin เมื่อมีคำขอยืมอุปกรณ์ใหม่
+async function notifyAdminNewEquipmentRequest(reservation) {
+  const adminLineUserId = process.env.ADMIN_LINE_USER_ID;
+  if (!adminLineUserId) {
+    console.log('ADMIN_LINE_USER_ID not configured');
+    return;
+  }
+
+  try {
+    await client.pushMessage({
+      to: adminLineUserId,
+      messages: [{
+        type: 'flex',
+        altText: 'คำขอยืมอุปกรณ์ใหม่',
+        contents: {
+          type: 'bubble',
+          header: {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#9b59b6',
+            contents: [{
+              type: 'text',
+              text: '🔧 คำขอยืมอุปกรณ์ใหม่!',
+              weight: 'bold',
+              color: '#ffffff',
+              size: 'lg'
+            }]
+          },
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'md',
+            contents: [{
+              type: 'text',
+              text: `#EQ-${String(reservation.id).padStart(4, '0')}`,
+              weight: 'bold',
+              size: 'lg'
+            }, {
+              type: 'separator'
+            }, {
+              type: 'box',
+              layout: 'horizontal',
+              contents: [{
+                type: 'text',
+                text: 'ผู้ขอ:',
+                color: '#666666',
+                flex: 2
+              }, {
+                type: 'text',
+                text: reservation.user_name,
+                weight: 'bold',
+                flex: 3
+              }]
+            }, {
+              type: 'box',
+              layout: 'horizontal',
+              contents: [{
+                type: 'text',
+                text: 'วันที่ยืม:',
+                color: '#666666',
+                flex: 2
+              }, {
+                type: 'text',
+                text: formatThaiDate(reservation.borrow_date),
+                flex: 3
+              }]
+            }, {
+              type: 'box',
+              layout: 'horizontal',
+              contents: [{
+                type: 'text',
+                text: 'กำหนดคืน:',
+                color: '#666666',
+                flex: 2
+              }, {
+                type: 'text',
+                text: formatThaiDate(reservation.return_date),
+                flex: 3
+              }]
+            }]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            contents: [{
+              type: 'button',
+              style: 'primary',
+              color: '#9b59b6',
+              action: {
+                type: 'uri',
+                label: 'ไปหน้าอนุมัติ',
+                uri: `${process.env.BASE_URL || 'http://localhost:3000'}/admin/equipment/requests`
+              }
+            }]
+          }
+        }
+      }]
+    });
+    console.log('Admin notified of new equipment request');
+  } catch (error) {
+    console.error('Error notifying admin of equipment request:', error);
+  }
+}
+
+// แจ้งผู้ใช้เมื่อคำขอยืมอุปกรณ์ได้รับการอนุมัติ
+async function sendEquipmentApprovalNotification(lineUserId, reservation) {
+  if (!lineUserId) return;
+
+  try {
+    await client.pushMessage({
+      to: lineUserId,
+      messages: [{
+        type: 'flex',
+        altText: 'คำขอยืมอุปกรณ์ได้รับการอนุมัติ',
+        contents: {
+          type: 'bubble',
+          header: {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#27ae60',
+            contents: [{
+              type: 'text',
+              text: '✅ อนุมัติแล้ว!',
+              weight: 'bold',
+              color: '#ffffff',
+              size: 'lg'
+            }]
+          },
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'md',
+            contents: [{
+              type: 'text',
+              text: `#EQ-${String(reservation.id).padStart(4, '0')}`,
+              weight: 'bold',
+              size: 'lg'
+            }, {
+              type: 'separator'
+            }, {
+              type: 'text',
+              text: '🔧 คำขอยืมอุปกรณ์ได้รับการอนุมัติ',
+              size: 'md',
+              margin: 'md'
+            }, {
+              type: 'text',
+              text: `📅 วันที่ยืม: ${formatThaiDate(reservation.borrow_date)}`,
+              size: 'sm',
+              color: '#666666'
+            }, {
+              type: 'text',
+              text: `📅 กำหนดคืน: ${formatThaiDate(reservation.return_date)}`,
+              size: 'sm',
+              color: '#666666'
+            }]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [{
+              type: 'text',
+              text: 'กรุณามารับอุปกรณ์ตามวันที่กำหนด',
+              size: 'sm',
+              color: '#27ae60',
+              align: 'center',
+              wrap: true
+            }]
+          }
+        }
+      }]
+    });
+    console.log('User notified of equipment approval');
+  } catch (error) {
+    console.error('Error sending equipment approval notification:', error);
+  }
+}
+
+// แจ้งผู้ใช้เมื่อคำขอยืมอุปกรณ์ไม่ได้รับการอนุมัติ
+async function sendEquipmentRejectionNotification(lineUserId, reservation, reason) {
+  if (!lineUserId) return;
+
+  try {
+    await client.pushMessage({
+      to: lineUserId,
+      messages: [{
+        type: 'flex',
+        altText: 'คำขอยืมอุปกรณ์ไม่ได้รับการอนุมัติ',
+        contents: {
+          type: 'bubble',
+          header: {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#e74c3c',
+            contents: [{
+              type: 'text',
+              text: '❌ ไม่อนุมัติ',
+              weight: 'bold',
+              color: '#ffffff',
+              size: 'lg'
+            }]
+          },
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'md',
+            contents: [{
+              type: 'text',
+              text: `#EQ-${String(reservation.id).padStart(4, '0')}`,
+              weight: 'bold',
+              size: 'lg'
+            }, {
+              type: 'separator'
+            }, {
+              type: 'text',
+              text: '🔧 คำขอยืมอุปกรณ์ไม่ได้รับการอนุมัติ',
+              size: 'md',
+              margin: 'md',
+              wrap: true
+            }, {
+              type: 'text',
+              text: reason ? `เหตุผล: ${reason}` : 'ไม่ระบุเหตุผล',
+              size: 'sm',
+              color: '#666666',
+              wrap: true,
+              margin: 'md'
+            }]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [{
+              type: 'text',
+              text: 'สามารถส่งคำขอใหม่ได้',
+              size: 'sm',
+              color: '#666666',
+              align: 'center'
+            }]
+          }
+        }
+      }]
+    });
+    console.log('User notified of equipment rejection');
+  } catch (error) {
+    console.error('Error sending equipment rejection notification:', error);
+  }
+}
+
+// แจ้งเตือนใกล้ถึงวันคืนอุปกรณ์
+async function sendEquipmentReturnReminder(lineUserId, reservation, daysRemaining) {
+  if (!lineUserId) return;
+
+  try {
+    await client.pushMessage({
+      to: lineUserId,
+      messages: [{
+        type: 'flex',
+        altText: 'แจ้งเตือนใกล้ถึงกำหนดคืนอุปกรณ์',
+        contents: {
+          type: 'bubble',
+          header: {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#f39c12',
+            contents: [{
+              type: 'text',
+              text: '⏰ แจ้งเตือน',
+              weight: 'bold',
+              color: '#ffffff',
+              size: 'lg'
+            }]
+          },
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'md',
+            contents: [{
+              type: 'text',
+              text: `#EQ-${String(reservation.id).padStart(4, '0')}`,
+              weight: 'bold',
+              size: 'lg'
+            }, {
+              type: 'text',
+              text: `ใกล้ถึงกำหนดคืนอุปกรณ์ใน ${daysRemaining} วัน`,
+              size: 'md',
+              color: '#e74c3c',
+              wrap: true
+            }, {
+              type: 'text',
+              text: `วันกำหนดคืน: ${formatThaiDate(reservation.return_date)}`,
+              size: 'sm',
+              color: '#666666'
+            }]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [{
+              type: 'text',
+              text: 'กรุณาคืนอุปกรณ์ตามกำหนด',
+              size: 'sm',
+              color: '#666666',
+              align: 'center'
+            }]
+          }
+        }
+      }]
+    });
+    console.log('Equipment return reminder sent');
+  } catch (error) {
+    console.error('Error sending equipment return reminder:', error);
+  }
+}
+
 module.exports = {
   notifyAdminNewRequest,
   sendApprovalNotification,
@@ -627,5 +943,10 @@ module.exports = {
   sendExpiryReminder,
   notifyAdminCancellationRequest,
   sendCancellationApprovalNotification,
-  sendCancellationRejectionNotification
+  sendCancellationRejectionNotification,
+  // Equipment notifications
+  notifyAdminNewEquipmentRequest,
+  sendEquipmentApprovalNotification,
+  sendEquipmentRejectionNotification,
+  sendEquipmentReturnReminder
 };

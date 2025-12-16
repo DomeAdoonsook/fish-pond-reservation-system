@@ -58,6 +58,66 @@ body {
   margin-right: 10px;
 }
 
+/* Sidebar Dropdown Menu */
+#sidebar .nav-section {
+  margin-bottom: 5px;
+}
+
+#sidebar .nav-section > a.nav-link {
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  color: rgba(255,255,255,0.8);
+  text-decoration: none;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+#sidebar .nav-section > a.nav-link:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+#sidebar .nav-section > a.nav-link:not(.collapsed) {
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+}
+
+#sidebar .nav-section > a.nav-link::after {
+  content: '\F282';
+  font-family: 'bootstrap-icons';
+  margin-left: auto;
+  transition: transform 0.2s;
+}
+
+#sidebar .nav-section > a.nav-link:not(.collapsed)::after {
+  transform: rotate(180deg);
+}
+
+#sidebar .submenu {
+  padding-left: 15px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+#sidebar .submenu li a {
+  padding: 8px 15px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.6);
+  border-left: 2px solid transparent;
+}
+
+#sidebar .submenu li a:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.05);
+}
+
+#sidebar .submenu li.active a {
+  color: #fff;
+  background: rgba(255,255,255,0.1);
+  border-left-color: #27ae60;
+}
+
 #sidebar .sidebar-footer {
   position: relative;
   width: 100%;

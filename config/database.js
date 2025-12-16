@@ -92,6 +92,56 @@ db.exec(`
     FOREIGN KEY (processed_by) REFERENCES admins(id)
   );
 
+  -- ตาราง equipment_categories (หมวดหมู่อุปกรณ์)
+  CREATE TABLE IF NOT EXISTS equipment_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- ตาราง equipment (รายการอุปกรณ์)
+  CREATE TABLE IF NOT EXISTS equipment (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    category_id INTEGER,
+    total_quantity INTEGER NOT NULL DEFAULT 0,
+    unit TEXT DEFAULT 'ชิ้น',
+    description TEXT,
+    status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES equipment_categories(id)
+  );
+
+  -- ตาราง equipment_reservations (การจองอุปกรณ์)
+  CREATE TABLE IF NOT EXISTS equipment_reservations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_name TEXT NOT NULL,
+    line_user_id TEXT,
+    phone TEXT,
+    purpose TEXT,
+    borrow_date DATE NOT NULL,
+    return_date DATE NOT NULL,
+    actual_return_date DATE,
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected', 'borrowed', 'returned', 'cancelled', 'overdue')),
+    reject_reason TEXT,
+    approved_by INTEGER,
+    approved_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (approved_by) REFERENCES admins(id)
+  );
+
+  -- ตาราง equipment_reservation_items (รายการอุปกรณ์ในการจอง)
+  CREATE TABLE IF NOT EXISTS equipment_reservation_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    reservation_id INTEGER NOT NULL,
+    equipment_id INTEGER NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    returned_quantity INTEGER DEFAULT 0,
+    FOREIGN KEY (reservation_id) REFERENCES equipment_reservations(id) ON DELETE CASCADE,
+    FOREIGN KEY (equipment_id) REFERENCES equipment(id)
+  );
+
   -- Index สำหรับ query ที่ใช้บ่อย
   CREATE INDEX IF NOT EXISTS idx_ponds_zone ON ponds(zone);
   CREATE INDEX IF NOT EXISTS idx_ponds_status ON ponds(status);
@@ -99,6 +149,11 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_reservations_pond_id ON reservations(pond_id);
   CREATE INDEX IF NOT EXISTS idx_reservations_line_user_id ON reservations(line_user_id);
   CREATE INDEX IF NOT EXISTS idx_cancellation_requests_status ON cancellation_requests(status);
+  CREATE INDEX IF NOT EXISTS idx_equipment_category ON equipment(category_id);
+  CREATE INDEX IF NOT EXISTS idx_equipment_status ON equipment(status);
+  CREATE INDEX IF NOT EXISTS idx_eq_reservations_status ON equipment_reservations(status);
+  CREATE INDEX IF NOT EXISTS idx_eq_reservations_line_user ON equipment_reservations(line_user_id);
+  CREATE INDEX IF NOT EXISTS idx_eq_reservation_items_reservation ON equipment_reservation_items(reservation_id);
 `);
 
 // เพิ่ม column phone ถ้ายังไม่มี

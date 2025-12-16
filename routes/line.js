@@ -5,6 +5,9 @@ const Pond = require('../models/Pond');
 const Reservation = require('../models/Reservation');
 const UserSession = require('../models/UserSession');
 const Log = require('../models/Log');
+const Equipment = require('../models/Equipment');
+const EquipmentCategory = require('../models/EquipmentCategory');
+const EquipmentReservation = require('../models/EquipmentReservation');
 
 // LINE Config
 const config = {
@@ -62,8 +65,12 @@ async function handleTextMessage(event, userId) {
     return showMainMenu(event.replyToken);
   }
 
-  if (lowerText.includes('จอง') || lowerText.includes('ขอใช้') || lowerText.includes('book')) {
+  if (lowerText.includes('จองบ่อ') || lowerText.includes('ขอใช้บ่อ')) {
     return startBookingFlow(event.replyToken, userId);
+  }
+
+  if (lowerText.includes('ยืมอุปกรณ์') || lowerText.includes('ยืม') || lowerText.includes('อุปกรณ์')) {
+    return startEquipmentBorrowFlow(event.replyToken, userId);
   }
 
   if (lowerText.includes('ยกเลิก') || lowerText.includes('cancel')) {
@@ -119,6 +126,21 @@ async function handlePostback(event, userId) {
     case 'cancel_flow':
       UserSession.reset(userId);
       return showMainMenu(event.replyToken);
+
+    // Equipment postbacks
+    case 'borrow_equipment':
+      return startEquipmentBorrowFlow(event.replyToken, userId);
+
+    case 'select_eq_category':
+      const catId = params.get('cat_id');
+      return showEquipmentInCategory(event.replyToken, userId, catId);
+
+    case 'select_equipment':
+      const eqId = params.get('eq_id');
+      return startEquipmentSelection(event.replyToken, userId, eqId);
+
+    case 'my_equipment':
+      return showUserEquipmentReservations(event.replyToken, userId);
 
     default:
       return showMainMenu(event.replyToken);
@@ -235,6 +257,100 @@ async function handleConversationFlow(event, userId, state, data, text) {
           }]
         });
       }
+
+    // Equipment borrowing flow
+    case 'eq_awaiting_quantity':
+      const eqQty = parseInt(text);
+      if (isNaN(eqQty) || eqQty <= 0) {
+        return client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: 'text', text: '❌ กรุณาระบุจำนวนเป็นตัวเลขที่มากกว่า 0' }]
+        });
+      }
+      if (eqQty > data.available) {
+        return client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: 'text', text: `❌ จำนวนไม่เพียงพอ (ว่าง ${data.available})` }]
+        });
+      }
+      data.items = data.items || [];
+      data.items.push({ equipment_id: data.current_eq_id, quantity: eqQty, name: data.current_eq_name });
+      UserSession.set(userId, 'eq_awaiting_more', data);
+      return client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{
+          type: 'text',
+          text: `✅ เพิ่ม ${data.current_eq_name} x${eqQty} แล้ว\n\nต้องการเพิ่มอุปกรณ์อื่นไหม?\nพิมพ์ "เพิ่ม" หรือ "ต่อไป" เพื่อไปขั้นตอนถัดไป`
+        }]
+      });
+
+    case 'eq_awaiting_more':
+      if (text.includes('เพิ่ม') || text.includes('อื่น')) {
+        return startEquipmentBorrowFlow(event.replyToken, userId, data);
+      } else {
+        UserSession.set(userId, 'eq_awaiting_borrow_date', data);
+        return client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: 'text', text: '📅 กรุณาระบุวันที่ต้องการยืม\n\nรูปแบบ: วัน/เดือน/ปี\nตัวอย่าง: 15/12/2567' }]
+        });
+      }
+
+    case 'eq_awaiting_borrow_date':
+      const borrowDate = parseThaiDate(text);
+      if (!borrowDate) {
+        return client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: 'text', text: '❌ รูปแบบวันที่ไม่ถูกต้อง\nตัวอย่าง: 15/12/2567' }]
+        });
+      }
+      data.borrow_date = borrowDate;
+      UserSession.set(userId, 'eq_awaiting_return_date', data);
+      return client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: 'text', text: '📅 กรุณาระบุวันที่จะคืน\n\nรูปแบบ: วัน/เดือน/ปี\nตัวอย่าง: 20/12/2567' }]
+      });
+
+    case 'eq_awaiting_return_date':
+      const returnDate = parseThaiDate(text);
+      if (!returnDate) {
+        return client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: 'text', text: '❌ รูปแบบวันที่ไม่ถูกต้อง\nตัวอย่าง: 20/12/2567' }]
+        });
+      }
+      data.return_date = returnDate;
+      UserSession.set(userId, 'eq_awaiting_name', data);
+      return client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: 'text', text: '👤 กรุณาระบุชื่อผู้ยืม' }]
+      });
+
+    case 'eq_awaiting_name':
+      data.user_name = text;
+      UserSession.set(userId, 'eq_awaiting_phone', data);
+      return client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: 'text', text: '📱 กรุณาระบุเบอร์โทรศัพท์\n\nหรือพิมพ์ "ข้าม" หากไม่ต้องการระบุ' }]
+      });
+
+    case 'eq_awaiting_phone':
+      data.phone = text === 'ข้าม' ? null : text;
+      return showEquipmentConfirmation(event.replyToken, userId, data);
+
+    case 'eq_awaiting_confirm':
+      if (text === 'ยืนยัน' || text.toLowerCase() === 'yes' || text === 'ใช่') {
+        return createEquipmentReservation(event.replyToken, userId, data);
+      } else if (text === 'ยกเลิก' || text.toLowerCase() === 'no' || text === 'ไม่') {
+        UserSession.reset(userId);
+        return client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: 'text', text: '❌ ยกเลิกการยืมอุปกรณ์แล้ว' }]
+        });
+      }
+      return client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: 'text', text: 'กรุณาพิมพ์ "ยืนยัน" เพื่อยืนยัน หรือ "ยกเลิก" เพื่อยกเลิก' }]
+      });
 
     default:
       UserSession.reset(userId);
@@ -372,6 +488,26 @@ async function showMainMenu(replyToken) {
               type: 'postback',
               label: '❌ ยกเลิกการใช้บ่อ',
               data: 'action=cancel_booking'
+            }
+          }, {
+            type: 'separator',
+            margin: 'md'
+          }, {
+            type: 'button',
+            style: 'primary',
+            color: '#9b59b6',
+            action: {
+              type: 'postback',
+              label: '🔧 ยืมอุปกรณ์',
+              data: 'action=borrow_equipment'
+            }
+          }, {
+            type: 'button',
+            style: 'secondary',
+            action: {
+              type: 'postback',
+              label: '📦 สถานะการยืมอุปกรณ์',
+              data: 'action=my_equipment'
             }
           }]
         }
@@ -1011,6 +1147,405 @@ function formatThaiDate(dateStr) {
   const month = thaiMonths[date.getMonth()];
   const year = date.getFullYear() + 543;
   return `${day} ${month} ${year}`;
+}
+
+// ===== Equipment Borrowing Functions =====
+
+// เริ่ม flow ยืมอุปกรณ์
+async function startEquipmentBorrowFlow(replyToken, userId, existingData = null) {
+  const categories = EquipmentCategory.getAll();
+
+  if (categories.length === 0) {
+    return client.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: '❌ ยังไม่มีหมวดหมู่อุปกรณ์ในระบบ' }]
+    });
+  }
+
+  const catButtons = categories.slice(0, 10).map(c => ({
+    type: 'button',
+    style: 'primary',
+    color: '#9b59b6',
+    action: {
+      type: 'postback',
+      label: c.name,
+      data: `action=select_eq_category&cat_id=${c.id}`
+    }
+  }));
+
+  // เก็บ session ถ้ามี data เดิม
+  if (existingData && existingData.items) {
+    UserSession.set(userId, 'eq_selecting', existingData);
+  }
+
+  return client.replyMessage({
+    replyToken,
+    messages: [{
+      type: 'flex',
+      altText: 'เลือกหมวดหมู่อุปกรณ์',
+      contents: {
+        type: 'bubble',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          backgroundColor: '#9b59b6',
+          contents: [{
+            type: 'text',
+            text: '🔧 ยืมอุปกรณ์',
+            weight: 'bold',
+            size: 'lg',
+            color: '#ffffff'
+          }]
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            { type: 'text', text: 'เลือกหมวดหมู่อุปกรณ์:', size: 'sm', color: '#666666' },
+            ...catButtons
+          ]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [{
+            type: 'button',
+            style: 'secondary',
+            action: {
+              type: 'postback',
+              label: '🔙 กลับเมนูหลัก',
+              data: 'action=menu'
+            }
+          }]
+        }
+      }
+    }]
+  });
+}
+
+// แสดงอุปกรณ์ในหมวดหมู่
+async function showEquipmentInCategory(replyToken, userId, categoryId) {
+  const equipment = Equipment.getByCategory(categoryId).filter(e => e.available_quantity > 0);
+
+  if (equipment.length === 0) {
+    return client.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: '❌ ไม่มีอุปกรณ์ว่างในหมวดหมู่นี้' }]
+    });
+  }
+
+  const eqButtons = equipment.slice(0, 10).map(e => ({
+    type: 'button',
+    style: 'primary',
+    color: '#27ae60',
+    action: {
+      type: 'postback',
+      label: `${e.name} (ว่าง ${e.available_quantity})`,
+      data: `action=select_equipment&eq_id=${e.id}`
+    }
+  }));
+
+  return client.replyMessage({
+    replyToken,
+    messages: [{
+      type: 'flex',
+      altText: 'เลือกอุปกรณ์',
+      contents: {
+        type: 'bubble',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [{
+            type: 'text',
+            text: '📦 เลือกอุปกรณ์',
+            weight: 'bold',
+            size: 'lg'
+          }]
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: eqButtons
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [{
+            type: 'button',
+            style: 'secondary',
+            action: {
+              type: 'postback',
+              label: '🔙 เลือกหมวดหมู่อื่น',
+              data: 'action=borrow_equipment'
+            }
+          }]
+        }
+      }
+    }]
+  });
+}
+
+// เริ่มเลือกอุปกรณ์
+async function startEquipmentSelection(replyToken, userId, equipmentId) {
+  const eq = Equipment.getById(equipmentId);
+  if (!eq || eq.available_quantity <= 0) {
+    return client.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: '❌ อุปกรณ์นี้ไม่ว่างแล้ว' }]
+    });
+  }
+
+  const session = UserSession.get(userId);
+  const data = session?.data || {};
+  data.current_eq_id = equipmentId;
+  data.current_eq_name = eq.name;
+  data.available = eq.available_quantity;
+
+  UserSession.set(userId, 'eq_awaiting_quantity', data);
+
+  return client.replyMessage({
+    replyToken,
+    messages: [{
+      type: 'text',
+      text: `🔧 ${eq.name}\nว่าง: ${eq.available_quantity} ${eq.unit}\n\n🔢 กรุณาระบุจำนวนที่ต้องการยืม`
+    }]
+  });
+}
+
+// แสดงสรุปการยืมอุปกรณ์
+async function showEquipmentConfirmation(replyToken, userId, data) {
+  UserSession.set(userId, 'eq_awaiting_confirm', data);
+
+  const itemsList = data.items.map(i => `• ${i.name} x${i.quantity}`).join('\n');
+
+  return client.replyMessage({
+    replyToken,
+    messages: [{
+      type: 'flex',
+      altText: 'ยืนยันการยืมอุปกรณ์',
+      contents: {
+        type: 'bubble',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          backgroundColor: '#9b59b6',
+          contents: [{
+            type: 'text',
+            text: '📋 สรุปการยืมอุปกรณ์',
+            weight: 'bold',
+            size: 'lg',
+            color: '#ffffff'
+          }]
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'md',
+          contents: [{
+            type: 'text',
+            text: `👤 ผู้ยืม: ${data.user_name}`,
+            size: 'sm'
+          }, {
+            type: 'text',
+            text: `📱 โทร: ${data.phone || '-'}`,
+            size: 'sm'
+          }, {
+            type: 'text',
+            text: `📅 วันยืม: ${formatThaiDate(data.borrow_date)}`,
+            size: 'sm'
+          }, {
+            type: 'text',
+            text: `📅 วันคืน: ${formatThaiDate(data.return_date)}`,
+            size: 'sm'
+          }, {
+            type: 'separator',
+            margin: 'md'
+          }, {
+            type: 'text',
+            text: '📦 รายการอุปกรณ์:',
+            size: 'sm',
+            weight: 'bold',
+            margin: 'md'
+          }, {
+            type: 'text',
+            text: itemsList,
+            size: 'sm',
+            wrap: true
+          }, {
+            type: 'separator',
+            margin: 'md'
+          }, {
+            type: 'text',
+            text: 'พิมพ์ "ยืนยัน" เพื่อส่งคำขอ',
+            size: 'sm',
+            color: '#27ae60',
+            margin: 'md'
+          }, {
+            type: 'text',
+            text: 'หรือ "ยกเลิก" เพื่อยกเลิก',
+            size: 'sm',
+            color: '#e74c3c'
+          }]
+        }
+      }
+    }]
+  });
+}
+
+// สร้างคำขอยืมอุปกรณ์
+async function createEquipmentReservation(replyToken, userId, data) {
+  try {
+    const reservation = EquipmentReservation.create({
+      user_name: data.user_name,
+      line_user_id: userId,
+      phone: data.phone,
+      borrow_date: data.borrow_date,
+      return_date: data.return_date,
+      items: data.items.map(i => ({ equipment_id: i.equipment_id, quantity: i.quantity }))
+    });
+
+    UserSession.reset(userId);
+
+    // แจ้ง Admin
+    const { notifyAdminNewEquipmentRequest } = require('../utils/lineNotify');
+    await notifyAdminNewEquipmentRequest({
+      id: reservation.id,
+      user_name: data.user_name,
+      borrow_date: data.borrow_date,
+      return_date: data.return_date
+    });
+
+    return client.replyMessage({
+      replyToken,
+      messages: [{
+        type: 'flex',
+        altText: 'ส่งคำขอยืมอุปกรณ์เรียบร้อย',
+        contents: {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [{
+              type: 'text',
+              text: '✅ ส่งคำขอยืมอุปกรณ์เรียบร้อย!',
+              weight: 'bold',
+              size: 'lg',
+              color: '#27ae60'
+            }, {
+              type: 'text',
+              text: `หมายเลขคำขอ: #EQ-${String(reservation.id).padStart(4, '0')}`,
+              size: 'sm',
+              color: '#666666',
+              margin: 'md'
+            }, {
+              type: 'text',
+              text: 'กรุณารอการอนุมัติจากเจ้าหน้าที่',
+              size: 'sm',
+              color: '#666666',
+              margin: 'sm'
+            }]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [{
+              type: 'button',
+              style: 'primary',
+              color: '#27ae60',
+              action: {
+                type: 'postback',
+                label: '🏠 กลับเมนูหลัก',
+                data: 'action=menu'
+              }
+            }]
+          }
+        }
+      }]
+    });
+  } catch (error) {
+    console.error('Create equipment reservation error:', error);
+    UserSession.reset(userId);
+    return client.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: '❌ เกิดข้อผิดพลาด กรุณาลองใหม่' }]
+    });
+  }
+}
+
+// แสดงสถานะการยืมอุปกรณ์ของผู้ใช้
+async function showUserEquipmentReservations(replyToken, userId) {
+  const reservations = EquipmentReservation.getByLineUserId(userId);
+
+  if (!reservations || reservations.length === 0) {
+    return client.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: '📦 คุณยังไม่มีการยืมอุปกรณ์' }]
+    });
+  }
+
+  const bubbles = reservations.slice(0, 5).map(r => {
+    const statusText = {
+      pending: '🟡 รออนุมัติ',
+      approved: '🟢 อนุมัติแล้ว',
+      rejected: '🔴 ไม่อนุมัติ',
+      borrowed: '📦 กำลังยืม',
+      returned: '✅ คืนแล้ว',
+      cancelled: '⚪ ยกเลิก',
+      overdue: '🔴 เลยกำหนด'
+    }[r.status] || r.status;
+
+    const items = EquipmentReservation.getItems(r.id);
+    const itemsText = items.slice(0, 3).map(i => `${i.equipment_name} x${i.quantity}`).join(', ');
+
+    return {
+      type: 'bubble',
+      size: 'kilo',
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        contents: [{
+          type: 'text',
+          text: `#EQ-${String(r.id).padStart(4, '0')}`,
+          weight: 'bold',
+          size: 'lg'
+        }, {
+          type: 'text',
+          text: statusText,
+          size: 'sm'
+        }, {
+          type: 'separator',
+          margin: 'md'
+        }, {
+          type: 'text',
+          text: `📅 ${formatThaiDate(r.borrow_date)} - ${formatThaiDate(r.return_date)}`,
+          size: 'xs',
+          color: '#666666',
+          margin: 'md'
+        }, {
+          type: 'text',
+          text: `📦 ${itemsText}`,
+          size: 'xs',
+          color: '#666666',
+          wrap: true
+        }]
+      }
+    };
+  });
+
+  return client.replyMessage({
+    replyToken,
+    messages: [{
+      type: 'flex',
+      altText: 'สถานะการยืมอุปกรณ์',
+      contents: {
+        type: 'carousel',
+        contents: bubbles
+      }
+    }]
+  });
 }
 
 module.exports = router;

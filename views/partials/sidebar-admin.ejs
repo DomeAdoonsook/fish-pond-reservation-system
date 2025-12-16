@@ -1,0 +1,129 @@
+<nav id="sidebar" class="bg-dark">
+  <div class="sidebar-header p-3">
+    <h4 class="text-white mb-0">
+      <i class="bi bi-water"></i> บ่อเลี้ยงปลา
+    </h4>
+    <small class="text-muted">คณะประมง</small>
+  </div>
+
+  <ul class="list-unstyled components p-3">
+    <!-- ขอใช้บ่อ (Dropdown) -->
+    <li class="nav-section">
+      <a href="#pondMenu" data-bs-toggle="collapse" class="nav-link dropdown-toggle <%= ['dashboard', 'requests', 'cancel-requests', 'active', 'history', 'pond-detail', 'pond-positions'].includes(page) ? '' : 'collapsed' %>" aria-expanded="<%= ['dashboard', 'requests', 'cancel-requests', 'active', 'history', 'pond-detail', 'pond-positions'].includes(page) ? 'true' : 'false' %>">
+        <i class="bi bi-water"></i> ขอใช้บ่อ
+      </a>
+      <div class="collapse <%= ['dashboard', 'requests', 'cancel-requests', 'active', 'history', 'pond-detail', 'pond-positions'].includes(page) ? 'show' : '' %>" id="pondMenu">
+        <ul class="list-unstyled submenu">
+          <li class="<%= page === 'dashboard' ? 'active' : '' %>">
+            <a href="/admin">
+              <i class="bi bi-grid-3x3-gap"></i> ผังบ่อ
+            </a>
+          </li>
+          <% if (isLoggedIn) { %>
+          <li class="<%= page === 'requests' ? 'active' : '' %>">
+            <a href="/admin/requests">
+              <i class="bi bi-clipboard-check"></i> คำขอใช้บ่อ
+              <% if (pendingCount > 0) { %>
+                <span class="badge bg-warning text-dark ms-2"><%= pendingCount %></span>
+              <% } %>
+            </a>
+          </li>
+          <li class="<%= page === 'cancel-requests' ? 'active' : '' %>">
+            <a href="/admin/cancel-requests">
+              <i class="bi bi-x-circle"></i> คำขอยกเลิก
+              <% if (cancelPendingCount > 0) { %>
+                <span class="badge bg-danger ms-2"><%= cancelPendingCount %></span>
+              <% } %>
+            </a>
+          </li>
+          <% } %>
+          <li class="<%= page === 'active' ? 'active' : '' %>">
+            <a href="/admin/active">
+              <i class="bi bi-play-circle"></i> กำลังใช้งาน
+            </a>
+          </li>
+          <li class="<%= page === 'history' ? 'active' : '' %>">
+            <a href="/admin/history">
+              <i class="bi bi-clock-history"></i> ประวัติ
+            </a>
+          </li>
+        </ul>
+      </div>
+    </li>
+
+    <!-- ขอใช้อุปกรณ์ (Dropdown) -->
+    <li class="nav-section">
+      <a href="#equipmentMenu" data-bs-toggle="collapse" class="nav-link dropdown-toggle <%= ['equipment', 'equipment-requests', 'equipment-borrowed', 'equipment-history'].includes(page) ? '' : 'collapsed' %>" aria-expanded="<%= ['equipment', 'equipment-requests', 'equipment-borrowed', 'equipment-history'].includes(page) ? 'true' : 'false' %>">
+        <i class="bi bi-tools"></i> ขอใช้อุปกรณ์
+      </a>
+      <div class="collapse <%= ['equipment', 'equipment-requests', 'equipment-borrowed', 'equipment-history'].includes(page) ? 'show' : '' %>" id="equipmentMenu">
+        <ul class="list-unstyled submenu">
+          <li class="<%= page === 'equipment' ? 'active' : '' %>">
+            <a href="/admin/equipment">
+              <i class="bi bi-box-seam"></i> รายการอุปกรณ์
+            </a>
+          </li>
+          <% if (isLoggedIn) { %>
+          <li class="<%= page === 'equipment-requests' ? 'active' : '' %>">
+            <a href="/admin/equipment-requests">
+              <i class="bi bi-clipboard-check"></i> คำขอยืม
+              <% if (equipmentPendingCount > 0) { %>
+                <span class="badge bg-warning text-dark ms-2"><%= equipmentPendingCount %></span>
+              <% } %>
+            </a>
+          </li>
+          <% } %>
+          <li class="<%= page === 'equipment-borrowed' ? 'active' : '' %>">
+            <a href="/admin/equipment-borrowed">
+              <i class="bi bi-arrow-left-right"></i> กำลังยืม
+            </a>
+          </li>
+          <li class="<%= page === 'equipment-history' ? 'active' : '' %>">
+            <a href="/admin/equipment-history">
+              <i class="bi bi-clock-history"></i> ประวัติ
+            </a>
+          </li>
+        </ul>
+      </div>
+    </li>
+
+    <!-- ตั้งค่า (Dropdown) -->
+    <% if (isLoggedIn) { %>
+    <li class="nav-section">
+      <a href="#settingsMenu" data-bs-toggle="collapse" class="nav-link dropdown-toggle <%= ['pond-positions', 'settings'].includes(page) ? '' : 'collapsed' %>" aria-expanded="<%= ['pond-positions', 'settings'].includes(page) ? 'true' : 'false' %>">
+        <i class="bi bi-gear"></i> ตั้งค่า
+      </a>
+      <div class="collapse <%= ['pond-positions', 'settings'].includes(page) ? 'show' : '' %>" id="settingsMenu">
+        <ul class="list-unstyled submenu">
+          <li class="<%= page === 'pond-positions' ? 'active' : '' %>">
+            <a href="/admin/pond-positions">
+              <i class="bi bi-pin-map"></i> จัดตำแหน่งบ่อ
+            </a>
+          </li>
+          <li class="<%= page === 'settings' ? 'active' : '' %>">
+            <a href="/admin/settings">
+              <i class="bi bi-sliders"></i> ตั้งค่าระบบ
+            </a>
+          </li>
+        </ul>
+      </div>
+    </li>
+    <% } %>
+  </ul>
+
+  <div class="sidebar-footer p-3 border-top border-secondary">
+    <% if (isLoggedIn) { %>
+    <div class="d-flex align-items-center text-white-50">
+      <i class="bi bi-person-circle me-2"></i>
+      <span><%= admin.name %></span>
+    </div>
+    <a href="/admin/logout" class="btn btn-outline-light btn-sm mt-2 w-100">
+      <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
+    </a>
+    <% } else { %>
+    <a href="/admin/login" class="btn btn-outline-light btn-sm w-100">
+      <i class="bi bi-person-circle me-2"></i>เข้าสู่ระบบ
+    </a>
+    <% } %>
+  </div>
+</nav>

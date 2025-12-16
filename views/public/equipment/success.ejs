@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ส่งคำขอยืมสำเร็จ - คณะประมง</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+      <a class="navbar-brand" href="/"><i class="bi bi-water me-2"></i>คณะประมง</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-grid-3x3-gap me-1"></i>ผังบ่อ</a></li>
+          <li class="nav-item"><a class="nav-link active" href="/equipment"><i class="bi bi-tools me-1"></i>อุปกรณ์</a></li>
+          <li class="nav-item"><a class="nav-link" href="/status"><i class="bi bi-search me-1"></i>ตรวจสอบสถานะ</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-6">
+        <div class="card shadow">
+          <div class="card-body text-center py-5">
+            <div class="mb-4">
+              <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+            </div>
+            <h2 class="text-success mb-3">ส่งคำขอยืมสำเร็จ!</h2>
+            <p class="text-muted mb-4">กรุณารอการอนุมัติจากเจ้าหน้าที่</p>
+
+            <div class="card bg-light mb-4">
+              <div class="card-body">
+                <h5 class="mb-3">รายละเอียดคำขอ</h5>
+                <table class="table table-borderless mb-0">
+                  <tr>
+                    <td class="text-muted">หมายเลขคำขอ:</td>
+                    <td class="fw-bold text-primary">#EQ-<%= String(reservation.id).padStart(4, '0') %></td>
+                  </tr>
+                  <tr>
+                    <td class="text-muted">ผู้ยืม:</td>
+                    <td><%= reservation.user_name %></td>
+                  </tr>
+                  <tr>
+                    <td class="text-muted">วันที่ยืม:</td>
+                    <td><%= reservation.borrow_date %></td>
+                  </tr>
+                  <tr>
+                    <td class="text-muted">กำหนดคืน:</td>
+                    <td><%= reservation.return_date %></td>
+                  </tr>
+                </table>
+                <hr>
+                <h6>รายการอุปกรณ์:</h6>
+                <ul class="list-group list-group-flush">
+                  <% items.forEach(function(item) { %>
+                    <li class="list-group-item d-flex justify-content-between bg-transparent">
+                      <span><%= item.equipment_name %></span>
+                      <span class="badge bg-primary"><%= item.quantity %> <%= item.unit %></span>
+                    </li>
+                  <% }); %>
+                </ul>
+              </div>
+            </div>
+
+            <div class="alert alert-info text-start">
+              <i class="bi bi-info-circle me-2"></i>
+              <strong>สถานะปัจจุบัน:</strong> รอการอนุมัติ
+              <br><small>คุณจะได้รับแจ้งเตือนเมื่อคำขอได้รับการพิจารณา</small>
+            </div>
+
+            <div class="d-grid gap-2">
+              <a href="/equipment" class="btn btn-primary btn-lg">
+                <i class="bi bi-arrow-left me-2"></i>กลับหน้าอุปกรณ์
+              </a>
+              <a href="/" class="btn btn-outline-secondary">หน้าแรก</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

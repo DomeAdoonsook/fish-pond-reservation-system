@@ -123,77 +123,7 @@
 
   <div class="wrapper">
     <!-- Sidebar -->
-    <nav id="sidebar" class="bg-dark">
-      <div class="sidebar-header p-3">
-        <h4 class="text-white mb-0">
-          <i class="bi bi-water"></i> บ่อเลี้ยงปลา
-        </h4>
-        <small class="text-muted">คณะประมง</small>
-      </div>
-
-      <ul class="list-unstyled components p-3">
-        <li class="active">
-          <a href="/admin">
-            <i class="bi bi-grid-3x3-gap"></i> ผังบ่อ
-          </a>
-        </li>
-        <% if (isLoggedIn) { %>
-        <li>
-          <a href="/admin/requests">
-            <i class="bi bi-clipboard-check"></i> คำขอใช้บ่อ
-            <% if (pendingCount > 0) { %>
-              <span class="badge bg-warning text-dark ms-2"><%= pendingCount %></span>
-            <% } %>
-          </a>
-        </li>
-        <% } %>
-        <% if (isLoggedIn) { %>
-        <li>
-          <a href="/admin/cancel-requests">
-            <i class="bi bi-x-circle"></i> คำขอยกเลิก
-          </a>
-        </li>
-        <% } %>
-        <li>
-          <a href="/admin/active">
-            <i class="bi bi-play-circle"></i> กำลังใช้งาน
-          </a>
-        </li>
-        <li>
-          <a href="/admin/history">
-            <i class="bi bi-clock-history"></i> ประวัติ
-          </a>
-        </li>
-        <% if (isLoggedIn) { %>
-        <li>
-          <a href="/admin/pond-positions">
-            <i class="bi bi-pin-map"></i> จัดตำแหน่งบ่อ
-          </a>
-        </li>
-        <li>
-          <a href="/admin/settings">
-            <i class="bi bi-gear"></i> ตั้งค่า
-          </a>
-        </li>
-        <% } %>
-      </ul>
-
-      <div class="sidebar-footer p-3 border-top border-secondary">
-        <% if (isLoggedIn) { %>
-        <div class="d-flex align-items-center text-white-50">
-          <i class="bi bi-person-circle me-2"></i>
-          <span><%= admin.name %></span>
-        </div>
-        <a href="/admin/logout" class="btn btn-outline-light btn-sm mt-2 w-100">
-          <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
-        </a>
-        <% } else { %>
-        <a href="/admin/login" class="btn btn-outline-light btn-sm w-100">
-          <i class="bi bi-person-circle me-2"></i>เข้าสู่ระบบ
-        </a>
-        <% } %>
-      </div>
-    </nav>
+    <%- include('../partials/sidebar-admin', { page: 'dashboard', isLoggedIn, admin, pendingCount, cancelPendingCount: cancelPendingCount || 0, equipmentPendingCount: equipmentPendingCount || 0 }) %>
 
     <!-- Page Content -->
     <div id="content">

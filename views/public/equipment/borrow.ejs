@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ยืมอุปกรณ์ - คณะประมง</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+      <a class="navbar-brand" href="/"><i class="bi bi-water me-2"></i>คณะประมง</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-grid-3x3-gap me-1"></i>ผังบ่อ</a></li>
+          <li class="nav-item"><a class="nav-link active" href="/equipment"><i class="bi bi-tools me-1"></i>อุปกรณ์</a></li>
+          <li class="nav-item"><a class="nav-link" href="/status"><i class="bi bi-search me-1"></i>ตรวจสอบสถานะ</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/equipment">อุปกรณ์</a></li>
+        <li class="breadcrumb-item active">ยืมอุปกรณ์</li>
+      </ol>
+    </nav>
+
+    <div class="row">
+      <div class="col-lg-8">
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-box-arrow-right me-2"></i>ยืมอุปกรณ์</h5>
+          </div>
+          <div class="card-body">
+            <form id="borrowForm">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">ชื่อผู้ยืม <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" name="user_name" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">เบอร์โทรศัพท์</label>
+                  <input type="tel" class="form-control" name="phone" placeholder="0xx-xxx-xxxx">
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">วันที่ยืม <span class="text-danger">*</span></label>
+                  <input type="date" class="form-control" name="borrow_date" id="borrowDate" required onchange="updateAvailability()">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">วันที่คืน <span class="text-danger">*</span></label>
+                  <input type="date" class="form-control" name="return_date" id="returnDate" required onchange="updateAvailability()">
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">วัตถุประสงค์</label>
+                <textarea class="form-control" name="purpose" rows="2" placeholder="ระบุวัตถุประสงค์ในการยืม..."></textarea>
+              </div>
+
+              <hr>
+
+              <h6 class="mb-3"><i class="bi bi-list-check me-2"></i>เลือกอุปกรณ์ที่ต้องการยืม</h6>
+
+              <div class="mb-3">
+                <select class="form-select mb-3" id="filterCategory" onchange="filterEquipment()">
+                  <option value="">ทุกหมวดหมู่</option>
+                  <% categories.forEach(function(c) { %>
+                    <option value="<%= c.id %>"><%= c.name %></option>
+                  <% }); %>
+                </select>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-hover" id="equipmentTable">
+                  <thead class="table-light">
+                    <tr>
+                      <th width="50"></th>
+                      <th>อุปกรณ์</th>
+                      <th class="text-center" width="100">ว่าง</th>
+                      <th class="text-center" width="120">จำนวน</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% equipment.forEach(function(eq) { %>
+                      <tr class="equipment-row" data-category="<%= eq.category_id || '' %>" data-id="<%= eq.id %>" data-max="<%= eq.available_quantity %>">
+                        <td>
+                          <input type="checkbox" class="form-check-input equipment-check"
+                            data-id="<%= eq.id %>" <%= eq.available_quantity === 0 ? 'disabled' : '' %>>
+                        </td>
+                        <td>
+                          <strong><%= eq.name %></strong>
+                          <br><small class="text-muted"><%= eq.category_name || 'ไม่ระบุหมวดหมู่' %></small>
+                        </td>
+                        <td class="text-center available-qty">
+                          <span class="badge <%= eq.available_quantity > 0 ? 'bg-success' : 'bg-danger' %>">
+                            <%= eq.available_quantity %> <%= eq.unit %>
+                          </span>
+                        </td>
+                        <td>
+                          <input type="number" class="form-control form-control-sm quantity-input"
+                            data-id="<%= eq.id %>" min="1" max="<%= eq.available_quantity %>" value="1"
+                            <%= eq.available_quantity === 0 ? 'disabled' : '' %>>
+                        </td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">
+                  <i class="bi bi-send me-2"></i>ส่งคำขอยืม
+                </button>
+                <a href="/equipment" class="btn btn-outline-secondary btn-lg">ยกเลิก</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card sticky-top" style="top: 20px;">
+          <div class="card-header bg-info text-white">
+            <h6 class="mb-0"><i class="bi bi-cart me-2"></i>รายการที่เลือก</h6>
+          </div>
+          <div class="card-body">
+            <div id="selectedItems">
+              <p class="text-muted text-center">ยังไม่ได้เลือกอุปกรณ์</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Set min date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('borrowDate').min = today;
+    document.getElementById('returnDate').min = today;
+
+    // Filter equipment by category
+    function filterEquipment() {
+      const category = document.getElementById('filterCategory').value;
+      document.querySelectorAll('.equipment-row').forEach(row => {
+        const rowCategory = row.dataset.category;
+        row.style.display = (!category || rowCategory === category) ? '' : 'none';
+      });
+    }
+
+    // Update selected items display
+    function updateSelectedItems() {
+      const selected = [];
+      document.querySelectorAll('.equipment-check:checked').forEach(check => {
+        const row = check.closest('tr');
+        const name = row.querySelector('strong').textContent;
+        const qty = row.querySelector('.quantity-input').value;
+        selected.push({ id: check.dataset.id, name, quantity: parseInt(qty) });
+      });
+
+      const container = document.getElementById('selectedItems');
+      if (selected.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">ยังไม่ได้เลือกอุปกรณ์</p>';
+      } else {
+        let html = '<ul class="list-group list-group-flush">';
+        selected.forEach(item => {
+          html += `<li class="list-group-item d-flex justify-content-between">
+            <span>${item.name}</span>
+            <span class="badge bg-primary">${item.quantity}</span>
+          </li>`;
+        });
+        html += '</ul>';
+        container.innerHTML = html;
+      }
+    }
+
+    // Event listeners
+    document.querySelectorAll('.equipment-check').forEach(check => {
+      check.addEventListener('change', updateSelectedItems);
+    });
+
+    document.querySelectorAll('.quantity-input').forEach(input => {
+      input.addEventListener('change', function() {
+        const max = parseInt(this.max) || 1;
+        if (parseInt(this.value) > max) this.value = max;
+        if (parseInt(this.value) < 1) this.value = 1;
+        updateSelectedItems();
+      });
+    });
+
+    // Update availability when dates change
+    async function updateAvailability() {
+      const borrowDate = document.getElementById('borrowDate').value;
+      const returnDate = document.getElementById('returnDate').value;
+      if (!borrowDate || !returnDate) return;
+
+      // Update return date min
+      document.getElementById('returnDate').min = borrowDate;
+
+      // Check availability for each equipment
+      const rows = document.querySelectorAll('.equipment-row');
+      for (const row of rows) {
+        const id = row.dataset.id;
+        try {
+          const res = await fetch(`/equipment/api/availability?equipment_id=${id}&borrow_date=${borrowDate}&return_date=${returnDate}`);
+          const data = await res.json();
+          const availableQty = row.querySelector('.available-qty');
+          const checkbox = row.querySelector('.equipment-check');
+          const input = row.querySelector('.quantity-input');
+
+          if (data.available > 0) {
+            availableQty.innerHTML = `<span class="badge bg-success">${data.available}</span>`;
+            checkbox.disabled = false;
+            input.disabled = false;
+            input.max = data.available;
+            row.dataset.max = data.available;
+          } else {
+            availableQty.innerHTML = `<span class="badge bg-danger">0</span>`;
+            checkbox.disabled = true;
+            checkbox.checked = false;
+            input.disabled = true;
+          }
+        } catch (e) {
+          console.error('Error checking availability:', e);
+        }
+      }
+      updateSelectedItems();
+    }
+
+    // Form submit
+    document.getElementById('borrowForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+
+      const items = [];
+      document.querySelectorAll('.equipment-check:checked').forEach(check => {
+        const row = check.closest('tr');
+        const qty = parseInt(row.querySelector('.quantity-input').value);
+        items.push({ equipment_id: parseInt(check.dataset.id), quantity: qty });
+      });
+
+      if (items.length === 0) {
+        alert('กรุณาเลือกอุปกรณ์ที่ต้องการยืม');
+        return;
+      }
+
+      const data = {
+        user_name: form.user_name.value,
+        phone: form.phone.value,
+        purpose: form.purpose.value,
+        borrow_date: form.borrow_date.value,
+        return_date: form.return_date.value,
+        items: items
+      };
+
+      try {
+        const res = await fetch('/equipment/borrow', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          window.location.href = '/equipment/borrow/success/' + result.id;
+        } else {
+          alert(result.error || 'เกิดข้อผิดพลาด');
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        alert('เกิดข้อผิดพลาดในการส่งคำขอ');
+      }
+    });
+  </script>
+</body>
+</html>
