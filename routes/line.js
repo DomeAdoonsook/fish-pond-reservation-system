@@ -62,7 +62,7 @@ async function handleTextMessage(event, userId) {
     return showMainMenu(event.replyToken);
   }
 
-  if (lowerText.includes('จอง') || lowerText.includes('book')) {
+  if (lowerText.includes('จอง') || lowerText.includes('ขอใช้') || lowerText.includes('book')) {
     return startBookingFlow(event.replyToken, userId);
   }
 
@@ -223,7 +223,7 @@ async function handleConversationFlow(event, userId, state, data, text) {
           replyToken: event.replyToken,
           messages: [{
             type: 'text',
-            text: '❌ ยกเลิกการจองแล้ว'
+            text: '❌ ยกเลิกการขอใช้บ่อแล้ว'
           }]
         });
       } else {
@@ -231,7 +231,7 @@ async function handleConversationFlow(event, userId, state, data, text) {
           replyToken: event.replyToken,
           messages: [{
             type: 'text',
-            text: 'กรุณาพิมพ์ "ยืนยัน" เพื่อยืนยันการจอง\nหรือ "ยกเลิก" เพื่อยกเลิก'
+            text: 'กรุณาพิมพ์ "ยืนยัน" เพื่อยืนยันการขอใช้บ่อ\nหรือ "ยกเลิก" เพื่อยกเลิก'
           }]
         });
       }
@@ -250,7 +250,7 @@ async function showMainMenu(replyToken) {
     replyToken,
     messages: [{
       type: 'flex',
-      altText: 'เมนูหลัก - ระบบจองบ่อเลี้ยงปลา',
+      altText: 'เมนูหลัก - ระบบขอใช้บ่อเลี้ยงปลา',
       contents: {
         type: 'bubble',
         header: {
@@ -258,7 +258,7 @@ async function showMainMenu(replyToken) {
           layout: 'vertical',
           contents: [{
             type: 'text',
-            text: '🐟 ระบบจองบ่อเลี้ยงปลา',
+            text: '🐟 ระบบขอใช้บ่อเลี้ยงปลา',
             weight: 'bold',
             size: 'lg',
             color: '#1a472a'
@@ -346,7 +346,7 @@ async function showMainMenu(replyToken) {
             color: '#27ae60',
             action: {
               type: 'postback',
-              label: '📋 จองบ่อ',
+              label: '📋 ขอใช้บ่อ',
               data: 'action=book'
             }
           }, {
@@ -362,7 +362,7 @@ async function showMainMenu(replyToken) {
             style: 'secondary',
             action: {
               type: 'postback',
-              label: '📊 สถานะการจองของฉัน',
+              label: '📊 สถานะการขอใช้บ่อของฉัน',
               data: 'action=my_status'
             }
           }, {
@@ -370,7 +370,7 @@ async function showMainMenu(replyToken) {
             style: 'secondary',
             action: {
               type: 'postback',
-              label: '❌ ยกเลิกการจอง',
+              label: '❌ ยกเลิกการใช้บ่อ',
               data: 'action=cancel_booking'
             }
           }]
@@ -380,7 +380,7 @@ async function showMainMenu(replyToken) {
   });
 }
 
-// Start booking flow - show zones
+// Start booking flow (ขอใช้บ่อ) - show zones
 async function startBookingFlow(replyToken, userId) {
   const zones = Pond.getAvailableCountByZone();
 
@@ -507,7 +507,7 @@ async function showPondsInZone(replyToken, userId, zone) {
   });
 }
 
-// Start pond booking
+// Start pond booking (เริ่มขอใช้บ่อ)
 async function startPondBooking(replyToken, userId, pondId) {
   const pond = Pond.getById(pondId);
 
@@ -521,7 +521,7 @@ async function startPondBooking(replyToken, userId, pondId) {
     });
   }
 
-  // เริ่ม session การจอง
+  // เริ่ม session การขอใช้บ่อ
   UserSession.set(userId, 'awaiting_name', {
     pond_id: pondId,
     pond_code: pond.pond_code
@@ -531,7 +531,7 @@ async function startPondBooking(replyToken, userId, pondId) {
     replyToken,
     messages: [{
       type: 'text',
-      text: `📝 เริ่มจองบ่อ ${pond.pond_code}\n\n👤 กรุณาระบุชื่อผู้จอง`
+      text: `📝 เริ่มขอใช้บ่อ ${pond.pond_code}\n\n👤 กรุณาระบุชื่อผู้ขอ`
     }]
   });
 }
@@ -547,7 +547,7 @@ async function showBookingConfirmation(replyToken, userId, data) {
     replyToken,
     messages: [{
       type: 'flex',
-      altText: 'ยืนยันการจอง',
+      altText: 'ยืนยันการขอใช้บ่อ',
       contents: {
         type: 'bubble',
         header: {
@@ -555,7 +555,7 @@ async function showBookingConfirmation(replyToken, userId, data) {
           layout: 'vertical',
           contents: [{
             type: 'text',
-            text: '📋 สรุปการจอง',
+            text: '📋 สรุปการขอใช้บ่อ',
             weight: 'bold',
             size: 'lg'
           }]
@@ -583,7 +583,7 @@ async function showBookingConfirmation(replyToken, userId, data) {
             layout: 'horizontal',
             contents: [{
               type: 'text',
-              text: 'ผู้จอง:',
+              text: 'ผู้ขอ:',
               color: '#666666',
               flex: 2
             }, {
@@ -673,7 +673,7 @@ async function showBookingConfirmation(replyToken, userId, data) {
             margin: 'lg'
           }, {
             type: 'text',
-            text: 'พิมพ์ "ยืนยัน" เพื่อส่งคำขอจอง',
+            text: 'พิมพ์ "ยืนยัน" เพื่อส่งคำขอใช้บ่อ',
             size: 'sm',
             color: '#666666'
           }, {
@@ -724,7 +724,7 @@ async function createReservation(replyToken, userId, data) {
       replyToken,
       messages: [{
         type: 'flex',
-        altText: 'ส่งคำขอจองเรียบร้อย',
+        altText: 'ส่งคำขอใช้บ่อเรียบร้อย',
         contents: {
           type: 'bubble',
           body: {
@@ -732,7 +732,7 @@ async function createReservation(replyToken, userId, data) {
             layout: 'vertical',
             contents: [{
               type: 'text',
-              text: '✅ ส่งคำขอจองเรียบร้อย!',
+              text: '✅ ส่งคำขอใช้บ่อเรียบร้อย!',
               weight: 'bold',
               size: 'lg',
               color: '#27ae60'
@@ -847,7 +847,7 @@ async function showAvailablePonds(replyToken) {
             color: '#27ae60',
             action: {
               type: 'postback',
-              label: '📋 จองบ่อเลย',
+              label: '📋 ขอใช้บ่อเลย',
               data: 'action=book'
             }
           }]
@@ -866,7 +866,7 @@ async function showUserReservations(replyToken, userId, mode) {
       replyToken,
       messages: [{
         type: 'text',
-        text: '📋 คุณยังไม่มีการจอง'
+        text: '📋 คุณยังไม่มีการขอใช้บ่อ'
       }]
     });
   }
@@ -930,7 +930,7 @@ async function showUserReservations(replyToken, userId, mode) {
           color: '#e74c3c',
           action: {
             type: 'postback',
-            label: '❌ ยกเลิกการจองนี้',
+            label: '❌ ยกเลิกการใช้บ่อนี้',
             data: `action=confirm_cancel&id=${r.id}`
           }
         }]
@@ -944,7 +944,7 @@ async function showUserReservations(replyToken, userId, mode) {
     replyToken,
     messages: [{
       type: 'flex',
-      altText: 'การจองของคุณ',
+      altText: 'การขอใช้บ่อของคุณ',
       contents: {
         type: 'carousel',
         contents: bubbles
@@ -962,7 +962,7 @@ async function confirmCancelBooking(replyToken, userId, reservationId) {
       replyToken,
       messages: [{
         type: 'text',
-        text: '❌ ไม่พบการจองนี้หรือคุณไม่มีสิทธิ์ยกเลิก'
+        text: '❌ ไม่พบการใช้บ่อนี้หรือคุณไม่มีสิทธิ์ยกเลิก'
       }]
     });
   }
@@ -979,7 +979,7 @@ async function confirmCancelBooking(replyToken, userId, reservationId) {
     replyToken,
     messages: [{
       type: 'text',
-      text: `✅ ยกเลิกการจองบ่อ ${reservation.pond_code} เรียบร้อยแล้ว`
+      text: `✅ ยกเลิกการใช้บ่อ ${reservation.pond_code} เรียบร้อยแล้ว`
     }]
   });
 }

@@ -20,7 +20,7 @@
         <li><a href="/admin"><i class="bi bi-grid-3x3-gap"></i> ผังบ่อ</a></li>
         <li>
           <a href="/admin/requests">
-            <i class="bi bi-clipboard-check"></i> คำขอจอง
+            <i class="bi bi-clipboard-check"></i> คำขอใช้บ่อ
             <% if (pendingCount > 0) { %><span class="badge bg-warning text-dark ms-2"><%= pendingCount %></span><% } %>
           </a>
         </li>
@@ -75,7 +75,7 @@
               </div>
               <div class="col-md-4">
                 <label class="form-label">ค้นหา</label>
-                <input type="text" class="form-control" id="filterSearch" placeholder="ค้นหาชื่อผู้จอง, บ่อ, ชนิดปลา..." oninput="filterTable()">
+                <input type="text" class="form-control" id="filterSearch" placeholder="ค้นหาชื่อผู้ขอ, บ่อ, ชนิดปลา..." oninput="filterTable()">
               </div>
             </div>
           </div>
@@ -87,7 +87,7 @@
               <tr>
                 <th>รหัส</th>
                 <th>บ่อ</th>
-                <th>ผู้จอง</th>
+                <th>ผู้ขอ</th>
                 <th>ชนิดปลา</th>
                 <th>จำนวน</th>
                 <th>ระยะเวลา</th>

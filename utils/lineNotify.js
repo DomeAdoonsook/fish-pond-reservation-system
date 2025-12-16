@@ -4,7 +4,7 @@ const client = new line.messagingApi.MessagingApiClient({
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN
 });
 
-// แจ้ง Admin เมื่อมีคำขอจองใหม่
+// แจ้ง Admin เมื่อมีคำขอใช้บ่อใหม่
 async function notifyAdminNewRequest(reservation) {
   const adminLineUserId = process.env.ADMIN_LINE_USER_ID;
   if (!adminLineUserId) {
@@ -17,7 +17,7 @@ async function notifyAdminNewRequest(reservation) {
       to: adminLineUserId,
       messages: [{
         type: 'flex',
-        altText: 'คำขอจองบ่อใหม่',
+        altText: 'คำขอใช้บ่อใหม่',
         contents: {
           type: 'bubble',
           header: {
@@ -26,7 +26,7 @@ async function notifyAdminNewRequest(reservation) {
             backgroundColor: '#f39c12',
             contents: [{
               type: 'text',
-              text: '📋 คำขอจองใหม่!',
+              text: '📋 คำขอใช้บ่อใหม่!',
               weight: 'bold',
               color: '#ffffff',
               size: 'lg'
@@ -124,7 +124,7 @@ async function sendApprovalNotification(reservation) {
       to: reservation.line_user_id,
       messages: [{
         type: 'flex',
-        altText: 'คำขอจองได้รับการอนุมัติ',
+        altText: 'คำขอใช้บ่อได้รับการอนุมัติ',
         contents: {
           type: 'bubble',
           header: {
@@ -202,7 +202,7 @@ async function sendRejectionNotification(reservation, reason) {
       to: reservation.line_user_id,
       messages: [{
         type: 'flex',
-        altText: 'คำขอจองไม่ได้รับการอนุมัติ',
+        altText: 'คำขอใช้บ่อไม่ได้รับการอนุมัติ',
         contents: {
           type: 'bubble',
           header: {
@@ -257,7 +257,7 @@ async function sendRejectionNotification(reservation, reason) {
   }
 }
 
-// แจ้งเตือนก่อนหมดอายุการจอง
+// แจ้งเตือนก่อนหมดอายุการใช้บ่อ
 async function sendExpiryReminder(reservation, daysRemaining) {
   if (!reservation.line_user_id) return;
 
@@ -266,7 +266,7 @@ async function sendExpiryReminder(reservation, daysRemaining) {
       to: reservation.line_user_id,
       messages: [{
         type: 'flex',
-        altText: 'แจ้งเตือนการจองใกล้หมดอายุ',
+        altText: 'แจ้งเตือนการใช้บ่อใกล้หมดอายุ',
         contents: {
           type: 'bubble',
           header: {
@@ -292,7 +292,7 @@ async function sendExpiryReminder(reservation, daysRemaining) {
               size: 'lg'
             }, {
               type: 'text',
-              text: `การจองจะสิ้นสุดใน ${daysRemaining} วัน`,
+              text: `การใช้บ่อจะสิ้นสุดใน ${daysRemaining} วัน`,
               size: 'md',
               color: '#e74c3c',
               wrap: true
@@ -312,7 +312,7 @@ async function sendExpiryReminder(reservation, daysRemaining) {
   }
 }
 
-// แจ้งผู้ใช้เมื่อการจองถูกยกเลิก
+// แจ้งผู้ใช้เมื่อการใช้บ่อถูกยกเลิก
 async function sendCancellationNotification(reservation, reason) {
   if (!reservation.line_user_id) return;
 
@@ -321,7 +321,7 @@ async function sendCancellationNotification(reservation, reason) {
       to: reservation.line_user_id,
       messages: [{
         type: 'flex',
-        altText: 'การจองถูกยกเลิก',
+        altText: 'การใช้บ่อถูกยกเลิก',
         contents: {
           type: 'bubble',
           header: {
@@ -330,7 +330,7 @@ async function sendCancellationNotification(reservation, reason) {
             backgroundColor: '#95a5a6',
             contents: [{
               type: 'text',
-              text: '🚫 การจองถูกยกเลิก',
+              text: '🚫 การใช้บ่อถูกยกเลิก',
               weight: 'bold',
               color: '#ffffff',
               size: 'lg'
@@ -382,7 +382,7 @@ async function sendCancellationNotification(reservation, reason) {
   }
 }
 
-// แจ้ง Admin เมื่อมีคำขอยกเลิกการจอง
+// แจ้ง Admin เมื่อมีคำขอยกเลิกการใช้บ่อ
 async function notifyAdminCancellationRequest(request) {
   const adminLineUserId = process.env.ADMIN_LINE_USER_ID;
   if (!adminLineUserId) {
@@ -395,7 +395,7 @@ async function notifyAdminCancellationRequest(request) {
       to: adminLineUserId,
       messages: [{
         type: 'flex',
-        altText: 'คำขอยกเลิกการจอง',
+        altText: 'คำขอยกเลิกการใช้บ่อ',
         contents: {
           type: 'bubble',
           header: {
@@ -404,7 +404,7 @@ async function notifyAdminCancellationRequest(request) {
             backgroundColor: '#e74c3c',
             contents: [{
               type: 'text',
-              text: '🚫 คำขอยกเลิกการจอง',
+              text: '🚫 คำขอยกเลิกการใช้บ่อ',
               weight: 'bold',
               color: '#ffffff',
               size: 'lg'
@@ -508,7 +508,7 @@ async function sendCancellationApprovalNotification(request) {
             backgroundColor: '#27ae60',
             contents: [{
               type: 'text',
-              text: '✅ ยกเลิกการจองสำเร็จ',
+              text: '✅ ยกเลิกการใช้บ่อสำเร็จ',
               weight: 'bold',
               color: '#ffffff',
               size: 'lg'
@@ -527,7 +527,7 @@ async function sendCancellationApprovalNotification(request) {
               type: 'separator'
             }, {
               type: 'text',
-              text: 'การจองของคุณถูกยกเลิกเรียบร้อยแล้ว',
+              text: 'การใช้บ่อของคุณถูกยกเลิกเรียบร้อยแล้ว',
               size: 'sm',
               color: '#666666',
               wrap: true,

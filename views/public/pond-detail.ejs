@@ -118,7 +118,7 @@
             <% if (pond.status === 'available' && !pond.user_name) { %>
               <hr>
               <a href="/booking/<%= pond.id %>" class="btn btn-success w-100">
-                <i class="bi bi-calendar-plus me-2"></i>จองบ่อนี้
+                <i class="bi bi-calendar-plus me-2"></i>ขอใช้บ่อนี้
               </a>
             <% } else if (pond.status === 'maintenance') { %>
               <hr>
@@ -128,7 +128,7 @@
             <% } else if (pond.reservation_id) { %>
               <hr>
               <a href="/cancel-request/<%= pond.reservation_id %>" class="btn btn-outline-danger w-100">
-                <i class="bi bi-x-circle me-2"></i>ขอยกเลิกการจอง
+                <i class="bi bi-x-circle me-2"></i>ขอยกเลิกการใช้บ่อ
               </a>
             <% } %>
           </div>
@@ -155,7 +155,7 @@
                   <thead class="table-light">
                     <tr>
                       <th>รหัส</th>
-                      <th>ผู้จอง</th>
+                      <th>ผู้ขอ</th>
                       <th>ปลา</th>
                       <th>ระยะเวลา</th>
                       <th>สถานะ</th>

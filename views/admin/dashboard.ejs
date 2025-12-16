@@ -140,7 +140,7 @@
         <% if (isLoggedIn) { %>
         <li>
           <a href="/admin/requests">
-            <i class="bi bi-clipboard-check"></i> คำขอจอง
+            <i class="bi bi-clipboard-check"></i> คำขอใช้บ่อ
             <% if (pendingCount > 0) { %>
               <span class="badge bg-warning text-dark ms-2"><%= pendingCount %></span>
             <% } %>
@@ -429,7 +429,7 @@
         statusText = 'บ่อปิดปรับปรุง';
       } else {
         statusBadge = '<span class="badge bg-success">ว่าง</span>';
-        statusText = 'พร้อมให้จอง';
+        statusText = 'พร้อมให้ใช้งาน';
       }
 
       let html = `

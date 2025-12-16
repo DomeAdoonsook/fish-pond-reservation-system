@@ -28,7 +28,7 @@
         </li>
         <li>
           <a href="/admin/requests">
-            <i class="bi bi-clipboard-check"></i> คำขอจอง
+            <i class="bi bi-clipboard-check"></i> คำขอใช้บ่อ
             <% if (pendingCount > 0) { %>
               <span class="badge bg-warning text-dark ms-2"><%= pendingCount %></span>
             <% } %>
@@ -121,7 +121,7 @@
                       <% } else if (pond.user_name && pond.is_active) { %>
                         <span class="badge bg-danger">ใช้งาน</span>
                       <% } else if (pond.user_name && !pond.is_active) { %>
-                        <span class="badge bg-info">จองแล้ว รอเริ่มใช้งาน</span>
+                        <span class="badge bg-info">ได้รับอนุมัติ รอเริ่มใช้งาน</span>
                       <% } else { %>
                         <span class="badge bg-success">ว่าง</span>
                       <% } %>
@@ -132,7 +132,7 @@
                 <% if (!pond.user_name && pond.status !== 'maintenance') { %>
                   <hr>
                   <a href="/booking/<%= pond.id %>" class="btn btn-primary w-100">
-                    <i class="bi bi-calendar-plus me-2"></i>จองบ่อนี้
+                    <i class="bi bi-calendar-plus me-2"></i>ขอใช้บ่อนี้
                   </a>
                 <% } %>
 
@@ -172,7 +172,7 @@
                         <i class="bi bi-check2-circle me-2"></i>คืนบ่อ
                       </button>
                       <button class="btn btn-danger" onclick="showCancelModal(<%= pond.reservation_id %>)">
-                        <i class="bi bi-x-circle me-2"></i>ยกเลิกการจอง
+                        <i class="bi bi-x-circle me-2"></i>ยกเลิกการใช้บ่อ
                       </button>
                     <% } %>
                     <% if (pond.status !== 'maintenance') { %>
@@ -210,7 +210,7 @@
                       <thead class="table-light">
                         <tr>
                           <th>รหัส</th>
-                          <th>ผู้จอง</th>
+                          <th>ผู้ขอ</th>
                           <th>ปลา</th>
                           <th>ระยะเวลา</th>
                           <th>สถานะ</th>
@@ -255,18 +255,18 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header bg-danger text-white">
-          <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>ยกเลิกการจอง</h5>
+          <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>ยกเลิกการใช้บ่อ</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <p>คุณต้องการยกเลิกการจองนี้หรือไม่?</p>
+          <p>คุณต้องการยกเลิกการใช้บ่อนี้หรือไม่?</p>
           <div class="mb-3">
             <label class="form-label">เหตุผลในการยกเลิก (ไม่บังคับ)</label>
             <textarea class="form-control" id="cancelReason" rows="3" placeholder="ระบุเหตุผล..."></textarea>
           </div>
           <div class="alert alert-warning">
             <i class="bi bi-exclamation-triangle me-2"></i>
-            การยกเลิกจะส่งแจ้งเตือนไปยังผู้จองทาง LINE
+            การยกเลิกจะส่งแจ้งเตือนไปยังผู้ขอทาง LINE
           </div>
         </div>
         <div class="modal-footer">
@@ -356,7 +356,7 @@
 
         if (res.ok) {
           cancelModal.hide();
-          alert('ยกเลิกการจองเรียบร้อย');
+          alert('ยกเลิกการใช้บ่อเรียบร้อย');
           location.reload();
         } else {
           const data = await res.json();

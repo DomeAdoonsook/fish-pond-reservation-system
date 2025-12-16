@@ -52,7 +52,7 @@ router.get('/history', (req, res) => {
   });
 });
 
-// หน้าฟอร์มจองบ่อ
+// หน้าฟอร์มขอใช้บ่อ
 router.get('/booking/:id', (req, res) => {
   const pond = Pond.getById(req.params.id);
 
@@ -75,7 +75,7 @@ router.get('/booking/:id', (req, res) => {
   });
 });
 
-// ส่งคำขอจอง
+// ส่งคำขอใช้บ่อ
 router.post('/booking/:id', async (req, res) => {
   const pond = Pond.getById(req.params.id);
 
@@ -138,7 +138,7 @@ router.get('/booking/success/:id', (req, res) => {
   });
 });
 
-// หน้าฟอร์มขอยกเลิกการจอง
+// หน้าฟอร์มขอยกเลิกการใช้บ่อ
 router.get('/cancel-request/:reservationId', (req, res) => {
   const reservation = Reservation.getById(req.params.reservationId);
 
@@ -146,7 +146,7 @@ router.get('/cancel-request/:reservationId', (req, res) => {
     return res.redirect('/');
   }
 
-  // ตรวจสอบว่าการจองยังใช้งานอยู่หรือไม่
+  // ตรวจสอบว่าการใช้บ่อยังดำเนินการอยู่หรือไม่
   if (reservation.status !== 'approved' && reservation.status !== 'pending') {
     return res.redirect('/pond/' + reservation.pond_id + '?error=invalid_status');
   }
@@ -162,7 +162,7 @@ router.get('/cancel-request/:reservationId', (req, res) => {
   });
 });
 
-// ส่งคำขอยกเลิกการจอง
+// ส่งคำขอยกเลิกการใช้บ่อ
 router.post('/cancel-request/:reservationId', async (req, res) => {
   const reservation = Reservation.getById(req.params.reservationId);
 
@@ -170,7 +170,7 @@ router.post('/cancel-request/:reservationId', async (req, res) => {
     return res.redirect('/');
   }
 
-  // ตรวจสอบว่าการจองยังใช้งานอยู่หรือไม่
+  // ตรวจสอบว่าการใช้บ่อยังดำเนินการอยู่หรือไม่
   if (reservation.status !== 'approved' && reservation.status !== 'pending') {
     return res.redirect('/pond/' + reservation.pond_id);
   }
