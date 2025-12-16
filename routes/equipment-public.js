@@ -88,4 +88,104 @@ router.get('/api/availability', (req, res) => {
   res.json({ available });
 });
 
+// หน้าตรวจสอบสถานะ/ยกเลิก/คืน
+router.get('/status', (req, res) => {
+  res.render('public/equipment/status');
+});
+
+// API: ค้นหาการยืม
+router.get('/api/search', (req, res) => {
+  try {
+    const query = req.query.q || '';
+    if (!query.trim()) {
+      return res.json({ reservations: [] });
+    }
+
+    // ค้นหาจากชื่อหรือหมายเลขคำขอ
+    const db = require('../config/database');
+    let reservations = [];
+
+    // ถ้าเป็นหมายเลข EQ-xxxx
+    const eqMatch = query.toUpperCase().match(/EQ-?(\d+)/);
+    if (eqMatch) {
+      const id = parseInt(eqMatch[1]);
+      const r = EquipmentReservation.getById(id);
+      if (r) {
+        reservations = [r];
+      }
+    } else {
+      // ค้นหาจากชื่อ
+      reservations = db.prepare(`
+        SELECT er.*
+        FROM equipment_reservations er
+        WHERE er.user_name LIKE ?
+        ORDER BY er.created_at DESC
+        LIMIT 20
+      `).all('%' + query + '%');
+
+      // เพิ่ม items ให้แต่ละรายการ
+      reservations = reservations.map(r => ({
+        ...r,
+        items: EquipmentReservation.getItems(r.id)
+      }));
+    }
+
+    res.json({ reservations });
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ยกเลิกการยืม (ผู้ใช้ทั่วไป)
+router.post('/cancel/:id', (req, res) => {
+  try {
+    const id = req.params.id;
+    const { reason } = req.body;
+
+    const reservation = EquipmentReservation.getById(id);
+    if (!reservation) {
+      return res.json({ success: false, error: 'ไม่พบรายการ' });
+    }
+
+    // ตรวจสอบสถานะ - ยกเลิกได้เฉพาะ pending หรือ approved
+    if (!['pending', 'approved'].includes(reservation.status)) {
+      return res.json({ success: false, error: 'ไม่สามารถยกเลิกรายการนี้ได้' });
+    }
+
+    // ยกเลิก
+    EquipmentReservation.cancel(id);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Cancel error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// แจ้งคืนอุปกรณ์ (ผู้ใช้ทั่วไป)
+router.post('/return/:id', (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const reservation = EquipmentReservation.getById(id);
+    if (!reservation) {
+      return res.json({ success: false, error: 'ไม่พบรายการ' });
+    }
+
+    // ตรวจสอบสถานะ - คืนได้เฉพาะ approved, borrowed หรือ overdue
+    if (!['approved', 'borrowed', 'overdue'].includes(reservation.status)) {
+      return res.json({ success: false, error: 'ไม่สามารถคืนรายการนี้ได้' });
+    }
+
+    // บันทึกการคืน
+    EquipmentReservation.markReturned(id);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Return error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;

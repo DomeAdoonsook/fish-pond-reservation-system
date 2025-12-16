@@ -10,18 +10,30 @@
   <link href="/css/style.css" rel="stylesheet">
 </head>
 <body class="bg-light">
-  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
       <a class="navbar-brand" href="/"><i class="bi bi-water me-2"></i>คณะประมง</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
+        <ul class="navbar-nav me-auto">
           <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-grid-3x3-gap me-1"></i>ผังบ่อ</a></li>
-          <li class="nav-item"><a class="nav-link active" href="/equipment"><i class="bi bi-tools me-1"></i>อุปกรณ์</a></li>
-          <li class="nav-item"><a class="nav-link" href="/status"><i class="bi bi-search me-1"></i>ตรวจสอบสถานะ</a></li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">
+              <i class="bi bi-tools"></i> อุปกรณ์
+            </a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item active" href="/equipment"><i class="bi bi-box-seam me-2"></i>รายการอุปกรณ์</a></li>
+              <li><a class="dropdown-item" href="/equipment/borrow"><i class="bi bi-box-arrow-right me-2"></i>ยืมอุปกรณ์</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="/equipment/status"><i class="bi bi-search me-2"></i>ตรวจสอบ/ยกเลิก/คืน</a></li>
+            </ul>
+          </li>
         </ul>
+        <a href="/admin/login" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-person-circle me-1"></i>สำหรับเจ้าหน้าที่
+        </a>
       </div>
     </div>
   </nav>

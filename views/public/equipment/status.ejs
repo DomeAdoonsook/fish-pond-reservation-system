@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ตรวจสอบสถานะการยืม - คณะประมง</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="/"><i class="bi bi-water me-2"></i>คณะประมง</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-grid-3x3-gap me-1"></i>ผังบ่อ</a></li>
+          <li class="nav-item"><a class="nav-link" href="/equipment"><i class="bi bi-tools me-1"></i>อุปกรณ์</a></li>
+          <li class="nav-item"><a class="nav-link active" href="/equipment/status"><i class="bi bi-search me-1"></i>ตรวจสอบสถานะ</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card shadow">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-search me-2"></i>ตรวจสอบสถานะการยืมอุปกรณ์</h5>
+          </div>
+          <div class="card-body">
+            <form id="searchForm" class="mb-4">
+              <div class="row g-3">
+                <div class="col-md-8">
+                  <label class="form-label">ค้นหาด้วยชื่อผู้ยืม หรือ หมายเลขคำขอ</label>
+                  <input type="text" class="form-control form-control-lg" id="searchInput"
+                    placeholder="เช่น: สมชาย หรือ EQ-0001" required>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                  <button type="submit" class="btn btn-primary btn-lg w-100">
+                    <i class="bi bi-search me-2"></i>ค้นหา
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            <div id="searchResults">
+              <!-- ผลลัพธ์จะแสดงที่นี่ -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cancel Modal -->
+  <div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-warning">
+          <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>ยกเลิกการยืม</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="cancelForm">
+          <div class="modal-body">
+            <input type="hidden" id="cancelReservationId">
+            <p>คุณต้องการยกเลิกการยืมนี้หรือไม่?</p>
+            <div class="mb-3">
+              <label class="form-label">เหตุผลในการยกเลิก</label>
+              <textarea class="form-control" id="cancelReason" rows="3" placeholder="กรุณาระบุเหตุผล..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+            <button type="submit" class="btn btn-warning">
+              <i class="bi bi-x-circle me-2"></i>ยืนยันยกเลิก
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Return Modal -->
+  <div class="modal fade" id="returnModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title"><i class="bi bi-box-arrow-in-left me-2"></i>คืนอุปกรณ์</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="returnForm">
+          <div class="modal-body">
+            <input type="hidden" id="returnReservationId">
+            <p>คุณต้องการแจ้งคืนอุปกรณ์นี้หรือไม่?</p>
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              หลังจากแจ้งคืนแล้ว เจ้าหน้าที่จะตรวจสอบและบันทึกการคืนให้
+            </div>
+            <div id="returnItemsList"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-check-circle me-2"></i>ยืนยันแจ้งคืน
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const cancelModal = new bootstrap.Modal(document.getElementById('cancelModal'));
+    const returnModal = new bootstrap.Modal(document.getElementById('returnModal'));
+
+    document.getElementById('searchForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const query = document.getElementById('searchInput').value.trim();
+      if (!query) return;
+
+      const resultsDiv = document.getElementById('searchResults');
+      resultsDiv.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+
+      try {
+        const res = await fetch('/equipment/api/search?q=' + encodeURIComponent(query));
+        const data = await res.json();
+
+        if (data.reservations && data.reservations.length > 0) {
+          let html = '<h6 class="mb-3">พบ ' + data.reservations.length + ' รายการ</h6>';
+
+          data.reservations.forEach(r => {
+            const statusBadge = getStatusBadge(r.status);
+            const itemsList = r.items ? r.items.map(i =>
+              `<span class="badge bg-secondary me-1">${i.equipment_name} x${i.quantity}</span>`
+            ).join('') : '';
+
+            html += `
+              <div class="card mb-3">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="mb-0">#EQ-${String(r.id).padStart(4, '0')}</h5>
+                    ${statusBadge}
+                  </div>
+                  <table class="table table-sm table-borderless mb-2">
+                    <tr><td class="text-muted" width="100">ผู้ยืม:</td><td class="fw-bold">${r.user_name}</td></tr>
+                    <tr><td class="text-muted">วันที่ยืม:</td><td>${r.borrow_date}</td></tr>
+                    <tr><td class="text-muted">กำหนดคืน:</td><td>${r.return_date}</td></tr>
+                    <tr><td class="text-muted">อุปกรณ์:</td><td>${itemsList}</td></tr>
+                  </table>
+                  <div class="d-flex gap-2">
+                    ${getActionButtons(r)}
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+
+          resultsDiv.innerHTML = html;
+        } else {
+          resultsDiv.innerHTML = `
+            <div class="text-center py-5 text-muted">
+              <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+              <p class="mt-3">ไม่พบรายการที่ค้นหา</p>
+            </div>
+          `;
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        resultsDiv.innerHTML = `
+          <div class="alert alert-danger">
+            <i class="bi bi-exclamation-circle me-2"></i>เกิดข้อผิดพลาดในการค้นหา
+          </div>
+        `;
+      }
+    });
+
+    function getStatusBadge(status) {
+      const badges = {
+        'pending': '<span class="badge bg-warning text-dark">รออนุมัติ</span>',
+        'approved': '<span class="badge bg-success">อนุมัติแล้ว</span>',
+        'borrowed': '<span class="badge bg-primary">กำลังยืม</span>',
+        'overdue': '<span class="badge bg-danger">เลยกำหนด</span>',
+        'returned': '<span class="badge bg-secondary">คืนแล้ว</span>',
+        'rejected': '<span class="badge bg-danger">ไม่อนุมัติ</span>',
+        'cancelled': '<span class="badge bg-dark">ยกเลิก</span>'
+      };
+      return badges[status] || `<span class="badge bg-secondary">${status}</span>`;
+    }
+
+    function getActionButtons(r) {
+      let buttons = '';
+
+      // ยกเลิกได้เมื่อสถานะเป็น pending หรือ approved
+      if (['pending', 'approved'].includes(r.status)) {
+        buttons += `<button class="btn btn-warning btn-sm" onclick="showCancelModal(${r.id})">
+          <i class="bi bi-x-circle me-1"></i>ยกเลิก
+        </button>`;
+      }
+
+      // คืนได้เมื่อสถานะเป็น approved, borrowed หรือ overdue
+      if (['approved', 'borrowed', 'overdue'].includes(r.status)) {
+        buttons += `<button class="btn btn-success btn-sm" onclick="showReturnModal(${r.id}, '${encodeURIComponent(JSON.stringify(r.items))}')">
+          <i class="bi bi-box-arrow-in-left me-1"></i>แจ้งคืน
+        </button>`;
+      }
+
+      return buttons || '<span class="text-muted small">ไม่มีการดำเนินการ</span>';
+    }
+
+    function showCancelModal(id) {
+      document.getElementById('cancelReservationId').value = id;
+      document.getElementById('cancelReason').value = '';
+      cancelModal.show();
+    }
+
+    function showReturnModal(id, itemsJson) {
+      document.getElementById('returnReservationId').value = id;
+      const items = JSON.parse(decodeURIComponent(itemsJson));
+      let html = '<p class="fw-bold">รายการอุปกรณ์:</p><ul class="list-group">';
+      items.forEach(i => {
+        html += `<li class="list-group-item d-flex justify-content-between">
+          <span>${i.equipment_name}</span>
+          <span class="badge bg-primary">${i.quantity} ${i.unit || 'ชิ้น'}</span>
+        </li>`;
+      });
+      html += '</ul>';
+      document.getElementById('returnItemsList').innerHTML = html;
+      returnModal.show();
+    }
+
+    document.getElementById('cancelForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('cancelReservationId').value;
+      const reason = document.getElementById('cancelReason').value;
+
+      try {
+        const res = await fetch('/equipment/cancel/' + id, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          cancelModal.hide();
+          alert('ยกเลิกการยืมเรียบร้อยแล้ว');
+          document.getElementById('searchForm').dispatchEvent(new Event('submit'));
+        } else {
+          alert(data.error || 'เกิดข้อผิดพลาด');
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        alert('เกิดข้อผิดพลาดในการยกเลิก');
+      }
+    });
+
+    document.getElementById('returnForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('returnReservationId').value;
+
+      try {
+        const res = await fetch('/equipment/return/' + id, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          returnModal.hide();
+          alert('แจ้งคืนอุปกรณ์เรียบร้อยแล้ว');
+          document.getElementById('searchForm').dispatchEvent(new Event('submit'));
+        } else {
+          alert(data.error || 'เกิดข้อผิดพลาด');
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        alert('เกิดข้อผิดพลาดในการแจ้งคืน');
+      }
+    });
+  </script>
+</body>
+</html>
