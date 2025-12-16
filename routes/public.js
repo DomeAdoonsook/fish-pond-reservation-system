@@ -76,7 +76,7 @@ router.get('/booking/:id', (req, res) => {
 });
 
 // ส่งคำขอจอง
-router.post('/booking/:id', (req, res) => {
+router.post('/booking/:id', async (req, res) => {
   const pond = Pond.getById(req.params.id);
 
   if (!pond) {
@@ -110,7 +110,10 @@ router.post('/booking/:id', (req, res) => {
       purpose: purpose || null
     });
 
-    // TODO: ส่งแจ้งเตือน LINE ให้ admin
+    // ส่งแจ้งเตือน LINE ให้ admin
+    const { notifyAdminNewRequest } = require('../utils/lineNotify');
+    const reservation = Reservation.getById(reservationId);
+    await notifyAdminNewRequest(reservation);
 
     res.redirect('/booking/success/' + reservationId);
   } catch (error) {
