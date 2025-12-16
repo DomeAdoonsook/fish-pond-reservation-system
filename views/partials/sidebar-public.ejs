@@ -1,0 +1,68 @@
+<nav id="sidebar" class="bg-dark">
+  <div class="sidebar-header p-3">
+    <h4 class="text-white mb-0">
+      <i class="bi bi-water"></i> บ่อเลี้ยงปลา
+    </h4>
+    <small class="text-muted">คณะประมง</small>
+  </div>
+
+  <ul class="list-unstyled components p-3">
+    <!-- ขอใช้บ่อ (Dropdown) -->
+    <li class="nav-section">
+      <a href="#pondMenu" data-bs-toggle="collapse" class="nav-link dropdown-toggle <%= ['home', 'active', 'history', 'reserve'].includes(page) ? '' : 'collapsed' %>" aria-expanded="<%= ['home', 'active', 'history', 'reserve'].includes(page) ? 'true' : 'false' %>">
+        <i class="bi bi-water"></i> ขอใช้บ่อ
+      </a>
+      <div class="collapse <%= ['home', 'active', 'history', 'reserve'].includes(page) ? 'show' : '' %>" id="pondMenu">
+        <ul class="list-unstyled submenu">
+          <li class="<%= page === 'home' ? 'active' : '' %>">
+            <a href="/">
+              <i class="bi bi-grid-3x3-gap"></i> ผังบ่อ
+            </a>
+          </li>
+          <li class="<%= page === 'active' ? 'active' : '' %>">
+            <a href="/active">
+              <i class="bi bi-play-circle"></i> กำลังใช้งาน
+            </a>
+          </li>
+          <li class="<%= page === 'history' ? 'active' : '' %>">
+            <a href="/history">
+              <i class="bi bi-clock-history"></i> ประวัติ
+            </a>
+          </li>
+        </ul>
+      </div>
+    </li>
+
+    <!-- ขอใช้อุปกรณ์ (Dropdown) -->
+    <li class="nav-section">
+      <a href="#equipmentMenu" data-bs-toggle="collapse" class="nav-link dropdown-toggle <%= ['equipment', 'equipment-borrow', 'equipment-status'].includes(page) ? '' : 'collapsed' %>" aria-expanded="<%= ['equipment', 'equipment-borrow', 'equipment-status'].includes(page) ? 'true' : 'false' %>">
+        <i class="bi bi-tools"></i> ขอใช้อุปกรณ์
+      </a>
+      <div class="collapse <%= ['equipment', 'equipment-borrow', 'equipment-status'].includes(page) ? 'show' : '' %>" id="equipmentMenu">
+        <ul class="list-unstyled submenu">
+          <li class="<%= page === 'equipment' ? 'active' : '' %>">
+            <a href="/equipment">
+              <i class="bi bi-box-seam"></i> รายการอุปกรณ์
+            </a>
+          </li>
+          <li class="<%= page === 'equipment-borrow' ? 'active' : '' %>">
+            <a href="/equipment/borrow">
+              <i class="bi bi-box-arrow-right"></i> ยืมอุปกรณ์
+            </a>
+          </li>
+          <li class="<%= page === 'equipment-status' ? 'active' : '' %>">
+            <a href="/equipment/status">
+              <i class="bi bi-search"></i> ตรวจสอบ/ยกเลิก/คืน
+            </a>
+          </li>
+        </ul>
+      </div>
+    </li>
+  </ul>
+
+  <div class="sidebar-footer p-3 border-top border-secondary">
+    <a href="/admin/login" class="btn btn-outline-light btn-sm w-100">
+      <i class="bi bi-person-circle me-2"></i>สำหรับเจ้าหน้าที่
+    </a>
+  </div>
+</nav>

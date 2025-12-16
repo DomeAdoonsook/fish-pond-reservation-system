@@ -9,147 +9,133 @@
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="/css/style.css" rel="stylesheet">
 </head>
-<body class="bg-light">
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-      <a class="navbar-brand" href="/"><i class="bi bi-water me-2"></i>คณะประมง</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav me-auto">
-          <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-grid-3x3-gap me-1"></i>ผังบ่อ</a></li>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">
-              <i class="bi bi-tools"></i> อุปกรณ์
-            </a>
-            <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="/equipment"><i class="bi bi-box-seam me-2"></i>รายการอุปกรณ์</a></li>
-              <li><a class="dropdown-item active" href="/equipment/borrow"><i class="bi bi-box-arrow-right me-2"></i>ยืมอุปกรณ์</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="/equipment/status"><i class="bi bi-search me-2"></i>ตรวจสอบ/ยกเลิก/คืน</a></li>
-            </ul>
-          </li>
-        </ul>
-        <a href="/admin/login" class="btn btn-outline-light btn-sm">
-          <i class="bi bi-person-circle me-1"></i>สำหรับเจ้าหน้าที่
-        </a>
-      </div>
-    </div>
-  </nav>
+<body>
+  <div class="wrapper">
+    <!-- Sidebar -->
+    <%- include('../../partials/sidebar-public', { page: 'equipment-borrow' }) %>
 
-  <div class="container py-4">
-    <nav aria-label="breadcrumb">
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="/equipment">อุปกรณ์</a></li>
-        <li class="breadcrumb-item active">ยืมอุปกรณ์</li>
-      </ol>
-    </nav>
-
-    <div class="row">
-      <div class="col-lg-8">
-        <div class="card mb-4">
-          <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="bi bi-box-arrow-right me-2"></i>ยืมอุปกรณ์</h5>
-          </div>
-          <div class="card-body">
-            <form id="borrowForm">
-              <div class="row mb-3">
-                <div class="col-md-6">
-                  <label class="form-label">ชื่อผู้ยืม <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" name="user_name" required>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">เบอร์โทรศัพท์</label>
-                  <input type="tel" class="form-control" name="phone" placeholder="0xx-xxx-xxxx">
-                </div>
-              </div>
-
-              <div class="row mb-3">
-                <div class="col-md-6">
-                  <label class="form-label">วันที่ยืม <span class="text-danger">*</span></label>
-                  <input type="date" class="form-control" name="borrow_date" id="borrowDate" required onchange="updateAvailability()">
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">วันที่คืน <span class="text-danger">*</span></label>
-                  <input type="date" class="form-control" name="return_date" id="returnDate" required onchange="updateAvailability()">
-                </div>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label">วัตถุประสงค์</label>
-                <textarea class="form-control" name="purpose" rows="2" placeholder="ระบุวัตถุประสงค์ในการยืม..."></textarea>
-              </div>
-
-              <hr>
-
-              <h6 class="mb-3"><i class="bi bi-list-check me-2"></i>เลือกอุปกรณ์ที่ต้องการยืม</h6>
-
-              <div class="mb-3">
-                <select class="form-select mb-3" id="filterCategory" onchange="filterEquipment()">
-                  <option value="">ทุกหมวดหมู่</option>
-                  <% categories.forEach(function(c) { %>
-                    <option value="<%= c.id %>"><%= c.name %></option>
-                  <% }); %>
-                </select>
-              </div>
-
-              <div class="table-responsive">
-                <table class="table table-hover" id="equipmentTable">
-                  <thead class="table-light">
-                    <tr>
-                      <th width="50"></th>
-                      <th>อุปกรณ์</th>
-                      <th class="text-center" width="100">ว่าง</th>
-                      <th class="text-center" width="120">จำนวน</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <% equipment.forEach(function(eq) { %>
-                      <tr class="equipment-row" data-category="<%= eq.category_id || '' %>" data-id="<%= eq.id %>" data-max="<%= eq.available_quantity %>">
-                        <td>
-                          <input type="checkbox" class="form-check-input equipment-check"
-                            data-id="<%= eq.id %>" <%= eq.available_quantity === 0 ? 'disabled' : '' %>>
-                        </td>
-                        <td>
-                          <strong><%= eq.name %></strong>
-                          <br><small class="text-muted"><%= eq.category_name || 'ไม่ระบุหมวดหมู่' %></small>
-                        </td>
-                        <td class="text-center available-qty">
-                          <span class="badge <%= eq.available_quantity > 0 ? 'bg-success' : 'bg-danger' %>">
-                            <%= eq.available_quantity %> <%= eq.unit %>
-                          </span>
-                        </td>
-                        <td>
-                          <input type="number" class="form-control form-control-sm quantity-input"
-                            data-id="<%= eq.id %>" min="1" max="<%= eq.available_quantity %>" value="1"
-                            <%= eq.available_quantity === 0 ? 'disabled' : '' %>>
-                        </td>
-                      </tr>
-                    <% }); %>
-                  </tbody>
-                </table>
-              </div>
-
-              <div class="d-flex gap-2 mt-4">
-                <button type="submit" class="btn btn-primary btn-lg">
-                  <i class="bi bi-send me-2"></i>ส่งคำขอยืม
-                </button>
-                <a href="/equipment" class="btn btn-outline-secondary btn-lg">ยกเลิก</a>
-              </div>
-            </form>
-          </div>
+    <!-- Page Content -->
+    <div id="content">
+      <!-- Top Navbar -->
+      <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container-fluid">
+          <button type="button" id="sidebarCollapse" class="btn btn-dark d-lg-none">
+            <i class="bi bi-list"></i>
+          </button>
+          <span class="navbar-brand mb-0 h1 ms-2">
+            <i class="bi bi-box-arrow-right me-2"></i>ยืมอุปกรณ์
+          </span>
         </div>
-      </div>
+      </nav>
 
-      <div class="col-lg-4">
-        <div class="card sticky-top" style="top: 20px;">
-          <div class="card-header bg-info text-white">
-            <h6 class="mb-0"><i class="bi bi-cart me-2"></i>รายการที่เลือก</h6>
+      <!-- Main Content -->
+      <div class="container-fluid py-4">
+        <div class="row">
+          <div class="col-lg-8">
+            <div class="card mb-4">
+              <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-box-arrow-right me-2"></i>ยืมอุปกรณ์</h5>
+              </div>
+              <div class="card-body">
+                <form id="borrowForm">
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label">ชื่อผู้ยืม <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" name="user_name" required>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">เบอร์โทรศัพท์</label>
+                      <input type="tel" class="form-control" name="phone" placeholder="0xx-xxx-xxxx">
+                    </div>
+                  </div>
+
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label">วันที่ยืม <span class="text-danger">*</span></label>
+                      <input type="date" class="form-control" name="borrow_date" id="borrowDate" required onchange="updateAvailability()">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">วันที่คืน <span class="text-danger">*</span></label>
+                      <input type="date" class="form-control" name="return_date" id="returnDate" required onchange="updateAvailability()">
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label">วัตถุประสงค์</label>
+                    <textarea class="form-control" name="purpose" rows="2" placeholder="ระบุวัตถุประสงค์ในการยืม..."></textarea>
+                  </div>
+
+                  <hr>
+
+                  <h6 class="mb-3"><i class="bi bi-list-check me-2"></i>เลือกอุปกรณ์ที่ต้องการยืม</h6>
+
+                  <div class="mb-3">
+                    <select class="form-select mb-3" id="filterCategory" onchange="filterEquipment()">
+                      <option value="">ทุกหมวดหมู่</option>
+                      <% categories.forEach(function(c) { %>
+                        <option value="<%= c.id %>"><%= c.name %></option>
+                      <% }); %>
+                    </select>
+                  </div>
+
+                  <div class="table-responsive">
+                    <table class="table table-hover" id="equipmentTable">
+                      <thead class="table-light">
+                        <tr>
+                          <th width="50"></th>
+                          <th>อุปกรณ์</th>
+                          <th class="text-center" width="100">ว่าง</th>
+                          <th class="text-center" width="120">จำนวน</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% equipment.forEach(function(eq) { %>
+                          <tr class="equipment-row" data-category="<%= eq.category_id || '' %>" data-id="<%= eq.id %>" data-max="<%= eq.available_quantity %>">
+                            <td>
+                              <input type="checkbox" class="form-check-input equipment-check"
+                                data-id="<%= eq.id %>" <%= eq.available_quantity === 0 ? 'disabled' : '' %>>
+                            </td>
+                            <td>
+                              <strong><%= eq.name %></strong>
+                              <br><small class="text-muted"><%= eq.category_name || 'ไม่ระบุหมวดหมู่' %></small>
+                            </td>
+                            <td class="text-center available-qty">
+                              <span class="badge <%= eq.available_quantity > 0 ? 'bg-success' : 'bg-danger' %>">
+                                <%= eq.available_quantity %> <%= eq.unit %>
+                              </span>
+                            </td>
+                            <td>
+                              <input type="number" class="form-control form-control-sm quantity-input"
+                                data-id="<%= eq.id %>" min="1" max="<%= eq.available_quantity %>" value="1"
+                                <%= eq.available_quantity === 0 ? 'disabled' : '' %>>
+                            </td>
+                          </tr>
+                        <% }); %>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                      <i class="bi bi-send me-2"></i>ส่งคำขอยืม
+                    </button>
+                    <a href="/equipment" class="btn btn-outline-secondary btn-lg">ยกเลิก</a>
+                  </div>
+                </form>
+              </div>
+            </div>
           </div>
-          <div class="card-body">
-            <div id="selectedItems">
-              <p class="text-muted text-center">ยังไม่ได้เลือกอุปกรณ์</p>
+
+          <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 20px;">
+              <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="bi bi-cart me-2"></i>รายการที่เลือก</h6>
+              </div>
+              <div class="card-body">
+                <div id="selectedItems">
+                  <p class="text-muted text-center">ยังไม่ได้เลือกอุปกรณ์</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -159,6 +145,11 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // Sidebar toggle for mobile
+    document.getElementById('sidebarCollapse').addEventListener('click', function() {
+      document.getElementById('sidebar').classList.toggle('active');
+    });
+
     // Set min date to today
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('borrowDate').min = today;
