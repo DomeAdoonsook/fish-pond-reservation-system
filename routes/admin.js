@@ -4,6 +4,7 @@ const Admin = require('../models/Admin');
 const Pond = require('../models/Pond');
 const Reservation = require('../models/Reservation');
 const CancellationRequest = require('../models/CancellationRequest');
+const EquipmentReservation = require('../models/EquipmentReservation');
 const Log = require('../models/Log');
 
 // Middleware ตรวจสอบ login
@@ -19,6 +20,15 @@ const optionalLogin = (req, res, next) => {
   // ไม่บังคับ login แต่ถ้า login แล้วก็ใช้ได้
   next();
 };
+
+// Middleware เพิ่มข้อมูล common ให้ทุกหน้า
+const addCommonData = (req, res, next) => {
+  res.locals.cancelPendingCount = CancellationRequest.getPendingCount();
+  res.locals.equipmentPendingCount = EquipmentReservation.getPendingCount();
+  next();
+};
+
+router.use(addCommonData);
 
 // หน้า Login
 router.get('/login', (req, res) => {

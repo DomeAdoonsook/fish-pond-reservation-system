@@ -9,7 +9,7 @@ const { sendEquipmentApprovalNotification, sendEquipmentRejectionNotification } 
 
 // Middleware สำหรับเช็ค login
 function requireLogin(req, res, next) {
-  if (!req.session.adminId) {
+  if (!req.session.admin) {
     return res.redirect('/admin/login');
   }
   next();
@@ -18,7 +18,7 @@ function requireLogin(req, res, next) {
 // Middleware สำหรับเพิ่มข้อมูลพื้นฐาน
 async function addCommonData(req, res, next) {
   res.locals.admin = req.session.admin || { name: 'Admin' };
-  res.locals.isLoggedIn = !!req.session.adminId;
+  res.locals.isLoggedIn = !!req.session.admin;
   res.locals.pendingCount = Reservation.getPendingCount();
   res.locals.cancelPendingCount = CancellationRequest.getPendingCount();
   res.locals.equipmentPendingCount = EquipmentReservation.getPendingCount();
@@ -166,7 +166,7 @@ router.post('/requests/:id/approve', async (req, res) => {
       }
     }
 
-    EquipmentReservation.approve(req.params.id, req.session.adminId);
+    EquipmentReservation.approve(req.params.id, req.session.admin.id);
 
     // ส่งแจ้งเตือน LINE
     if (reservation.line_user_id) {
@@ -193,7 +193,7 @@ router.post('/requests/:id/reject', async (req, res) => {
       return res.json({ success: false, error: 'ไม่พบคำขอ' });
     }
 
-    EquipmentReservation.reject(req.params.id, req.session.adminId, reason);
+    EquipmentReservation.reject(req.params.id, req.session.admin.id, reason);
 
     // ส่งแจ้งเตือน LINE
     if (reservation.line_user_id) {

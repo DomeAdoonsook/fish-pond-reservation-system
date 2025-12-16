@@ -169,6 +169,14 @@ class Reservation {
     `).all();
   }
 
+  // นับจำนวนการจองที่รออนุมัติ
+  static getPendingCount() {
+    const result = db.prepare(`
+      SELECT COUNT(*) as count FROM reservations WHERE status = 'pending'
+    `).get();
+    return result.count;
+  }
+
   // อัพเดทข้อมูลการจอง
   static update(id, data) {
     const fields = [];

@@ -161,19 +161,11 @@ class Equipment {
     return db.prepare(`DELETE FROM equipment WHERE id = ?`).run(id);
   }
 
-  // ตรวจสอบจำนวนที่ว่าง
-  static checkAvailability(id, requestedQuantity) {
+  // ตรวจสอบจำนวนที่ว่าง (คืนจำนวนที่ว่าง)
+  static checkAvailability(id, borrowDate, returnDate) {
     const equipment = this.getById(id);
-    if (!equipment) return { available: false, message: 'ไม่พบอุปกรณ์' };
-    if (equipment.status !== 'active') return { available: false, message: 'อุปกรณ์ไม่พร้อมใช้งาน' };
-    if (equipment.available_quantity < requestedQuantity) {
-      return {
-        available: false,
-        message: `มีอุปกรณ์ว่างเพียง ${equipment.available_quantity} ${equipment.unit}`,
-        available_quantity: equipment.available_quantity
-      };
-    }
-    return { available: true, available_quantity: equipment.available_quantity };
+    if (!equipment) return 0;
+    return equipment.available_quantity;
   }
 
   // นับจำนวนอุปกรณ์ตามสถานะ

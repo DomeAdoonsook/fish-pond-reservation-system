@@ -31,7 +31,7 @@
           <li class="<%= page === 'cancel-requests' ? 'active' : '' %>">
             <a href="/admin/cancel-requests">
               <i class="bi bi-x-circle"></i> คำขอยกเลิก
-              <% if (cancelPendingCount > 0) { %>
+              <% if (typeof cancelPendingCount !== 'undefined' && cancelPendingCount > 0) { %>
                 <span class="badge bg-danger ms-2"><%= cancelPendingCount %></span>
               <% } %>
             </a>
@@ -65,21 +65,21 @@
           </li>
           <% if (isLoggedIn) { %>
           <li class="<%= page === 'equipment-requests' ? 'active' : '' %>">
-            <a href="/admin/equipment-requests">
+            <a href="/admin/equipment/requests">
               <i class="bi bi-clipboard-check"></i> คำขอยืม
-              <% if (equipmentPendingCount > 0) { %>
+              <% if (typeof equipmentPendingCount !== 'undefined' && equipmentPendingCount > 0) { %>
                 <span class="badge bg-warning text-dark ms-2"><%= equipmentPendingCount %></span>
               <% } %>
             </a>
           </li>
           <% } %>
           <li class="<%= page === 'equipment-borrowed' ? 'active' : '' %>">
-            <a href="/admin/equipment-borrowed">
+            <a href="/admin/equipment/borrowed">
               <i class="bi bi-arrow-left-right"></i> กำลังยืม
             </a>
           </li>
           <li class="<%= page === 'equipment-history' ? 'active' : '' %>">
-            <a href="/admin/equipment-history">
+            <a href="/admin/equipment/history">
               <i class="bi bi-clock-history"></i> ประวัติ
             </a>
           </li>
