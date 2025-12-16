@@ -111,12 +111,14 @@
                   <tr>
                     <td class="text-muted">สถานะ:</td>
                     <td>
-                      <% if (pond.status === 'available' && !pond.user_name) { %>
-                        <span class="badge bg-success">ว่าง</span>
-                      <% } else if (pond.user_name) { %>
-                        <span class="badge bg-danger">ใช้งาน</span>
-                      <% } else if (pond.status === 'maintenance') { %>
+                      <% if (pond.status === 'maintenance') { %>
                         <span class="badge bg-secondary">ปิดปรับปรุง</span>
+                      <% } else if (pond.user_name && pond.is_active) { %>
+                        <span class="badge bg-danger">ใช้งาน</span>
+                      <% } else if (pond.user_name && !pond.is_active) { %>
+                        <span class="badge bg-info">จองแล้ว รอเริ่มใช้งาน</span>
+                      <% } else { %>
+                        <span class="badge bg-success">ว่าง</span>
                       <% } %>
                     </td>
                   </tr>
@@ -156,6 +158,9 @@
                     <% if (pond.user_name && pond.reservation_id) { %>
                       <button class="btn btn-warning" onclick="completeReservation(<%= pond.reservation_id %>)">
                         <i class="bi bi-check2-circle me-2"></i>คืนบ่อ
+                      </button>
+                      <button class="btn btn-danger" onclick="showCancelModal(<%= pond.reservation_id %>)">
+                        <i class="bi bi-x-circle me-2"></i>ยกเลิกการจอง
                       </button>
                     <% } %>
                     <% if (pond.status !== 'maintenance') { %>
@@ -233,6 +238,35 @@
     </div>
   </div>
 
+  <!-- Cancel Reservation Modal -->
+  <div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>ยกเลิกการจอง</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>คุณต้องการยกเลิกการจองนี้หรือไม่?</p>
+          <div class="mb-3">
+            <label class="form-label">เหตุผลในการยกเลิก (ไม่บังคับ)</label>
+            <textarea class="form-control" id="cancelReason" rows="3" placeholder="ระบุเหตุผล..."></textarea>
+          </div>
+          <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            การยกเลิกจะส่งแจ้งเตือนไปยังผู้จองทาง LINE
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+          <button type="button" class="btn btn-danger" id="confirmCancelBtn">
+            <i class="bi bi-x-circle me-2"></i>ยืนยันยกเลิก
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/js/main.js"></script>
   <script>
@@ -285,6 +319,41 @@
         alert('เกิดข้อผิดพลาด');
       }
     }
+
+    // Cancel reservation
+    let cancelReservationId = null;
+    const cancelModal = new bootstrap.Modal(document.getElementById('cancelModal'));
+
+    function showCancelModal(id) {
+      cancelReservationId = id;
+      document.getElementById('cancelReason').value = '';
+      cancelModal.show();
+    }
+
+    document.getElementById('confirmCancelBtn').addEventListener('click', async function() {
+      if (!cancelReservationId) return;
+
+      const reason = document.getElementById('cancelReason').value;
+
+      try {
+        const res = await fetch('/admin/reservations/' + cancelReservationId + '/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: reason })
+        });
+
+        if (res.ok) {
+          cancelModal.hide();
+          alert('ยกเลิกการจองเรียบร้อย');
+          location.reload();
+        } else {
+          const data = await res.json();
+          alert('เกิดข้อผิดพลาด: ' + (data.error || 'ไม่สามารถยกเลิกได้'));
+        }
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด');
+      }
+    });
   </script>
 </body>
 </html>

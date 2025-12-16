@@ -156,6 +156,31 @@ router.post('/reservations/:id/complete', requireLogin, (req, res) => {
   }
 });
 
+// ยกเลิกการจอง
+router.post('/reservations/:id/cancel', requireLogin, async (req, res) => {
+  try {
+    const reservation = Reservation.getById(req.params.id);
+    const reason = req.body.reason || 'ยกเลิกโดยผู้ดูแลระบบ';
+
+    Reservation.cancel(req.params.id);
+
+    Log.create('reservation_cancelled', {
+      pond_id: reservation.pond_id,
+      reservation_id: req.params.id,
+      admin_id: req.session.admin.id,
+      details: { reason }
+    });
+
+    // ส่งแจ้งเตือน LINE
+    const { sendCancellationNotification } = require('../utils/lineNotify');
+    await sendCancellationNotification(reservation, reason);
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // หน้าประวัติ (ไม่ต้อง login)
 router.get('/history', optionalLogin, (req, res) => {
   const reservations = Reservation.getAll();

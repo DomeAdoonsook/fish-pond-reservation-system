@@ -308,6 +308,76 @@ async function sendExpiryReminder(reservation, daysRemaining) {
   }
 }
 
+// แจ้งผู้ใช้เมื่อการจองถูกยกเลิก
+async function sendCancellationNotification(reservation, reason) {
+  if (!reservation.line_user_id) return;
+
+  try {
+    await client.pushMessage({
+      to: reservation.line_user_id,
+      messages: [{
+        type: 'flex',
+        altText: 'การจองถูกยกเลิก',
+        contents: {
+          type: 'bubble',
+          header: {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#95a5a6',
+            contents: [{
+              type: 'text',
+              text: '🚫 การจองถูกยกเลิก',
+              weight: 'bold',
+              color: '#ffffff',
+              size: 'lg'
+            }]
+          },
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'md',
+            contents: [{
+              type: 'text',
+              text: `บ่อ ${reservation.pond_code}`,
+              weight: 'bold',
+              size: 'lg'
+            }, {
+              type: 'separator'
+            }, {
+              type: 'text',
+              text: `🐟 ${reservation.fish_type}`,
+              size: 'md',
+              margin: 'md'
+            }, {
+              type: 'text',
+              text: reason ? `เหตุผล: ${reason}` : 'ไม่ระบุเหตุผล',
+              size: 'sm',
+              color: '#666666',
+              wrap: true,
+              margin: 'md'
+            }]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [{
+              type: 'text',
+              text: 'หากมีข้อสงสัย กรุณาติดต่อเจ้าหน้าที่',
+              size: 'sm',
+              color: '#666666',
+              align: 'center',
+              wrap: true
+            }]
+          }
+        }
+      }]
+    });
+    console.log('User notified of cancellation');
+  } catch (error) {
+    console.error('Error sending cancellation notification:', error);
+  }
+}
+
 // Helper: Format to Thai date
 function formatThaiDate(dateStr) {
   const date = new Date(dateStr);
@@ -323,5 +393,6 @@ module.exports = {
   notifyAdminNewRequest,
   sendApprovalNotification,
   sendRejectionNotification,
+  sendCancellationNotification,
   sendExpiryReminder
 };

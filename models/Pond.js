@@ -19,7 +19,7 @@ class Pond {
     `).all();
   }
 
-  // ดึงบ่อตาม ID
+  // ดึงบ่อตาม ID (รวมการจองที่อนุมัติแล้วแม้ยังไม่ถึงวันเริ่มต้น)
   static getById(id) {
     return db.prepare(`
       SELECT p.*,
@@ -31,11 +31,13 @@ class Pond {
         r.end_date,
         r.purpose,
         r.line_user_id,
-        CAST(julianday('now') - julianday(r.start_date) AS INTEGER) as fish_age_days
+        r.status as reservation_status,
+        CAST(julianday('now') - julianday(r.start_date) AS INTEGER) as fish_age_days,
+        CASE WHEN date('now') >= r.start_date THEN 1 ELSE 0 END as is_active
       FROM ponds p
       LEFT JOIN reservations r ON p.id = r.pond_id
         AND r.status = 'approved'
-        AND date('now') BETWEEN r.start_date AND r.end_date
+        AND date('now') <= r.end_date
       WHERE p.id = ?
     `).get(id);
   }
