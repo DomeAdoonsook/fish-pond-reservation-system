@@ -4,13 +4,14 @@ class Reservation {
   // สร้างการจองใหม่
   static create(data) {
     const stmt = db.prepare(`
-      INSERT INTO reservations (pond_id, user_name, line_user_id, fish_type, fish_quantity, start_date, end_date, purpose)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO reservations (pond_id, user_name, line_user_id, phone, fish_type, fish_quantity, start_date, end_date, purpose)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const result = stmt.run(
       data.pond_id,
       data.user_name,
-      data.line_user_id,
+      data.line_user_id || null,
+      data.phone || null,
       data.fish_type,
       data.fish_quantity,
       data.start_date,

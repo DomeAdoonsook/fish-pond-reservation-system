@@ -85,4 +85,11 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_reservations_line_user_id ON reservations(line_user_id);
 `);
 
+// เพิ่ม column phone ถ้ายังไม่มี
+try {
+  db.exec(`ALTER TABLE reservations ADD COLUMN phone TEXT`);
+} catch (e) {
+  // Column already exists
+}
+
 module.exports = db;

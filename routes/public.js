@@ -49,4 +49,87 @@ router.get('/history', (req, res) => {
   });
 });
 
+// หน้าฟอร์มจองบ่อ
+router.get('/booking/:id', (req, res) => {
+  const pond = Pond.getById(req.params.id);
+
+  if (!pond) {
+    return res.redirect('/');
+  }
+
+  // ตรวจสอบว่าบ่อว่างหรือไม่
+  if (pond.status === 'maintenance') {
+    return res.redirect('/pond/' + req.params.id + '?error=maintenance');
+  }
+
+  if (pond.user_name) {
+    return res.redirect('/pond/' + req.params.id + '?error=occupied');
+  }
+
+  res.render('public/booking', {
+    pond,
+    error: null
+  });
+});
+
+// ส่งคำขอจอง
+router.post('/booking/:id', (req, res) => {
+  const pond = Pond.getById(req.params.id);
+
+  if (!pond) {
+    return res.redirect('/');
+  }
+
+  // ตรวจสอบว่าบ่อว่างหรือไม่
+  if (pond.status === 'maintenance' || pond.user_name) {
+    return res.redirect('/pond/' + req.params.id);
+  }
+
+  const { user_name, phone, fish_type, fish_quantity, start_date, end_date, purpose } = req.body;
+
+  // Validate
+  if (!user_name || !phone || !fish_type || !fish_quantity || !start_date || !end_date) {
+    return res.render('public/booking', {
+      pond,
+      error: 'กรุณากรอกข้อมูลให้ครบถ้วน'
+    });
+  }
+
+  try {
+    const reservationId = Reservation.create({
+      pond_id: pond.id,
+      user_name,
+      phone,
+      fish_type,
+      fish_quantity: parseInt(fish_quantity),
+      start_date,
+      end_date,
+      purpose: purpose || null
+    });
+
+    // TODO: ส่งแจ้งเตือน LINE ให้ admin
+
+    res.redirect('/booking/success/' + reservationId);
+  } catch (error) {
+    console.error('Booking error:', error);
+    res.render('public/booking', {
+      pond,
+      error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง'
+    });
+  }
+});
+
+// หน้ายืนยันการส่งคำขอสำเร็จ
+router.get('/booking/success/:id', (req, res) => {
+  const reservation = Reservation.getById(req.params.id);
+
+  if (!reservation) {
+    return res.redirect('/');
+  }
+
+  res.render('public/booking-success', {
+    reservation
+  });
+});
+
 module.exports = router;

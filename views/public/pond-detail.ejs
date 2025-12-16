@@ -113,6 +113,24 @@
                 </tr>
               </table>
             <% } %>
+
+            <!-- ปุ่มจองบ่อ -->
+            <% if (pond.status === 'available' && !pond.user_name) { %>
+              <hr>
+              <a href="/booking/<%= pond.id %>" class="btn btn-success w-100">
+                <i class="bi bi-calendar-plus me-2"></i>จองบ่อนี้
+              </a>
+            <% } else if (pond.status === 'maintenance') { %>
+              <hr>
+              <button class="btn btn-secondary w-100" disabled>
+                <i class="bi bi-tools me-2"></i>บ่อปิดปรับปรุง
+              </button>
+            <% } else { %>
+              <hr>
+              <button class="btn btn-secondary w-100" disabled>
+                <i class="bi bi-x-circle me-2"></i>บ่อไม่ว่าง
+              </button>
+            <% } %>
           </div>
         </div>
       </div>

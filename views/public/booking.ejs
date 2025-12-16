@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>จองบ่อ <%= pond.pond_code %> - คณะประมง</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <!-- Top Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="/">
+        <i class="bi bi-water me-2"></i>บ่อเลี้ยงปลา - คณะประมง
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="/">
+              <i class="bi bi-grid-3x3-gap"></i> ผังบ่อ
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/active">
+              <i class="bi bi-play-circle"></i> กำลังใช้งาน
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/history">
+              <i class="bi bi-clock-history"></i> ประวัติ
+            </a>
+          </li>
+        </ul>
+        <div class="d-flex">
+          <a href="/admin/login" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-person-circle me-1"></i>สำหรับเจ้าหน้าที่
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container py-4">
+    <div class="mb-3">
+      <a href="/pond/<%= pond.id %>" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>กลับไปรายละเอียดบ่อ
+      </a>
+    </div>
+
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+              <i class="bi bi-calendar-plus me-2"></i>ขอจองบ่อ <%= pond.pond_code %>
+            </h5>
+          </div>
+          <div class="card-body">
+            <% if (error) { %>
+              <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i><%= error %>
+              </div>
+            <% } %>
+
+            <!-- ข้อมูลบ่อ -->
+            <div class="alert alert-info mb-4">
+              <div class="row">
+                <div class="col-md-4">
+                  <strong>รหัสบ่อ:</strong> <%= pond.pond_code %>
+                </div>
+                <div class="col-md-4">
+                  <strong>โซน:</strong> <%= pond.zone %>
+                </div>
+                <div class="col-md-4">
+                  <strong>ขนาด:</strong> <%= pond.size === 'large' ? 'ใหญ่' : pond.size === 'medium' ? 'กลาง' : 'เล็ก' %>
+                </div>
+              </div>
+            </div>
+
+            <form method="POST" action="/booking/<%= pond.id %>">
+              <h6 class="text-muted mb-3"><i class="bi bi-person me-2"></i>ข้อมูลผู้จอง</h6>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">ชื่อ-นามสกุล <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" name="user_name" required placeholder="เช่น นายสมชาย ใจดี">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">เบอร์โทร / LINE ID <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" name="phone" required placeholder="เช่น 081-234-5678">
+                </div>
+              </div>
+
+              <hr class="my-4">
+              <h6 class="text-muted mb-3"><i class="bi bi-droplet me-2"></i>ข้อมูลการเลี้ยงปลา</h6>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">ชนิดปลา <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" name="fish_type" required placeholder="เช่น ปลานิล, ปลาดุก">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">จำนวน (ตัว) <span class="text-danger">*</span></label>
+                  <input type="number" class="form-control" name="fish_quantity" required min="1" placeholder="เช่น 1000">
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">วันเริ่มต้นใช้บ่อ <span class="text-danger">*</span></label>
+                  <input type="date" class="form-control" name="start_date" required id="start_date">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">วันสิ้นสุด (คาดการณ์) <span class="text-danger">*</span></label>
+                  <input type="date" class="form-control" name="end_date" required id="end_date">
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label">วัตถุประสงค์ / หมายเหตุ</label>
+                <textarea class="form-control" name="purpose" rows="3" placeholder="เช่น เลี้ยงเพื่อการศึกษาวิจัย, เลี้ยงเพื่อจำหน่าย"></textarea>
+              </div>
+
+              <div class="alert alert-warning">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>หมายเหตุ:</strong> หลังจากส่งคำขอ เจ้าหน้าที่จะตรวจสอบและแจ้งผลการอนุมัติให้ทราบ
+              </div>
+
+              <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="/pond/<%= pond.id %>" class="btn btn-secondary">
+                  <i class="bi bi-x-lg me-1"></i>ยกเลิก
+                </a>
+                <button type="submit" class="btn btn-primary">
+                  <i class="bi bi-send me-1"></i>ส่งคำขอจอง
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-dark text-white-50 py-3 mt-4">
+    <div class="container text-center">
+      <small>ระบบจัดการบ่อเลี้ยงปลา - คณะประมง</small>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Set min date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('start_date').setAttribute('min', today);
+    document.getElementById('end_date').setAttribute('min', today);
+
+    // Update end_date min when start_date changes
+    document.getElementById('start_date').addEventListener('change', function() {
+      document.getElementById('end_date').setAttribute('min', this.value);
+      if (document.getElementById('end_date').value < this.value) {
+        document.getElementById('end_date').value = this.value;
+      }
+    });
+  </script>
+</body>
+</html>
