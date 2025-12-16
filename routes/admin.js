@@ -236,4 +236,35 @@ router.post('/change-password', requireLogin, (req, res) => {
   }
 });
 
+// หน้าจัดตำแหน่งบ่อ (ต้อง login)
+router.get('/pond-positions', requireLogin, (req, res) => {
+  const ponds = Pond.getAll();
+  const pendingCount = Reservation.getPending().length;
+
+  res.render('admin/pond-positions', {
+    admin: req.session.admin,
+    isLoggedIn: true,
+    ponds,
+    pendingCount,
+    page: 'pond-positions'
+  });
+});
+
+// บันทึกตำแหน่งบ่อ
+router.post('/pond-positions', requireLogin, (req, res) => {
+  try {
+    const { positions } = req.body;
+
+    // บันทึกตำแหน่งแต่ละบ่อ
+    Object.keys(positions).forEach(pondCode => {
+      const pos = positions[pondCode];
+      Pond.updatePosition(pondCode, pos.left, pos.top, pos.width, pos.height);
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

@@ -176,6 +176,37 @@ class Pond {
       SELECT DISTINCT zone FROM ponds ORDER BY zone
     `).all().map(row => row.zone);
   }
+
+  // อัพเดทตำแหน่งบ่อ
+  static updatePosition(pondCode, left, top, width, height) {
+    return db.prepare(`
+      UPDATE ponds
+      SET position_x = ?, position_y = ?, width = ?, height = ?
+      WHERE pond_code = ?
+    `).run(left, top, width, height, pondCode);
+  }
+
+  // ดึงตำแหน่งบ่อทั้งหมด
+  static getPositions() {
+    const ponds = db.prepare(`
+      SELECT pond_code, position_x, position_y, width, height
+      FROM ponds
+      WHERE position_x IS NOT NULL
+    `).all();
+
+    const positions = {};
+    ponds.forEach(p => {
+      if (p.position_x !== null) {
+        positions[p.pond_code] = {
+          left: p.position_x,
+          top: p.position_y,
+          width: p.width,
+          height: p.height
+        };
+      }
+    });
+    return positions;
+  }
 }
 
 module.exports = Pond;

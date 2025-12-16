@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>จัดตำแหน่งบ่อ - ระบบจัดการบ่อเลี้ยงปลา</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+  <style>
+    .pond-editor-container {
+      position: relative;
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      border: 2px solid #007bff;
+    }
+    .pond-editor-container img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .pond-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .pond-draggable {
+      position: absolute;
+      cursor: move;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+      background: rgba(40, 167, 69, 0.8);
+      border: 2px solid #28a745;
+      user-select: none;
+      min-width: 30px;
+      min-height: 20px;
+    }
+    .pond-draggable:hover {
+      z-index: 100;
+      box-shadow: 0 0 10px rgba(255,255,255,0.8);
+    }
+    .pond-draggable.selected {
+      border-color: #ff0000;
+      box-shadow: 0 0 15px rgba(255,0,0,0.8);
+      z-index: 101;
+    }
+    .pond-draggable .resize-handle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #fff;
+      border: 1px solid #333;
+      bottom: -5px;
+      right: -5px;
+      cursor: se-resize;
+      display: none;
+    }
+    .pond-draggable.selected .resize-handle {
+      display: block;
+    }
+    .info-panel {
+      position: fixed;
+      top: 70px;
+      right: 20px;
+      width: 280px;
+      z-index: 1000;
+    }
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: white;
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/admin">
+        <i class="bi bi-water me-2"></i>บ่อเลี้ยงปลา - คณะประมง
+      </a>
+      <div class="d-flex align-items-center">
+        <span class="text-white me-3"><%= admin.name %></span>
+        <a href="/admin" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-arrow-left me-1"></i>กลับ
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <h5 class="mb-0"><i class="bi bi-arrows-move me-2"></i>จัดตำแหน่งบ่อ</h5>
+          <small class="text-muted">ลากบ่อไปวางตำแหน่งที่ต้องการ คลิกเพื่อเลือก แล้วลากมุมขวาล่างเพื่อปรับขนาด</small>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-warning" onclick="resetPositions()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>รีเซ็ต
+          </button>
+          <button class="btn btn-primary" onclick="savePositions()">
+            <i class="bi bi-save me-1"></i>บันทึกตำแหน่ง
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container-fluid py-3">
+    <div class="row">
+      <div class="col-lg-9">
+        <div class="card">
+          <div class="card-body p-2">
+            <div class="pond-editor-container" id="pondEditor">
+              <img src="/images/pond-map-bg.png" alt="ผังบ่อเลี้ยงปลา" id="mapImage">
+              <div class="pond-overlay" id="pondOverlay">
+                <!-- บ่อจะถูกสร้างโดย JavaScript -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3">
+        <!-- Info Panel -->
+        <div class="card sticky-top" style="top: 120px;">
+          <div class="card-header">
+            <i class="bi bi-info-circle me-2"></i>บ่อที่เลือก
+          </div>
+          <div class="card-body" id="selectedInfo">
+            <p class="text-muted mb-0">คลิกบ่อเพื่อดูข้อมูล</p>
+          </div>
+        </div>
+
+        <div class="card mt-3">
+          <div class="card-header">
+            <i class="bi bi-list-ul me-2"></i>รายการบ่อ
+          </div>
+          <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+            <div class="list-group list-group-flush" id="pondList">
+              <% ponds.forEach(function(pond) { %>
+                <a href="#" class="list-group-item list-group-item-action py-2" onclick="selectPond('<%= pond.pond_code %>'); return false;">
+                  <div class="d-flex justify-content-between">
+                    <span><%= pond.pond_code %></span>
+                    <small class="text-muted">โซน <%= pond.zone %></small>
+                  </div>
+                </a>
+              <% }); %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ข้อมูลบ่อ
+    const pondsData = <%- JSON.stringify(ponds) %>;
+
+    // ตำแหน่งเริ่มต้น
+    const defaultPositions = {
+      'A4': { left: 2.5, top: 8, width: 6, height: 12 },
+      'A3': { left: 10, top: 8, width: 10, height: 12 },
+      'A2': { left: 32, top: 8, width: 5, height: 7 },
+      'A1': { left: 42, top: 6, width: 14, height: 16 },
+      'B7': { left: 2.5, top: 22, width: 3.5, height: 5 },
+      'B6': { left: 6.5, top: 22, width: 3.5, height: 5 },
+      'B5': { left: 11, top: 22, width: 4, height: 5 },
+      'B4': { left: 16, top: 22, width: 4, height: 5 },
+      'B3': { left: 23, top: 17, width: 6, height: 14 },
+      'B2': { left: 32, top: 22, width: 9, height: 9 },
+      'B1': { left: 42, top: 22, width: 12, height: 9 },
+      'C6': { left: 2.5, top: 29, width: 11, height: 14 },
+      'C5': { left: 15, top: 33, width: 5, height: 9 },
+      'C4': { left: 21, top: 33, width: 5, height: 9 },
+      'C3': { left: 27, top: 33, width: 6, height: 9 },
+      'C2': { left: 34, top: 33, width: 6, height: 9 },
+      'C1': { left: 41, top: 33, width: 6, height: 9 },
+      'C14': { left: 2.5, top: 45, width: 4, height: 8 },
+      'C13': { left: 7, top: 45, width: 4.5, height: 8 },
+      'C12': { left: 12, top: 45, width: 5, height: 8 },
+      'C11': { left: 18, top: 45, width: 5, height: 8 },
+      'C10': { left: 24, top: 45, width: 5, height: 8 },
+      'C9': { left: 30, top: 45, width: 5, height: 8 },
+      'C8': { left: 36, top: 45, width: 5, height: 8 },
+      'C7': { left: 42, top: 45, width: 5, height: 8 },
+      'D5': { left: 18, top: 55, width: 4.5, height: 6 },
+      'D4': { left: 24, top: 55, width: 5, height: 6 },
+      'D3': { left: 30, top: 55, width: 5, height: 6 },
+      'D2': { left: 36, top: 55, width: 5, height: 6 },
+      'D1': { left: 42, top: 55, width: 5, height: 6 },
+      'D6': { left: 30, top: 76, width: 9, height: 14 },
+      'E1': { left: 52, top: 64, width: 4, height: 6 },
+      'E2': { left: 56.5, top: 64, width: 4, height: 6 },
+      'E3': { left: 61, top: 64, width: 5, height: 6 },
+      'E4': { left: 67, top: 58, width: 4, height: 5 },
+      'E5': { left: 71.5, top: 58, width: 4, height: 5 },
+      'F8': { left: 54, top: 8, width: 3.5, height: 6 },
+      'F7': { left: 54, top: 15, width: 3.5, height: 5 },
+      'F6': { left: 54, top: 21, width: 3.5, height: 5 },
+      'F5': { left: 54, top: 27, width: 3.5, height: 5 },
+      'F4': { left: 54, top: 33, width: 3.5, height: 5 },
+      'F3': { left: 54, top: 39, width: 3.5, height: 5 },
+      'F2': { left: 54, top: 45, width: 3.5, height: 5 },
+      'F1': { left: 54, top: 51, width: 3.5, height: 6 },
+      'G1': { left: 62, top: 33, width: 6, height: 9 },
+      'G2': { left: 62, top: 44, width: 6, height: 9 },
+      'G3': { left: 77, top: 10, width: 5, height: 6 },
+      'G4': { left: 77, top: 17, width: 5, height: 6 },
+      'G5': { left: 77, top: 24, width: 5, height: 6 },
+      'G6': { left: 77, top: 31, width: 5, height: 6 },
+      'G7': { left: 77, top: 38, width: 5, height: 6 },
+      'G8': { left: 77, top: 45, width: 5, height: 6 },
+      'G10': { left: 83, top: 55, width: 5, height: 6 }
+    };
+
+    // ตำแหน่งปัจจุบัน (clone จาก default)
+    let currentPositions = JSON.parse(JSON.stringify(defaultPositions));
+
+    // โหลดตำแหน่งที่บันทึกไว้จาก database
+    const savedPositions = {};
+    <% ponds.forEach(function(pond) { %>
+      <% if (pond.position_x !== null) { %>
+        savedPositions['<%= pond.pond_code %>'] = {
+          left: <%= pond.position_x || 0 %>,
+          top: <%= pond.position_y || 0 %>,
+          width: <%= pond.width || 5 %>,
+          height: <%= pond.height || 5 %>
+        };
+      <% } %>
+    <% }); %>
+
+    // ใช้ตำแหน่งที่บันทึกไว้ ถ้ามี
+    Object.keys(savedPositions).forEach(code => {
+      if (savedPositions[code].left > 0) {
+        currentPositions[code] = savedPositions[code];
+      }
+    });
+
+    let selectedPond = null;
+    let isDragging = false;
+    let isResizing = false;
+    let startX, startY, startLeft, startTop, startWidth, startHeight;
+
+    const overlay = document.getElementById('pondOverlay');
+    const editor = document.getElementById('pondEditor');
+
+    // สร้างบ่อทั้งหมด
+    function createPonds() {
+      overlay.innerHTML = '';
+
+      pondsData.forEach(pond => {
+        const pos = currentPositions[pond.pond_code];
+        if (!pos) return;
+
+        const div = document.createElement('div');
+        div.className = 'pond-draggable';
+        div.dataset.code = pond.pond_code;
+        div.style.left = pos.left + '%';
+        div.style.top = pos.top + '%';
+        div.style.width = pos.width + '%';
+        div.style.height = pos.height + '%';
+        div.innerHTML = pond.pond_code + '<div class="resize-handle"></div>';
+
+        // Events
+        div.addEventListener('mousedown', onMouseDown);
+        div.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectPond(pond.pond_code);
+        });
+
+        overlay.appendChild(div);
+      });
+    }
+
+    function selectPond(code) {
+      // Remove previous selection
+      document.querySelectorAll('.pond-draggable.selected').forEach(el => {
+        el.classList.remove('selected');
+      });
+
+      selectedPond = code;
+      const el = document.querySelector(`.pond-draggable[data-code="${code}"]`);
+      if (el) {
+        el.classList.add('selected');
+        updateInfoPanel(code);
+      }
+    }
+
+    function updateInfoPanel(code) {
+      const pond = pondsData.find(p => p.pond_code === code);
+      const pos = currentPositions[code];
+
+      document.getElementById('selectedInfo').innerHTML = `
+        <h5>${code}</h5>
+        <table class="table table-sm table-borderless mb-0">
+          <tr><td>โซน:</td><td>${pond.zone}</td></tr>
+          <tr><td>Left:</td><td><input type="number" class="form-control form-control-sm" value="${pos.left.toFixed(1)}" onchange="updatePosition('${code}', 'left', this.value)" step="0.5"></td></tr>
+          <tr><td>Top:</td><td><input type="number" class="form-control form-control-sm" value="${pos.top.toFixed(1)}" onchange="updatePosition('${code}', 'top', this.value)" step="0.5"></td></tr>
+          <tr><td>Width:</td><td><input type="number" class="form-control form-control-sm" value="${pos.width.toFixed(1)}" onchange="updatePosition('${code}', 'width', this.value)" step="0.5"></td></tr>
+          <tr><td>Height:</td><td><input type="number" class="form-control form-control-sm" value="${pos.height.toFixed(1)}" onchange="updatePosition('${code}', 'height', this.value)" step="0.5"></td></tr>
+        </table>
+      `;
+    }
+
+    function updatePosition(code, prop, value) {
+      currentPositions[code][prop] = parseFloat(value);
+      const el = document.querySelector(`.pond-draggable[data-code="${code}"]`);
+      if (el) {
+        el.style[prop === 'left' || prop === 'width' ? prop : (prop === 'top' ? 'top' : 'height')] = value + '%';
+      }
+    }
+
+    function onMouseDown(e) {
+      const target = e.target.closest('.pond-draggable');
+      if (!target) return;
+
+      const code = target.dataset.code;
+      selectPond(code);
+
+      const rect = editor.getBoundingClientRect();
+
+      if (e.target.classList.contains('resize-handle')) {
+        isResizing = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startWidth = currentPositions[code].width;
+        startHeight = currentPositions[code].height;
+      } else {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = currentPositions[code].left;
+        startTop = currentPositions[code].top;
+      }
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+      e.preventDefault();
+    }
+
+    function onMouseMove(e) {
+      if (!selectedPond) return;
+
+      const rect = editor.getBoundingClientRect();
+      const dx = ((e.clientX - startX) / rect.width) * 100;
+      const dy = ((e.clientY - startY) / rect.height) * 100;
+
+      if (isDragging) {
+        currentPositions[selectedPond].left = Math.max(0, Math.min(95, startLeft + dx));
+        currentPositions[selectedPond].top = Math.max(0, Math.min(95, startTop + dy));
+      } else if (isResizing) {
+        currentPositions[selectedPond].width = Math.max(2, startWidth + dx);
+        currentPositions[selectedPond].height = Math.max(2, startHeight + dy);
+      }
+
+      const el = document.querySelector(`.pond-draggable[data-code="${selectedPond}"]`);
+      if (el) {
+        el.style.left = currentPositions[selectedPond].left + '%';
+        el.style.top = currentPositions[selectedPond].top + '%';
+        el.style.width = currentPositions[selectedPond].width + '%';
+        el.style.height = currentPositions[selectedPond].height + '%';
+      }
+
+      updateInfoPanel(selectedPond);
+    }
+
+    function onMouseUp() {
+      isDragging = false;
+      isResizing = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    }
+
+    function resetPositions() {
+      if (confirm('รีเซ็ตตำแหน่งทั้งหมดเป็นค่าเริ่มต้น?')) {
+        currentPositions = JSON.parse(JSON.stringify(defaultPositions));
+        createPonds();
+        if (selectedPond) {
+          selectPond(selectedPond);
+        }
+      }
+    }
+
+    function savePositions() {
+      fetch('/admin/pond-positions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ positions: currentPositions })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert('บันทึกตำแหน่งเรียบร้อยแล้ว!');
+        } else {
+          alert('เกิดข้อผิดพลาด: ' + data.error);
+        }
+      })
+      .catch(err => {
+        alert('เกิดข้อผิดพลาด: ' + err.message);
+      });
+    }
+
+    // Click outside to deselect
+    editor.addEventListener('click', (e) => {
+      if (e.target === editor || e.target.id === 'mapImage' || e.target.id === 'pondOverlay') {
+        document.querySelectorAll('.pond-draggable.selected').forEach(el => {
+          el.classList.remove('selected');
+        });
+        selectedPond = null;
+        document.getElementById('selectedInfo').innerHTML = '<p class="text-muted mb-0">คลิกบ่อเพื่อดูข้อมูล</p>';
+      }
+    });
+
+    // Initialize
+    createPonds();
+  </script>
+</body>
+</html>

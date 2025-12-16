@@ -8,11 +8,13 @@ router.get('/', (req, res) => {
   const ponds = Pond.getAll();
   const status = Pond.getStatusCount();
   const pendingCount = Reservation.getPending().length;
+  const savedPositions = Pond.getPositions();
 
   res.render('public/index', {
     ponds,
     status,
-    pendingCount
+    pendingCount,
+    savedPositions
   });
 });
 
