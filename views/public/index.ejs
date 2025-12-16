@@ -63,9 +63,55 @@
       background: rgba(108, 117, 125, 0.85);
       border: 3px solid #6c757d;
     }
+    /* Tooltip styles */
+    .pond-tooltip {
+      position: fixed;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      z-index: 9999;
+      pointer-events: none;
+      max-width: 250px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: none;
+    }
+    .pond-tooltip .tooltip-title {
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.3);
+      padding-bottom: 4px;
+    }
+    .pond-tooltip .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 3px 0;
+    }
+    .pond-tooltip .tooltip-label {
+      color: #aaa;
+    }
+    .pond-tooltip .tooltip-value {
+      font-weight: 500;
+      margin-left: 10px;
+    }
+    .pond-tooltip .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    .pond-tooltip .status-available { background: #28a745; }
+    .pond-tooltip .status-occupied { background: #dc3545; }
+    .pond-tooltip .status-pending { background: #ffc107; color: #333; }
+    .pond-tooltip .status-maintenance { background: #6c757d; }
   </style>
 </head>
 <body>
+  <!-- Tooltip element -->
+  <div id="pondTooltip" class="pond-tooltip"></div>
+
   <!-- Top Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
@@ -355,6 +401,71 @@
       document.getElementById('modalPondBody').innerHTML = html;
       pondModal.show();
     }
+
+    // Tooltip functionality
+    const tooltip = document.getElementById('pondTooltip');
+
+    document.querySelectorAll('.pond-area').forEach(el => {
+      el.addEventListener('mouseenter', function(e) {
+        const pondId = parseInt(this.dataset.pondId);
+        const pond = pondsData.find(p => p.id === pondId);
+        if (!pond) return;
+
+        let statusClass = 'status-available';
+        let statusText = 'ว่าง';
+        if (pond.user_name) {
+          statusClass = 'status-occupied';
+          statusText = 'ใช้งาน';
+        } else if (pond.status === 'maintenance') {
+          statusClass = 'status-maintenance';
+          statusText = 'ปิดปรับปรุง';
+        } else if (pond.status === 'pending') {
+          statusClass = 'status-pending';
+          statusText = 'รออนุมัติ';
+        }
+
+        let html = `
+          <div class="tooltip-title">บ่อ ${pond.pond_code}</div>
+          <div class="tooltip-row">
+            <span class="tooltip-label">สถานะ:</span>
+            <span class="status-badge ${statusClass}">${statusText}</span>
+          </div>
+        `;
+
+        if (pond.user_name) {
+          html += `
+            <div class="tooltip-row">
+              <span class="tooltip-label">ผู้เลี้ยง:</span>
+              <span class="tooltip-value">${pond.user_name}</span>
+            </div>
+            <div class="tooltip-row">
+              <span class="tooltip-label">ชนิดปลา:</span>
+              <span class="tooltip-value">${pond.fish_type || '-'}</span>
+            </div>
+            <div class="tooltip-row">
+              <span class="tooltip-label">จำนวน:</span>
+              <span class="tooltip-value">${pond.fish_quantity ? pond.fish_quantity.toLocaleString() + ' ตัว' : '-'}</span>
+            </div>
+            <div class="tooltip-row">
+              <span class="tooltip-label">อายุปลา:</span>
+              <span class="tooltip-value">${pond.fish_age_days || 0} วัน</span>
+            </div>
+          `;
+        }
+
+        tooltip.innerHTML = html;
+        tooltip.style.display = 'block';
+      });
+
+      el.addEventListener('mousemove', function(e) {
+        tooltip.style.left = (e.clientX + 15) + 'px';
+        tooltip.style.top = (e.clientY + 15) + 'px';
+      });
+
+      el.addEventListener('mouseleave', function() {
+        tooltip.style.display = 'none';
+      });
+    });
   </script>
 </body>
 </html>
