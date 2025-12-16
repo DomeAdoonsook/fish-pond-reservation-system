@@ -289,8 +289,8 @@
                   'G10': { left: 88, top: 48.89, width: 2 }
                 };
 
-                // ใช้ตำแหน่งจาก database ถ้ามี ไม่งั้นใช้ค่าเริ่มต้น
-                const pondPositions = Object.assign({}, defaultPositions, savedPositions || {});
+                // ใช้ตำแหน่ง hardcoded เท่านั้น (ไม่ใช้จาก database เพื่อให้ขนาดเท่ากันทุกบ่อ)
+                const pondPositions = defaultPositions;
 
                 ponds.forEach(function(pond) {
                   const pos = pondPositions[pond.pond_code];
