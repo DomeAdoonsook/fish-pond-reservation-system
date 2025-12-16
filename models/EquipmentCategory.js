@@ -68,7 +68,10 @@ class EquipmentCategory {
          AND e.status = 'active'
          AND e.total_quantity > 0) as available_equipment_count
       FROM equipment_categories c
-      HAVING available_equipment_count > 0
+      WHERE (SELECT COUNT(*) FROM equipment e
+             WHERE e.category_id = c.id
+             AND e.status = 'active'
+             AND e.total_quantity > 0) > 0
       ORDER BY c.name
     `).all();
   }
