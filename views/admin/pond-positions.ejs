@@ -31,23 +31,24 @@
     .pond-draggable {
       position: absolute;
       cursor: move;
-      border-radius: 4px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 9px;
+      font-size: 11px;
       font-weight: bold;
       color: white;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-      background: rgba(40, 167, 69, 0.8);
-      border: 2px solid #28a745;
+      background: rgba(40, 167, 69, 0.85);
+      border: 3px solid #28a745;
       user-select: none;
       min-width: 30px;
-      min-height: 20px;
+      min-height: 30px;
+      aspect-ratio: 1;
     }
     .pond-draggable:hover {
       z-index: 100;
-      box-shadow: 0 0 10px rgba(255,255,255,0.8);
+      box-shadow: 0 0 15px rgba(255,255,255,0.9);
     }
     .pond-draggable.selected {
       border-color: #ff0000;
@@ -56,12 +57,13 @@
     }
     .pond-draggable .resize-handle {
       position: absolute;
-      width: 10px;
-      height: 10px;
+      width: 12px;
+      height: 12px;
       background: #fff;
-      border: 1px solid #333;
-      bottom: -5px;
-      right: -5px;
+      border: 2px solid #333;
+      border-radius: 50%;
+      bottom: -4px;
+      right: -4px;
       cursor: se-resize;
       display: none;
     }
