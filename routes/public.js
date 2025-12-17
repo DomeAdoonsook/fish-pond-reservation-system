@@ -24,7 +24,25 @@ router.get('/pond', (req, res) => {
   });
 });
 
-// หน้ารายละเอียดบ่อ
+// หน้ากำลังใช้งาน (บ่อ) - ต้องอยู่ก่อน /pond/:id
+router.get('/pond/active', (req, res) => {
+  const active = Reservation.getActive();
+
+  res.render('public/active', {
+    reservations: active
+  });
+});
+
+// หน้าประวัติ (บ่อ) - ต้องอยู่ก่อน /pond/:id
+router.get('/pond/history', (req, res) => {
+  const reservations = Reservation.getAll();
+
+  res.render('public/history', {
+    reservations
+  });
+});
+
+// หน้ารายละเอียดบ่อ - ต้องอยู่หลัง routes ที่ specific กว่า
 router.get('/pond/:id', (req, res) => {
   const pond = Pond.getById(req.params.id);
   const history = Reservation.getHistoryByPondId(req.params.id);
@@ -36,24 +54,6 @@ router.get('/pond/:id', (req, res) => {
   res.render('public/pond-detail', {
     pond,
     history
-  });
-});
-
-// หน้ากำลังใช้งาน (บ่อ)
-router.get('/pond/active', (req, res) => {
-  const active = Reservation.getActive();
-
-  res.render('public/active', {
-    reservations: active
-  });
-});
-
-// หน้าประวัติ (บ่อ)
-router.get('/pond/history', (req, res) => {
-  const reservations = Reservation.getAll();
-
-  res.render('public/history', {
-    reservations
   });
 });
 
