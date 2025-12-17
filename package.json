@@ -9,6 +9,7 @@
     "init-db": "node scripts/init-db.js"
   },
   "dependencies": {
+    "@libsql/client": "^0.15.15",
     "@line/bot-sdk": "^8.0.0",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^9.2.2",

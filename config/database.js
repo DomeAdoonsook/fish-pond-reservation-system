@@ -1,14 +1,21 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 
-const dbPath = path.join(__dirname, '..', 'data', 'fishpond.db');
+// สร้าง data directory ถ้ายังไม่มี
+const dataDir = path.join(__dirname, '..', 'data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
+const dbPath = path.join(dataDir, 'fishpond.db');
 const db = new Database(dbPath);
 
 // Enable foreign keys
 db.pragma('foreign_keys = ON');
 
-// Create tables
-db.exec(`
+// Schema SQL
+const schemaSQL = `
   -- ตาราง admins (ผู้ดูแลระบบ)
   CREATE TABLE IF NOT EXISTS admins (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,6 +47,7 @@ db.exec(`
     pond_id INTEGER NOT NULL,
     user_name TEXT NOT NULL,
     line_user_id TEXT,
+    phone TEXT,
     fish_type TEXT NOT NULL,
     fish_quantity INTEGER NOT NULL,
     start_date DATE NOT NULL,
@@ -154,13 +162,11 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_eq_reservations_status ON equipment_reservations(status);
   CREATE INDEX IF NOT EXISTS idx_eq_reservations_line_user ON equipment_reservations(line_user_id);
   CREATE INDEX IF NOT EXISTS idx_eq_reservation_items_reservation ON equipment_reservation_items(reservation_id);
-`);
+`;
 
-// เพิ่ม column phone ถ้ายังไม่มี
-try {
-  db.exec(`ALTER TABLE reservations ADD COLUMN phone TEXT`);
-} catch (e) {
-  // Column already exists
-}
+// Create tables
+db.exec(schemaSQL);
+
+console.log('💾 Using local SQLite database');
 
 module.exports = db;
