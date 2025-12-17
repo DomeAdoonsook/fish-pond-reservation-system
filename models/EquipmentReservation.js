@@ -129,10 +129,11 @@ class EquipmentReservation {
         insertItem.run(reservationId, item.equipment_id, item.quantity);
       }
 
-      return { id: reservationId };
+      return reservationId;
     });
 
-    return transaction();
+    const reservationId = transaction();
+    return this.getById(reservationId);
   }
 
   // อนุมัติการจอง

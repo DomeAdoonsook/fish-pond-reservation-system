@@ -54,11 +54,13 @@ router.post('/borrow', async (req, res) => {
       items: parsedItems
     });
 
-    // แจ้ง admin
+    // แจ้ง admin ผ่าน LINE
     try {
+      console.log('Sending LINE notification for equipment request:', reservation.id);
       await notifyAdminNewEquipmentRequest(reservation);
+      console.log('LINE notification sent successfully');
     } catch (e) {
-      console.error('Error notifying admin:', e);
+      console.error('Error notifying admin via LINE:', e);
     }
 
     res.json({ success: true, id: reservation.id });
