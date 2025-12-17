@@ -22,9 +22,21 @@ const optionalLogin = (req, res, next) => {
 };
 
 // Middleware เพิ่มข้อมูล common ให้ทุกหน้า
-const addCommonData = (req, res, next) => {
+const addCommonData = async (req, res, next) => {
   res.locals.cancelPendingCount = CancellationRequest.getPendingCount();
   res.locals.equipmentPendingCount = EquipmentReservation.getPendingCount();
+
+  // ดึง LINE quota (เฉพาะ admin ที่ login แล้ว)
+  if (req.session.admin) {
+    try {
+      const { getLineQuota } = require('../utils/lineNotify');
+      res.locals.lineQuota = await getLineQuota();
+    } catch (error) {
+      console.error('Error fetching LINE quota:', error);
+      res.locals.lineQuota = null;
+    }
+  }
+
   next();
 };
 
@@ -58,22 +70,11 @@ router.get('/logout', (req, res) => {
 });
 
 // หน้าหลัก - Dashboard (ไม่ต้อง login)
-router.get('/', optionalLogin, async (req, res) => {
+router.get('/', optionalLogin, (req, res) => {
   const ponds = Pond.getAll();
   const status = Pond.getStatusCount();
   const pendingCount = Reservation.getPending().length;
   const savedPositions = Pond.getPositions();
-
-  // ดึง LINE quota (เฉพาะ admin ที่ login แล้ว)
-  let lineQuota = null;
-  if (req.session.admin) {
-    try {
-      const { getLineQuota } = require('../utils/lineNotify');
-      lineQuota = await getLineQuota();
-    } catch (error) {
-      console.error('Error fetching LINE quota:', error);
-    }
-  }
 
   res.render('admin/dashboard', {
     admin: req.session.admin || { name: 'ผู้เยี่ยมชม' },
@@ -82,7 +83,6 @@ router.get('/', optionalLogin, async (req, res) => {
     status,
     pendingCount,
     savedPositions,
-    lineQuota,
     page: 'dashboard'
   });
 });

@@ -113,6 +113,29 @@
 
   <div class="sidebar-footer p-3 border-top border-secondary">
     <% if (isLoggedIn) { %>
+    <!-- LINE Quota -->
+    <% if (typeof lineQuota !== 'undefined' && lineQuota) { %>
+    <div class="mb-3 p-2 rounded" style="background: rgba(0,195,0,0.1);">
+      <div class="d-flex align-items-center justify-content-between mb-1">
+        <small class="text-success"><i class="bi bi-line me-1"></i>LINE Quota</small>
+        <small class="text-white-50"><%= lineQuota.used %>/<%= lineQuota.limit %></small>
+      </div>
+      <div class="progress" style="height: 6px;">
+        <% const usedPercent = (lineQuota.used / lineQuota.limit) * 100; %>
+        <div class="progress-bar bg-<%= usedPercent > 90 ? 'danger' : usedPercent > 70 ? 'warning' : 'success' %>"
+             style="width: <%= usedPercent %>%"></div>
+      </div>
+      <div class="d-flex justify-content-between mt-1">
+        <small class="text-<%= lineQuota.remaining < 50 ? 'danger' : lineQuota.remaining < 100 ? 'warning' : 'success' %>">
+          เหลือ <%= lineQuota.remaining %>
+        </small>
+        <% if (lineQuota.resetDate) { %>
+        <small class="text-white-50">รีเซ็ต <%= new Date(lineQuota.resetDate).getDate() %>/<%= new Date(lineQuota.resetDate).getMonth() + 1 %></small>
+        <% } %>
+      </div>
+    </div>
+    <% } %>
+
     <div class="d-flex align-items-center text-white-50">
       <i class="bi bi-person-circle me-2"></i>
       <span><%= admin.name %></span>
