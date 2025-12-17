@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบจัดการบ่อเลี้ยงปลา - คณะประมง</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Sarabun', sans-serif;
+    }
+    body {
+      background: linear-gradient(135deg, #1a5f2a 0%, #2d8a4e 50%, #1a5f2a 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .landing-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .landing-card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      cursor: pointer;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .landing-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .landing-card .icon-wrapper {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+    }
+    .landing-card:hover .icon-wrapper {
+      transform: scale(1.1);
+    }
+    .landing-card .icon-wrapper i {
+      font-size: 60px;
+      color: white;
+    }
+    .landing-card.pond .icon-wrapper {
+      background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+    }
+    .landing-card.equipment .icon-wrapper {
+      background: linear-gradient(135deg, #fd7e14, #ffc107);
+    }
+    .landing-card h3 {
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    .landing-card p {
+      color: #666;
+      margin-bottom: 0;
+    }
+    .landing-card .btn-enter {
+      margin-top: 20px;
+      padding: 10px 30px;
+      font-weight: 600;
+      border-radius: 50px;
+    }
+    .landing-card.pond .btn-enter {
+      background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+      border: none;
+      color: white;
+    }
+    .landing-card.equipment .btn-enter {
+      background: linear-gradient(135deg, #fd7e14, #ffc107);
+      border: none;
+      color: white;
+    }
+    .header-section {
+      text-align: center;
+      padding: 30px 20px;
+    }
+    .header-section h1 {
+      color: white;
+      font-weight: 700;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .header-section p {
+      color: rgba(255,255,255,0.9);
+    }
+    .admin-link {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+    }
+    .footer-section {
+      text-align: center;
+      padding: 20px;
+      color: rgba(255,255,255,0.7);
+    }
+  </style>
+</head>
+<body>
+  <div class="header-section">
+    <h1><i class="bi bi-water me-2"></i>ระบบจัดการบ่อเลี้ยงปลา</h1>
+    <p class="mb-0">คณะประมง มหาวิทยาลัยเกษตรศาสตร์</p>
+  </div>
+
+  <div class="landing-container">
+    <div class="container">
+      <div class="row justify-content-center g-4">
+        <div class="col-md-5 col-lg-4">
+          <a href="/pond" class="text-decoration-none">
+            <div class="landing-card pond">
+              <div class="icon-wrapper">
+                <i class="bi bi-droplet-half"></i>
+              </div>
+              <h3>บ่อเลี้ยงปลา</h3>
+              <p>ดูผังบ่อ จองบ่อ<br>ตรวจสอบสถานะการใช้งาน</p>
+              <button class="btn btn-enter">
+                <i class="bi bi-arrow-right-circle me-2"></i>เข้าสู่ระบบบ่อ
+              </button>
+            </div>
+          </a>
+        </div>
+        <div class="col-md-5 col-lg-4">
+          <a href="/equipment" class="text-decoration-none">
+            <div class="landing-card equipment">
+              <div class="icon-wrapper">
+                <i class="bi bi-tools"></i>
+              </div>
+              <h3>ยืม-คืน อุปกรณ์</h3>
+              <p>ยืมอุปกรณ์ ตรวจสอบสถานะ<br>แจ้งคืนอุปกรณ์</p>
+              <button class="btn btn-enter">
+                <i class="bi bi-arrow-right-circle me-2"></i>เข้าสู่ระบบอุปกรณ์
+              </button>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-section">
+    <small>ระบบจัดการบ่อเลี้ยงปลา - คณะประมง</small>
+  </div>
+
+  <a href="/admin/login" class="admin-link btn btn-light btn-sm shadow">
+    <i class="bi bi-person-circle me-1"></i>สำหรับเจ้าหน้าที่
+  </a>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

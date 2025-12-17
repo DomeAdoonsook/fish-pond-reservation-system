@@ -4,8 +4,13 @@ const Pond = require('../models/Pond');
 const Reservation = require('../models/Reservation');
 const CancellationRequest = require('../models/CancellationRequest');
 
-// หน้าแรก - ผังบ่อ
+// หน้าแรก - หน้าเลือก (Landing Page)
 router.get('/', (req, res) => {
+  res.render('public/landing');
+});
+
+// หน้าผังบ่อ
+router.get('/pond', (req, res) => {
   const ponds = Pond.getAll();
   const status = Pond.getStatusCount();
   const pendingCount = Reservation.getPending().length;
@@ -34,8 +39,8 @@ router.get('/pond/:id', (req, res) => {
   });
 });
 
-// หน้ากำลังใช้งาน
-router.get('/active', (req, res) => {
+// หน้ากำลังใช้งาน (บ่อ)
+router.get('/pond/active', (req, res) => {
   const active = Reservation.getActive();
 
   res.render('public/active', {
@@ -43,14 +48,18 @@ router.get('/active', (req, res) => {
   });
 });
 
-// หน้าประวัติ
-router.get('/history', (req, res) => {
+// หน้าประวัติ (บ่อ)
+router.get('/pond/history', (req, res) => {
   const reservations = Reservation.getAll();
 
   res.render('public/history', {
     reservations
   });
 });
+
+// Redirect old routes to new ones
+router.get('/active', (req, res) => res.redirect('/pond/active'));
+router.get('/history', (req, res) => res.redirect('/pond/history'));
 
 // หน้าฟอร์มขอใช้บ่อ
 router.get('/booking/:id', (req, res) => {
