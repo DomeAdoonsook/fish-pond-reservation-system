@@ -23,8 +23,8 @@ const optionalLogin = (req, res, next) => {
 
 // Middleware เพิ่มข้อมูล common ให้ทุกหน้า
 const addCommonData = async (req, res, next) => {
-  res.locals.cancelPendingCount = CancellationRequest.getPendingCount();
-  res.locals.equipmentPendingCount = EquipmentReservation.getPendingCount();
+  res.locals.cancelPendingCount = await CancellationRequest.getPendingCount();
+  res.locals.equipmentPendingCount = await EquipmentReservation.getPendingCount();
 
   // ดึง LINE quota (เฉพาะ admin ที่ login แล้ว)
   if (req.session.admin) {
@@ -51,9 +51,9 @@ router.get('/login', (req, res) => {
 });
 
 // Login
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  const admin = Admin.authenticate(username, password);
+  const admin = await Admin.authenticate(username, password);
 
   if (!admin) {
     return res.render('admin/login', { error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' });
@@ -70,11 +70,12 @@ router.get('/logout', (req, res) => {
 });
 
 // หน้าหลัก - Dashboard (ไม่ต้อง login)
-router.get('/', optionalLogin, (req, res) => {
-  const ponds = Pond.getAll();
-  const status = Pond.getStatusCount();
-  const pendingCount = Reservation.getPending().length;
-  const savedPositions = Pond.getPositions();
+router.get('/', optionalLogin, async (req, res) => {
+  const ponds = await Pond.getAll();
+  const status = await Pond.getStatusCount();
+  const pending = await Reservation.getPending();
+  const pendingCount = pending.length;
+  const savedPositions = await Pond.getPositions();
 
   res.render('admin/dashboard', {
     admin: req.session.admin || { name: 'ผู้เยี่ยมชม' },
@@ -88,8 +89,8 @@ router.get('/', optionalLogin, (req, res) => {
 });
 
 // หน้าอนุมัติคำขอ (ดูได้ไม่ต้อง login)
-router.get('/requests', optionalLogin, (req, res) => {
-  const pending = Reservation.getPending();
+router.get('/requests', optionalLogin, async (req, res) => {
+  const pending = await Reservation.getPending();
   const pendingCount = pending.length;
 
   res.render('admin/requests', {
@@ -104,10 +105,10 @@ router.get('/requests', optionalLogin, (req, res) => {
 // อนุมัติคำขอ
 router.post('/requests/:id/approve', requireLogin, async (req, res) => {
   try {
-    Reservation.approve(req.params.id, req.session.admin.id);
+    await Reservation.approve(req.params.id, req.session.admin.id);
 
-    const reservation = Reservation.getById(req.params.id);
-    Log.create('reservation_approved', {
+    const reservation = await Reservation.getById(req.params.id);
+    await Log.create('reservation_approved', {
       pond_id: reservation.pond_id,
       reservation_id: req.params.id,
       admin_id: req.session.admin.id
@@ -127,10 +128,10 @@ router.post('/requests/:id/approve', requireLogin, async (req, res) => {
 router.post('/requests/:id/reject', requireLogin, async (req, res) => {
   try {
     const reason = req.body.reason || '';
-    Reservation.reject(req.params.id, req.session.admin.id, reason);
+    await Reservation.reject(req.params.id, req.session.admin.id, reason);
 
-    const reservation = Reservation.getById(req.params.id);
-    Log.create('reservation_rejected', {
+    const reservation = await Reservation.getById(req.params.id);
+    await Log.create('reservation_rejected', {
       pond_id: reservation.pond_id,
       reservation_id: req.params.id,
       admin_id: req.session.admin.id,
@@ -148,9 +149,10 @@ router.post('/requests/:id/reject', requireLogin, async (req, res) => {
 });
 
 // หน้าการจอง Active (ไม่ต้อง login)
-router.get('/active', optionalLogin, (req, res) => {
-  const active = Reservation.getActive();
-  const pendingCount = Reservation.getPending().length;
+router.get('/active', optionalLogin, async (req, res) => {
+  const active = await Reservation.getActive();
+  const pending = await Reservation.getPending();
+  const pendingCount = pending.length;
 
   res.render('admin/active', {
     admin: req.session.admin || { name: 'ผู้เยี่ยมชม' },
@@ -162,12 +164,12 @@ router.get('/active', optionalLogin, (req, res) => {
 });
 
 // คืนบ่อ
-router.post('/reservations/:id/complete', requireLogin, (req, res) => {
+router.post('/reservations/:id/complete', requireLogin, async (req, res) => {
   try {
-    const reservation = Reservation.getById(req.params.id);
-    Reservation.complete(req.params.id);
+    const reservation = await Reservation.getById(req.params.id);
+    await Reservation.complete(req.params.id);
 
-    Log.create('reservation_completed', {
+    await Log.create('reservation_completed', {
       pond_id: reservation.pond_id,
       reservation_id: req.params.id,
       admin_id: req.session.admin.id
@@ -182,12 +184,12 @@ router.post('/reservations/:id/complete', requireLogin, (req, res) => {
 // ยกเลิกการจอง
 router.post('/reservations/:id/cancel', requireLogin, async (req, res) => {
   try {
-    const reservation = Reservation.getById(req.params.id);
+    const reservation = await Reservation.getById(req.params.id);
     const reason = req.body.reason || 'ยกเลิกโดยผู้ดูแลระบบ';
 
-    Reservation.cancel(req.params.id);
+    await Reservation.cancel(req.params.id);
 
-    Log.create('reservation_cancelled', {
+    await Log.create('reservation_cancelled', {
       pond_id: reservation.pond_id,
       reservation_id: req.params.id,
       admin_id: req.session.admin.id,
@@ -205,9 +207,10 @@ router.post('/reservations/:id/cancel', requireLogin, async (req, res) => {
 });
 
 // หน้าประวัติ (ไม่ต้อง login)
-router.get('/history', optionalLogin, (req, res) => {
-  const reservations = Reservation.getAll();
-  const pendingCount = Reservation.getPending().length;
+router.get('/history', optionalLogin, async (req, res) => {
+  const reservations = await Reservation.getAll();
+  const pending = await Reservation.getPending();
+  const pendingCount = pending.length;
 
   res.render('admin/history', {
     admin: req.session.admin || { name: 'ผู้เยี่ยมชม' },
@@ -219,10 +222,11 @@ router.get('/history', optionalLogin, (req, res) => {
 });
 
 // หน้ารายละเอียดบ่อ (ไม่ต้อง login)
-router.get('/pond/:id', optionalLogin, (req, res) => {
-  const pond = Pond.getById(req.params.id);
-  const history = Reservation.getHistoryByPondId(req.params.id);
-  const pendingCount = Reservation.getPending().length;
+router.get('/pond/:id', optionalLogin, async (req, res) => {
+  const pond = await Pond.getById(req.params.id);
+  const history = await Reservation.getHistoryByPondId(req.params.id);
+  const pending = await Reservation.getPending();
+  const pendingCount = pending.length;
 
   if (!pond) {
     return res.redirect('/admin');
@@ -239,12 +243,12 @@ router.get('/pond/:id', optionalLogin, (req, res) => {
 });
 
 // อัพเดทสถานะบ่อ
-router.post('/pond/:id/status', requireLogin, (req, res) => {
+router.post('/pond/:id/status', requireLogin, async (req, res) => {
   try {
     const { status } = req.body;
-    Pond.updateStatus(req.params.id, status);
+    await Pond.updateStatus(req.params.id, status);
 
-    Log.create('pond_status_change', {
+    await Log.create('pond_status_change', {
       pond_id: req.params.id,
       admin_id: req.session.admin.id,
       details: { new_status: status }
@@ -257,8 +261,9 @@ router.post('/pond/:id/status', requireLogin, (req, res) => {
 });
 
 // หน้าตั้งค่า (ต้อง login)
-router.get('/settings', requireLogin, (req, res) => {
-  const pendingCount = Reservation.getPending().length;
+router.get('/settings', requireLogin, async (req, res) => {
+  const pending = await Reservation.getPending();
+  const pendingCount = pending.length;
 
   res.render('admin/settings', {
     admin: req.session.admin,
@@ -269,17 +274,17 @@ router.get('/settings', requireLogin, (req, res) => {
 });
 
 // เปลี่ยนรหัสผ่าน
-router.post('/change-password', requireLogin, (req, res) => {
+router.post('/change-password', requireLogin, async (req, res) => {
   try {
     const { current_password, new_password } = req.body;
 
     // ตรวจสอบรหัสผ่านเดิม
-    const admin = Admin.authenticate(req.session.admin.username, current_password);
+    const admin = await Admin.authenticate(req.session.admin.username, current_password);
     if (!admin) {
       return res.status(400).json({ error: 'รหัสผ่านเดิมไม่ถูกต้อง' });
     }
 
-    Admin.changePassword(req.session.admin.id, new_password);
+    await Admin.changePassword(req.session.admin.id, new_password);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -287,9 +292,10 @@ router.post('/change-password', requireLogin, (req, res) => {
 });
 
 // หน้าจัดตำแหน่งบ่อ (ต้อง login)
-router.get('/pond-positions', requireLogin, (req, res) => {
-  const ponds = Pond.getAll();
-  const pendingCount = Reservation.getPending().length;
+router.get('/pond-positions', requireLogin, async (req, res) => {
+  const ponds = await Pond.getAll();
+  const pending = await Reservation.getPending();
+  const pendingCount = pending.length;
 
   res.render('admin/pond-positions', {
     admin: req.session.admin,
@@ -301,15 +307,15 @@ router.get('/pond-positions', requireLogin, (req, res) => {
 });
 
 // บันทึกตำแหน่งบ่อ
-router.post('/pond-positions', requireLogin, (req, res) => {
+router.post('/pond-positions', requireLogin, async (req, res) => {
   try {
     const { positions } = req.body;
 
     // บันทึกตำแหน่งแต่ละบ่อ
-    Object.keys(positions).forEach(pondCode => {
+    for (const pondCode of Object.keys(positions)) {
       const pos = positions[pondCode];
-      Pond.updatePosition(pondCode, pos.left, pos.top, pos.width, pos.height);
-    });
+      await Pond.updatePosition(pondCode, pos.left, pos.top, pos.width, pos.height);
+    }
 
     res.json({ success: true });
   } catch (error) {
@@ -318,9 +324,10 @@ router.post('/pond-positions', requireLogin, (req, res) => {
 });
 
 // หน้าคำขอยกเลิก (ดูได้ไม่ต้อง login)
-router.get('/cancel-requests', optionalLogin, (req, res) => {
-  const pending = CancellationRequest.getPending();
-  const pendingCount = Reservation.getPending().length;
+router.get('/cancel-requests', optionalLogin, async (req, res) => {
+  const pending = await CancellationRequest.getPending();
+  const reservationPending = await Reservation.getPending();
+  const pendingCount = reservationPending.length;
   const cancelPendingCount = pending.length;
 
   res.render('admin/cancel-requests', {
@@ -336,18 +343,18 @@ router.get('/cancel-requests', optionalLogin, (req, res) => {
 // อนุมัติคำขอยกเลิก
 router.post('/cancel-requests/:id/approve', requireLogin, async (req, res) => {
   try {
-    const request = CancellationRequest.getById(req.params.id);
+    const request = await CancellationRequest.getById(req.params.id);
     if (!request) {
       return res.status(404).json({ error: 'ไม่พบคำขอยกเลิก' });
     }
 
     // อนุมัติคำขอยกเลิก
-    CancellationRequest.approve(req.params.id, req.session.admin.id);
+    await CancellationRequest.approve(req.params.id, req.session.admin.id);
 
     // ยกเลิกการจอง
-    Reservation.cancel(request.reservation_id);
+    await Reservation.cancel(request.reservation_id);
 
-    Log.create('cancellation_request_approved', {
+    await Log.create('cancellation_request_approved', {
       pond_id: request.pond_id,
       reservation_id: request.reservation_id,
       admin_id: req.session.admin.id,
@@ -367,15 +374,15 @@ router.post('/cancel-requests/:id/approve', requireLogin, async (req, res) => {
 // ปฏิเสธคำขอยกเลิก
 router.post('/cancel-requests/:id/reject', requireLogin, async (req, res) => {
   try {
-    const request = CancellationRequest.getById(req.params.id);
+    const request = await CancellationRequest.getById(req.params.id);
     if (!request) {
       return res.status(404).json({ error: 'ไม่พบคำขอยกเลิก' });
     }
 
     const reason = req.body.reason || '';
-    CancellationRequest.reject(req.params.id, req.session.admin.id, reason);
+    await CancellationRequest.reject(req.params.id, req.session.admin.id, reason);
 
-    Log.create('cancellation_request_rejected', {
+    await Log.create('cancellation_request_rejected', {
       pond_id: request.pond_id,
       reservation_id: request.reservation_id,
       admin_id: req.session.admin.id,

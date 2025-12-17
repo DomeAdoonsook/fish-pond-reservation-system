@@ -19,9 +19,9 @@ function requireLogin(req, res, next) {
 async function addCommonData(req, res, next) {
   res.locals.admin = req.session.admin || { name: 'Admin' };
   res.locals.isLoggedIn = !!req.session.admin;
-  res.locals.pendingCount = Reservation.getPendingCount();
-  res.locals.cancelPendingCount = CancellationRequest.getPendingCount();
-  res.locals.equipmentPendingCount = EquipmentReservation.getPendingCount();
+  res.locals.pendingCount = await Reservation.getPendingCount();
+  res.locals.cancelPendingCount = await CancellationRequest.getPendingCount();
+  res.locals.equipmentPendingCount = await EquipmentReservation.getPendingCount();
   next();
 }
 
@@ -31,23 +31,23 @@ router.use(addCommonData);
 // ===== Equipment Management =====
 
 // รายการอุปกรณ์ทั้งหมด
-router.get('/', (req, res) => {
-  const equipment = Equipment.getAll();
-  const categories = EquipmentCategory.getAll();
+router.get('/', async (req, res) => {
+  const equipment = await Equipment.getAll();
+  const categories = await EquipmentCategory.getAll();
   res.render('admin/equipment/index', { equipment, categories });
 });
 
 // ฟอร์มเพิ่มอุปกรณ์
-router.get('/add', (req, res) => {
-  const categories = EquipmentCategory.getAll();
+router.get('/add', async (req, res) => {
+  const categories = await EquipmentCategory.getAll();
   res.render('admin/equipment/form', { equipment: null, categories, action: 'add' });
 });
 
 // บันทึกอุปกรณ์ใหม่
-router.post('/add', (req, res) => {
+router.post('/add', async (req, res) => {
   try {
     const { name, category_id, total_quantity, unit, description } = req.body;
-    Equipment.create({
+    await Equipment.create({
       name,
       category_id: category_id || null,
       total_quantity: parseInt(total_quantity) || 0,
@@ -62,20 +62,20 @@ router.post('/add', (req, res) => {
 });
 
 // ฟอร์มแก้ไขอุปกรณ์
-router.get('/:id/edit', (req, res) => {
-  const equipment = Equipment.getById(req.params.id);
+router.get('/:id/edit', async (req, res) => {
+  const equipment = await Equipment.getById(req.params.id);
   if (!equipment) {
     return res.redirect('/admin/equipment?error=not_found');
   }
-  const categories = EquipmentCategory.getAll();
+  const categories = await EquipmentCategory.getAll();
   res.render('admin/equipment/form', { equipment, categories, action: 'edit' });
 });
 
 // บันทึกการแก้ไขอุปกรณ์
-router.post('/:id/edit', (req, res) => {
+router.post('/:id/edit', async (req, res) => {
   try {
     const { name, category_id, total_quantity, unit, description, status } = req.body;
-    Equipment.update(req.params.id, {
+    await Equipment.update(req.params.id, {
       name,
       category_id: category_id || null,
       total_quantity: parseInt(total_quantity) || 0,
@@ -91,9 +91,9 @@ router.post('/:id/edit', (req, res) => {
 });
 
 // ลบอุปกรณ์
-router.post('/:id/delete', (req, res) => {
+router.post('/:id/delete', async (req, res) => {
   try {
-    Equipment.delete(req.params.id);
+    await Equipment.delete(req.params.id);
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting equipment:', error);
@@ -104,10 +104,10 @@ router.post('/:id/delete', (req, res) => {
 // ===== Category Management =====
 
 // เพิ่มหมวดหมู่
-router.post('/categories/add', (req, res) => {
+router.post('/categories/add', async (req, res) => {
   try {
     const { name, description } = req.body;
-    EquipmentCategory.create({ name, description });
+    await EquipmentCategory.create({ name, description });
     res.json({ success: true });
   } catch (error) {
     console.error('Error adding category:', error);
@@ -116,10 +116,10 @@ router.post('/categories/add', (req, res) => {
 });
 
 // แก้ไขหมวดหมู่
-router.post('/categories/:id/edit', (req, res) => {
+router.post('/categories/:id/edit', async (req, res) => {
   try {
     const { name, description } = req.body;
-    EquipmentCategory.update(req.params.id, { name, description });
+    await EquipmentCategory.update(req.params.id, { name, description });
     res.json({ success: true });
   } catch (error) {
     console.error('Error updating category:', error);
@@ -128,9 +128,9 @@ router.post('/categories/:id/edit', (req, res) => {
 });
 
 // ลบหมวดหมู่
-router.post('/categories/:id/delete', (req, res) => {
+router.post('/categories/:id/delete', async (req, res) => {
   try {
-    EquipmentCategory.delete(req.params.id);
+    await EquipmentCategory.delete(req.params.id);
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting category:', error);
@@ -141,23 +141,23 @@ router.post('/categories/:id/delete', (req, res) => {
 // ===== Equipment Reservation Management =====
 
 // คำขอยืมรออนุมัติ
-router.get('/requests', (req, res) => {
-  const requests = EquipmentReservation.getPending();
+router.get('/requests', async (req, res) => {
+  const requests = await EquipmentReservation.getPending();
   res.render('admin/equipment/requests', { requests });
 });
 
 // อนุมัติคำขอยืม
 router.post('/requests/:id/approve', async (req, res) => {
   try {
-    const reservation = EquipmentReservation.getById(req.params.id);
+    const reservation = await EquipmentReservation.getById(req.params.id);
     if (!reservation) {
       return res.json({ success: false, error: 'ไม่พบคำขอ' });
     }
 
     // เช็คจำนวนอุปกรณ์ว่างก่อนอนุมัติ
-    const items = EquipmentReservation.getItems(req.params.id);
+    const items = await EquipmentReservation.getItems(req.params.id);
     for (const item of items) {
-      const available = Equipment.checkAvailability(item.equipment_id, reservation.borrow_date, reservation.return_date);
+      const available = await Equipment.checkAvailability(item.equipment_id, reservation.borrow_date, reservation.return_date);
       if (available < item.quantity) {
         return res.json({
           success: false,
@@ -166,7 +166,7 @@ router.post('/requests/:id/approve', async (req, res) => {
       }
     }
 
-    EquipmentReservation.approve(req.params.id, req.session.admin.id);
+    await EquipmentReservation.approve(req.params.id, req.session.admin.id);
 
     // ส่งแจ้งเตือน LINE
     if (reservation.line_user_id) {
@@ -188,12 +188,12 @@ router.post('/requests/:id/approve', async (req, res) => {
 router.post('/requests/:id/reject', async (req, res) => {
   try {
     const { reason } = req.body;
-    const reservation = EquipmentReservation.getById(req.params.id);
+    const reservation = await EquipmentReservation.getById(req.params.id);
     if (!reservation) {
       return res.json({ success: false, error: 'ไม่พบคำขอ' });
     }
 
-    EquipmentReservation.reject(req.params.id, req.session.admin.id, reason);
+    await EquipmentReservation.reject(req.params.id, req.session.admin.id, reason);
 
     // ส่งแจ้งเตือน LINE
     if (reservation.line_user_id) {
@@ -212,16 +212,15 @@ router.post('/requests/:id/reject', async (req, res) => {
 });
 
 // รายการกำลังยืม
-router.get('/borrowed', (req, res) => {
-  const borrowed = EquipmentReservation.getBorrowed();
+router.get('/borrowed', async (req, res) => {
+  const borrowed = await EquipmentReservation.getBorrowed();
   res.render('admin/equipment/borrowed', { borrowed });
 });
 
 // บันทึกการคืน
-router.post('/borrowed/:id/return', (req, res) => {
+router.post('/borrowed/:id/return', async (req, res) => {
   try {
-    const { items } = req.body; // [{equipment_id, returned_quantity}]
-    EquipmentReservation.markReturned(req.params.id, items);
+    await EquipmentReservation.markReturned(req.params.id);
     res.json({ success: true });
   } catch (error) {
     console.error('Error recording return:', error);
@@ -230,8 +229,8 @@ router.post('/borrowed/:id/return', (req, res) => {
 });
 
 // ประวัติการยืม
-router.get('/history', (req, res) => {
-  const history = EquipmentReservation.getAll();
+router.get('/history', async (req, res) => {
+  const history = await EquipmentReservation.getHistory();
   res.render('admin/equipment/history', { history });
 });
 

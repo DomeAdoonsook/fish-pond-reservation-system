@@ -57,9 +57,24 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🐟 Fish Pond Reservation System running on port ${PORT}`);
-  console.log(`📊 Dashboard: http://localhost:${PORT}/admin`);
-  console.log(`🔗 LINE Webhook: http://localhost:${PORT}/webhook`);
-});
+// Initialize database and start server
+async function startServer() {
+  try {
+    // Initialize database (create tables if not exist)
+    const { initDatabase } = require('./config/database');
+    await initDatabase();
+    console.log('✅ Database initialized');
+
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`🐟 Fish Pond Reservation System running on port ${PORT}`);
+      console.log(`📊 Dashboard: http://localhost:${PORT}/admin`);
+      console.log(`🔗 LINE Webhook: http://localhost:${PORT}/webhook`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();

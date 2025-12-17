@@ -2,63 +2,67 @@ const db = require('../config/database');
 
 class Reservation {
   // สร้างการจองใหม่
-  static create(data) {
-    const stmt = db.prepare(`
-      INSERT INTO reservations (pond_id, user_name, line_user_id, phone, fish_type, fish_quantity, start_date, end_date, purpose)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    const result = stmt.run(
-      data.pond_id,
-      data.user_name,
-      data.line_user_id || null,
-      data.phone || null,
-      data.fish_type,
-      data.fish_quantity,
-      data.start_date,
-      data.end_date,
-      data.purpose || null
-    );
+  static async create(data) {
+    const result = await db.execute({
+      sql: `INSERT INTO reservations (pond_id, user_name, line_user_id, phone, fish_type, fish_quantity, start_date, end_date, purpose)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        data.pond_id,
+        data.user_name,
+        data.line_user_id || null,
+        data.phone || null,
+        data.fish_type,
+        data.fish_quantity,
+        data.start_date,
+        data.end_date,
+        data.purpose || null
+      ]
+    });
     return result.lastInsertRowid;
   }
 
   // ดึงการจองทั้งหมด
-  static getAll() {
-    return db.prepare(`
+  static async getAll() {
+    const result = await db.execute(`
       SELECT r.*, p.pond_code, p.zone,
         a.name as approved_by_name
       FROM reservations r
       JOIN ponds p ON r.pond_id = p.id
       LEFT JOIN admins a ON r.approved_by = a.id
       ORDER BY r.created_at DESC
-    `).all();
+    `);
+    return result.rows;
   }
 
   // ดึงการจองตาม ID
-  static getById(id) {
-    return db.prepare(`
-      SELECT r.*, p.pond_code, p.zone,
-        a.name as approved_by_name
-      FROM reservations r
-      JOIN ponds p ON r.pond_id = p.id
-      LEFT JOIN admins a ON r.approved_by = a.id
-      WHERE r.id = ?
-    `).get(id);
+  static async getById(id) {
+    const result = await db.execute({
+      sql: `SELECT r.*, p.pond_code, p.zone,
+              a.name as approved_by_name
+            FROM reservations r
+            JOIN ponds p ON r.pond_id = p.id
+            LEFT JOIN admins a ON r.approved_by = a.id
+            WHERE r.id = ?`,
+      args: [id]
+    });
+    return result.rows[0] || null;
   }
 
   // ดึงการจองที่รออนุมัติ
-  static getPending() {
-    return db.prepare(`
+  static async getPending() {
+    const result = await db.execute(`
       SELECT r.*, p.pond_code, p.zone
       FROM reservations r
       JOIN ponds p ON r.pond_id = p.id
       WHERE r.status = 'pending'
       ORDER BY r.created_at ASC
-    `).all();
+    `);
+    return result.rows;
   }
 
   // ดึงการจองที่ active
-  static getActive() {
-    return db.prepare(`
+  static async getActive() {
+    const result = await db.execute(`
       SELECT r.*, p.pond_code, p.zone,
         CAST(julianday('now') - julianday(r.start_date) AS INTEGER) as fish_age_days,
         CAST(julianday(r.end_date) - julianday('now') AS INTEGER) as days_remaining
@@ -67,68 +71,70 @@ class Reservation {
       WHERE r.status = 'approved'
         AND date('now') BETWEEN r.start_date AND r.end_date
       ORDER BY r.end_date ASC
-    `).all();
+    `);
+    return result.rows;
   }
 
   // ดึงการจองตาม LINE User ID
-  static getByLineUserId(lineUserId) {
-    return db.prepare(`
-      SELECT r.*, p.pond_code, p.zone,
-        CAST(julianday('now') - julianday(r.start_date) AS INTEGER) as fish_age_days
-      FROM reservations r
-      JOIN ponds p ON r.pond_id = p.id
-      WHERE r.line_user_id = ?
-        AND r.status IN ('pending', 'approved')
-        AND (r.status = 'pending' OR date('now') <= r.end_date)
-      ORDER BY r.created_at DESC
-    `).all(lineUserId);
+  static async getByLineUserId(lineUserId) {
+    const result = await db.execute({
+      sql: `SELECT r.*, p.pond_code, p.zone,
+              CAST(julianday('now') - julianday(r.start_date) AS INTEGER) as fish_age_days
+            FROM reservations r
+            JOIN ponds p ON r.pond_id = p.id
+            WHERE r.line_user_id = ?
+              AND r.status IN ('pending', 'approved')
+              AND (r.status = 'pending' OR date('now') <= r.end_date)
+            ORDER BY r.created_at DESC`,
+      args: [lineUserId]
+    });
+    return result.rows;
   }
 
   // อนุมัติการจอง
-  static approve(id, adminId) {
-    return db.prepare(`
-      UPDATE reservations
-      SET status = 'approved',
-          approved_by = ?,
-          approved_at = datetime('now')
-      WHERE id = ?
-    `).run(adminId, id);
+  static async approve(id, adminId) {
+    return await db.execute({
+      sql: `UPDATE reservations
+            SET status = 'approved',
+                approved_by = ?,
+                approved_at = datetime('now')
+            WHERE id = ?`,
+      args: [adminId, id]
+    });
   }
 
   // ไม่อนุมัติการจอง
-  static reject(id, adminId, reason) {
-    return db.prepare(`
-      UPDATE reservations
-      SET status = 'rejected',
-          approved_by = ?,
-          approved_at = datetime('now'),
-          reject_reason = ?
-      WHERE id = ?
-    `).run(adminId, reason, id);
+  static async reject(id, adminId, reason) {
+    return await db.execute({
+      sql: `UPDATE reservations
+            SET status = 'rejected',
+                approved_by = ?,
+                approved_at = datetime('now'),
+                reject_reason = ?
+            WHERE id = ?`,
+      args: [adminId, reason, id]
+    });
   }
 
   // ยกเลิกการจอง
-  static cancel(id) {
-    return db.prepare(`
-      UPDATE reservations
-      SET status = 'cancelled'
-      WHERE id = ?
-    `).run(id);
+  static async cancel(id) {
+    return await db.execute({
+      sql: `UPDATE reservations SET status = 'cancelled' WHERE id = ?`,
+      args: [id]
+    });
   }
 
   // เสร็จสิ้นการจอง (คืนบ่อ)
-  static complete(id) {
-    return db.prepare(`
-      UPDATE reservations
-      SET status = 'completed',
-          end_date = date('now')
-      WHERE id = ?
-    `).run(id);
+  static async complete(id) {
+    return await db.execute({
+      sql: `UPDATE reservations SET status = 'completed', end_date = date('now') WHERE id = ?`,
+      args: [id]
+    });
   }
 
   // ดึงการจองที่ใกล้หมดอายุ (ภายใน 7 วัน)
-  static getExpiringSoon() {
-    return db.prepare(`
+  static async getExpiringSoon() {
+    const result = await db.execute(`
       SELECT r.*, p.pond_code, p.zone,
         CAST(julianday(r.end_date) - julianday('now') AS INTEGER) as days_remaining
       FROM reservations r
@@ -136,49 +142,52 @@ class Reservation {
       WHERE r.status = 'approved'
         AND julianday(r.end_date) - julianday('now') BETWEEN 0 AND 7
       ORDER BY r.end_date ASC
-    `).all();
+    `);
+    return result.rows;
   }
 
   // ดึงการจองที่หมดอายุแล้ว
-  static getExpired() {
-    return db.prepare(`
+  static async getExpired() {
+    const result = await db.execute(`
       SELECT r.*, p.pond_code, p.zone
       FROM reservations r
       JOIN ponds p ON r.pond_id = p.id
       WHERE r.status = 'approved'
         AND date('now') > r.end_date
-    `).all();
+    `);
+    return result.rows;
   }
 
   // อัพเดทสถานะการจองที่หมดอายุเป็น completed
-  static completeExpired() {
-    return db.prepare(`
+  static async completeExpired() {
+    return await db.execute(`
       UPDATE reservations
       SET status = 'completed'
       WHERE status = 'approved'
         AND date('now') > end_date
-    `).run();
+    `);
   }
 
   // นับจำนวนการจองตามสถานะ
-  static getCountByStatus() {
-    return db.prepare(`
+  static async getCountByStatus() {
+    const result = await db.execute(`
       SELECT status, COUNT(*) as count
       FROM reservations
       GROUP BY status
-    `).all();
+    `);
+    return result.rows;
   }
 
   // นับจำนวนการจองที่รออนุมัติ
-  static getPendingCount() {
-    const result = db.prepare(`
+  static async getPendingCount() {
+    const result = await db.execute(`
       SELECT COUNT(*) as count FROM reservations WHERE status = 'pending'
-    `).get();
-    return result.count;
+    `);
+    return Number(result.rows[0].count);
   }
 
   // อัพเดทข้อมูลการจอง
-  static update(id, data) {
+  static async update(id, data) {
     const fields = [];
     const values = [];
 
@@ -206,22 +215,25 @@ class Reservation {
     if (fields.length === 0) return null;
 
     values.push(id);
-    return db.prepare(`
-      UPDATE reservations SET ${fields.join(', ')} WHERE id = ?
-    `).run(...values);
+    return await db.execute({
+      sql: `UPDATE reservations SET ${fields.join(', ')} WHERE id = ?`,
+      args: values
+    });
   }
 
   // ดึงประวัติการจองทั้งหมดของบ่อ
-  static getHistoryByPondId(pondId) {
-    return db.prepare(`
-      SELECT r.*, p.pond_code,
-        a.name as approved_by_name
-      FROM reservations r
-      JOIN ponds p ON r.pond_id = p.id
-      LEFT JOIN admins a ON r.approved_by = a.id
-      WHERE r.pond_id = ?
-      ORDER BY r.created_at DESC
-    `).all(pondId);
+  static async getHistoryByPondId(pondId) {
+    const result = await db.execute({
+      sql: `SELECT r.*, p.pond_code,
+              a.name as approved_by_name
+            FROM reservations r
+            JOIN ponds p ON r.pond_id = p.id
+            LEFT JOIN admins a ON r.approved_by = a.id
+            WHERE r.pond_id = ?
+            ORDER BY r.created_at DESC`,
+      args: [pondId]
+    });
+    return result.rows;
   }
 }
 

@@ -2,22 +2,17 @@ const db = require('../config/database');
 
 class CancellationRequest {
   // สร้างคำขอยกเลิกใหม่
-  static create(data) {
-    const stmt = db.prepare(`
-      INSERT INTO cancellation_requests (reservation_id, reason, phone)
-      VALUES (?, ?, ?)
-    `);
-    const result = stmt.run(
-      data.reservation_id,
-      data.reason || null,
-      data.phone || null
-    );
+  static async create(data) {
+    const result = await db.execute({
+      sql: `INSERT INTO cancellation_requests (reservation_id, reason, phone) VALUES (?, ?, ?)`,
+      args: [data.reservation_id, data.reason || null, data.phone || null]
+    });
     return result.lastInsertRowid;
   }
 
   // ดึงคำขอยกเลิกทั้งหมด
-  static getAll() {
-    return db.prepare(`
+  static async getAll() {
+    const result = await db.execute(`
       SELECT cr.*,
         r.pond_id, r.user_name, r.fish_type, r.fish_quantity, r.start_date, r.end_date, r.line_user_id,
         p.pond_code, p.zone,
@@ -27,27 +22,30 @@ class CancellationRequest {
       JOIN ponds p ON r.pond_id = p.id
       LEFT JOIN admins a ON cr.processed_by = a.id
       ORDER BY cr.created_at DESC
-    `).all();
+    `);
+    return result.rows;
   }
 
   // ดึงคำขอยกเลิกตาม ID
-  static getById(id) {
-    return db.prepare(`
-      SELECT cr.*,
-        r.pond_id, r.user_name, r.fish_type, r.fish_quantity, r.start_date, r.end_date, r.line_user_id,
-        p.pond_code, p.zone,
-        a.name as processed_by_name
-      FROM cancellation_requests cr
-      JOIN reservations r ON cr.reservation_id = r.id
-      JOIN ponds p ON r.pond_id = p.id
-      LEFT JOIN admins a ON cr.processed_by = a.id
-      WHERE cr.id = ?
-    `).get(id);
+  static async getById(id) {
+    const result = await db.execute({
+      sql: `SELECT cr.*,
+              r.pond_id, r.user_name, r.fish_type, r.fish_quantity, r.start_date, r.end_date, r.line_user_id,
+              p.pond_code, p.zone,
+              a.name as processed_by_name
+            FROM cancellation_requests cr
+            JOIN reservations r ON cr.reservation_id = r.id
+            JOIN ponds p ON r.pond_id = p.id
+            LEFT JOIN admins a ON cr.processed_by = a.id
+            WHERE cr.id = ?`,
+      args: [id]
+    });
+    return result.rows[0] || null;
   }
 
   // ดึงคำขอยกเลิกที่รอดำเนินการ
-  static getPending() {
-    return db.prepare(`
+  static async getPending() {
+    const result = await db.execute(`
       SELECT cr.*,
         r.pond_id, r.user_name, r.fish_type, r.fish_quantity, r.start_date, r.end_date, r.line_user_id,
         p.pond_code, p.zone
@@ -56,50 +54,39 @@ class CancellationRequest {
       JOIN ponds p ON r.pond_id = p.id
       WHERE cr.status = 'pending'
       ORDER BY cr.created_at ASC
-    `).all();
+    `);
+    return result.rows;
   }
 
   // ตรวจสอบว่ามีคำขอยกเลิกที่รอดำเนินการอยู่แล้วหรือไม่
-  static hasPendingRequest(reservationId) {
-    const result = db.prepare(`
-      SELECT COUNT(*) as count
-      FROM cancellation_requests
-      WHERE reservation_id = ? AND status = 'pending'
-    `).get(reservationId);
-    return result.count > 0;
+  static async hasPendingRequest(reservationId) {
+    const result = await db.execute({
+      sql: `SELECT COUNT(*) as count FROM cancellation_requests WHERE reservation_id = ? AND status = 'pending'`,
+      args: [reservationId]
+    });
+    return Number(result.rows[0].count) > 0;
   }
 
   // อนุมัติคำขอยกเลิก
-  static approve(id, adminId) {
-    return db.prepare(`
-      UPDATE cancellation_requests
-      SET status = 'approved',
-          processed_by = ?,
-          processed_at = datetime('now')
-      WHERE id = ?
-    `).run(adminId, id);
+  static async approve(id, adminId) {
+    return await db.execute({
+      sql: `UPDATE cancellation_requests SET status = 'approved', processed_by = ?, processed_at = datetime('now') WHERE id = ?`,
+      args: [adminId, id]
+    });
   }
 
   // ปฏิเสธคำขอยกเลิก
-  static reject(id, adminId, reason) {
-    return db.prepare(`
-      UPDATE cancellation_requests
-      SET status = 'rejected',
-          processed_by = ?,
-          processed_at = datetime('now'),
-          reject_reason = ?
-      WHERE id = ?
-    `).run(adminId, reason, id);
+  static async reject(id, adminId, reason) {
+    return await db.execute({
+      sql: `UPDATE cancellation_requests SET status = 'rejected', processed_by = ?, processed_at = datetime('now'), reject_reason = ? WHERE id = ?`,
+      args: [adminId, reason, id]
+    });
   }
 
   // นับคำขอยกเลิกที่รอดำเนินการ
-  static getPendingCount() {
-    const result = db.prepare(`
-      SELECT COUNT(*) as count
-      FROM cancellation_requests
-      WHERE status = 'pending'
-    `).get();
-    return result.count;
+  static async getPendingCount() {
+    const result = await db.execute(`SELECT COUNT(*) as count FROM cancellation_requests WHERE status = 'pending'`);
+    return Number(result.rows[0].count);
   }
 }
 

@@ -1,22 +1,13 @@
-const Database = require('better-sqlite3');
-const path = require('path');
-const fs = require('fs');
+const { createClient } = require('@libsql/client');
 
-// สร้าง data directory ถ้ายังไม่มี
-const dataDir = path.join(__dirname, '..', 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
-
-const dbPath = path.join(dataDir, 'fishpond.db');
-const db = new Database(dbPath);
-
-// Enable foreign keys
-db.pragma('foreign_keys = ON');
+// สร้าง Turso client
+const db = createClient({
+  url: process.env.TURSO_DATABASE_URL || 'file:./data/local.db',
+  authToken: process.env.TURSO_AUTH_TOKEN
+});
 
 // Schema SQL
 const schemaSQL = `
-  -- ตาราง admins (ผู้ดูแลระบบ)
   CREATE TABLE IF NOT EXISTS admins (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
@@ -26,7 +17,6 @@ const schemaSQL = `
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- ตาราง ponds (บ่อเลี้ยงปลา)
   CREATE TABLE IF NOT EXISTS ponds (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     pond_code TEXT UNIQUE NOT NULL,
@@ -41,7 +31,6 @@ const schemaSQL = `
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- ตาราง reservations (การจองบ่อ)
   CREATE TABLE IF NOT EXISTS reservations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     pond_id INTEGER NOT NULL,
@@ -62,7 +51,6 @@ const schemaSQL = `
     FOREIGN KEY (approved_by) REFERENCES admins(id)
   );
 
-  -- ตาราง logs (ประวัติการใช้งาน)
   CREATE TABLE IF NOT EXISTS logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     action TEXT NOT NULL,
@@ -77,7 +65,6 @@ const schemaSQL = `
     FOREIGN KEY (admin_id) REFERENCES admins(id)
   );
 
-  -- ตาราง user_sessions (เก็บ state การสนทนา LINE)
   CREATE TABLE IF NOT EXISTS user_sessions (
     line_user_id TEXT PRIMARY KEY,
     state TEXT DEFAULT 'idle',
@@ -85,7 +72,6 @@ const schemaSQL = `
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- ตาราง cancellation_requests (คำขอยกเลิกการจอง)
   CREATE TABLE IF NOT EXISTS cancellation_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     reservation_id INTEGER NOT NULL,
@@ -100,7 +86,6 @@ const schemaSQL = `
     FOREIGN KEY (processed_by) REFERENCES admins(id)
   );
 
-  -- ตาราง equipment_categories (หมวดหมู่อุปกรณ์)
   CREATE TABLE IF NOT EXISTS equipment_categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
@@ -108,7 +93,6 @@ const schemaSQL = `
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- ตาราง equipment (รายการอุปกรณ์)
   CREATE TABLE IF NOT EXISTS equipment (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -121,7 +105,6 @@ const schemaSQL = `
     FOREIGN KEY (category_id) REFERENCES equipment_categories(id)
   );
 
-  -- ตาราง equipment_reservations (การจองอุปกรณ์)
   CREATE TABLE IF NOT EXISTS equipment_reservations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_name TEXT NOT NULL,
@@ -139,7 +122,6 @@ const schemaSQL = `
     FOREIGN KEY (approved_by) REFERENCES admins(id)
   );
 
-  -- ตาราง equipment_reservation_items (รายการอุปกรณ์ในการจอง)
   CREATE TABLE IF NOT EXISTS equipment_reservation_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     reservation_id INTEGER NOT NULL,
@@ -149,8 +131,9 @@ const schemaSQL = `
     FOREIGN KEY (reservation_id) REFERENCES equipment_reservations(id) ON DELETE CASCADE,
     FOREIGN KEY (equipment_id) REFERENCES equipment(id)
   );
+`;
 
-  -- Index สำหรับ query ที่ใช้บ่อย
+const indexSQL = `
   CREATE INDEX IF NOT EXISTS idx_ponds_zone ON ponds(zone);
   CREATE INDEX IF NOT EXISTS idx_ponds_status ON ponds(status);
   CREATE INDEX IF NOT EXISTS idx_reservations_status ON reservations(status);
@@ -164,9 +147,35 @@ const schemaSQL = `
   CREATE INDEX IF NOT EXISTS idx_eq_reservation_items_reservation ON equipment_reservation_items(reservation_id);
 `;
 
-// Create tables
-db.exec(schemaSQL);
+// Initialize database
+async function initDatabase() {
+  try {
+    // Create tables
+    const statements = schemaSQL.split(';').filter(s => s.trim());
+    for (const stmt of statements) {
+      if (stmt.trim()) {
+        await db.execute(stmt);
+      }
+    }
 
-console.log('💾 Using local SQLite database');
+    // Create indexes
+    const indexes = indexSQL.split(';').filter(s => s.trim());
+    for (const idx of indexes) {
+      if (idx.trim()) {
+        try {
+          await db.execute(idx);
+        } catch (e) {
+          // Index might already exist
+        }
+      }
+    }
+
+    console.log('✅ Database initialized successfully');
+  } catch (error) {
+    console.error('❌ Database initialization error:', error);
+    throw error;
+  }
+}
 
 module.exports = db;
+module.exports.initDatabase = initDatabase;

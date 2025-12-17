@@ -7,9 +7,9 @@ const Log = require('../models/Log');
 // ===== PONDS =====
 
 // ดึงบ่อทั้งหมด
-router.get('/ponds', (req, res) => {
+router.get('/ponds', async (req, res) => {
   try {
-    const ponds = Pond.getAll();
+    const ponds = await Pond.getAll();
     res.json(ponds);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -17,9 +17,9 @@ router.get('/ponds', (req, res) => {
 });
 
 // ดึงบ่อตาม ID
-router.get('/ponds/:id', (req, res) => {
+router.get('/ponds/:id', async (req, res) => {
   try {
-    const pond = Pond.getById(req.params.id);
+    const pond = await Pond.getById(req.params.id);
     if (!pond) {
       return res.status(404).json({ error: 'Pond not found' });
     }
@@ -30,9 +30,9 @@ router.get('/ponds/:id', (req, res) => {
 });
 
 // ดึงบ่อตามโซน
-router.get('/ponds/zone/:zone', (req, res) => {
+router.get('/ponds/zone/:zone', async (req, res) => {
   try {
-    const ponds = Pond.getByZone(req.params.zone);
+    const ponds = await Pond.getByZone(req.params.zone);
     res.json(ponds);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -40,9 +40,9 @@ router.get('/ponds/zone/:zone', (req, res) => {
 });
 
 // ดึงบ่อว่าง
-router.get('/ponds-available', (req, res) => {
+router.get('/ponds-available', async (req, res) => {
   try {
-    const ponds = Pond.getAvailable();
+    const ponds = await Pond.getAvailable();
     res.json(ponds);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -50,9 +50,9 @@ router.get('/ponds-available', (req, res) => {
 });
 
 // ดึงบ่อว่างตามโซน
-router.get('/ponds-available/:zone', (req, res) => {
+router.get('/ponds-available/:zone', async (req, res) => {
   try {
-    const ponds = Pond.getAvailableByZone(req.params.zone);
+    const ponds = await Pond.getAvailableByZone(req.params.zone);
     res.json(ponds);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -60,9 +60,9 @@ router.get('/ponds-available/:zone', (req, res) => {
 });
 
 // สรุปสถานะบ่อ
-router.get('/ponds-status', (req, res) => {
+router.get('/ponds-status', async (req, res) => {
   try {
-    const status = Pond.getStatusCount();
+    const status = await Pond.getStatusCount();
     res.json(status);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -70,9 +70,9 @@ router.get('/ponds-status', (req, res) => {
 });
 
 // สรุปบ่อว่างตามโซน
-router.get('/ponds-by-zone', (req, res) => {
+router.get('/ponds-by-zone', async (req, res) => {
   try {
-    const zones = Pond.getAvailableCountByZone();
+    const zones = await Pond.getAvailableCountByZone();
     res.json(zones);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -80,9 +80,9 @@ router.get('/ponds-by-zone', (req, res) => {
 });
 
 // ดึงรายชื่อโซน
-router.get('/zones', (req, res) => {
+router.get('/zones', async (req, res) => {
   try {
-    const zones = Pond.getZones();
+    const zones = await Pond.getZones();
     res.json(zones);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -90,14 +90,14 @@ router.get('/zones', (req, res) => {
 });
 
 // อัพเดทสถานะบ่อ
-router.put('/ponds/:id/status', (req, res) => {
+router.put('/ponds/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
     if (!['available', 'occupied', 'maintenance'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
-    Pond.updateStatus(req.params.id, status);
-    Log.create('pond_status_change', {
+    await Pond.updateStatus(req.params.id, status);
+    await Log.create('pond_status_change', {
       pond_id: req.params.id,
       details: { new_status: status }
     });
@@ -110,9 +110,9 @@ router.put('/ponds/:id/status', (req, res) => {
 // ===== RESERVATIONS =====
 
 // ดึงการจองทั้งหมด
-router.get('/reservations', (req, res) => {
+router.get('/reservations', async (req, res) => {
   try {
-    const reservations = Reservation.getAll();
+    const reservations = await Reservation.getAll();
     res.json(reservations);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -120,9 +120,9 @@ router.get('/reservations', (req, res) => {
 });
 
 // ดึงการจองที่รออนุมัติ
-router.get('/reservations/pending', (req, res) => {
+router.get('/reservations/pending', async (req, res) => {
   try {
-    const reservations = Reservation.getPending();
+    const reservations = await Reservation.getPending();
     res.json(reservations);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -130,9 +130,9 @@ router.get('/reservations/pending', (req, res) => {
 });
 
 // ดึงการจองที่ active
-router.get('/reservations/active', (req, res) => {
+router.get('/reservations/active', async (req, res) => {
   try {
-    const reservations = Reservation.getActive();
+    const reservations = await Reservation.getActive();
     res.json(reservations);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -140,9 +140,9 @@ router.get('/reservations/active', (req, res) => {
 });
 
 // ดึงการจองตาม ID
-router.get('/reservations/:id', (req, res) => {
+router.get('/reservations/:id', async (req, res) => {
   try {
-    const reservation = Reservation.getById(req.params.id);
+    const reservation = await Reservation.getById(req.params.id);
     if (!reservation) {
       return res.status(404).json({ error: 'Reservation not found' });
     }
@@ -153,7 +153,7 @@ router.get('/reservations/:id', (req, res) => {
 });
 
 // สร้างการจองใหม่
-router.post('/reservations', (req, res) => {
+router.post('/reservations', async (req, res) => {
   try {
     const { pond_id, user_name, line_user_id, fish_type, fish_quantity, start_date, end_date, purpose } = req.body;
 
@@ -162,7 +162,7 @@ router.post('/reservations', (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const id = Reservation.create({
+    const id = await Reservation.create({
       pond_id,
       user_name,
       line_user_id,
@@ -173,7 +173,7 @@ router.post('/reservations', (req, res) => {
       purpose
     });
 
-    Log.create('reservation_created', {
+    await Log.create('reservation_created', {
       pond_id,
       reservation_id: id,
       user_id: line_user_id,
@@ -187,13 +187,13 @@ router.post('/reservations', (req, res) => {
 });
 
 // อนุมัติการจอง
-router.post('/reservations/:id/approve', (req, res) => {
+router.post('/reservations/:id/approve', async (req, res) => {
   try {
     const adminId = req.body.admin_id || 1; // TODO: get from session
-    Reservation.approve(req.params.id, adminId);
+    await Reservation.approve(req.params.id, adminId);
 
-    const reservation = Reservation.getById(req.params.id);
-    Log.create('reservation_approved', {
+    const reservation = await Reservation.getById(req.params.id);
+    await Log.create('reservation_approved', {
       pond_id: reservation.pond_id,
       reservation_id: req.params.id,
       admin_id: adminId
@@ -206,14 +206,14 @@ router.post('/reservations/:id/approve', (req, res) => {
 });
 
 // ไม่อนุมัติการจอง
-router.post('/reservations/:id/reject', (req, res) => {
+router.post('/reservations/:id/reject', async (req, res) => {
   try {
     const adminId = req.body.admin_id || 1;
     const reason = req.body.reason || '';
-    Reservation.reject(req.params.id, adminId, reason);
+    await Reservation.reject(req.params.id, adminId, reason);
 
-    const reservation = Reservation.getById(req.params.id);
-    Log.create('reservation_rejected', {
+    const reservation = await Reservation.getById(req.params.id);
+    await Log.create('reservation_rejected', {
       pond_id: reservation.pond_id,
       reservation_id: req.params.id,
       admin_id: adminId,
@@ -227,12 +227,12 @@ router.post('/reservations/:id/reject', (req, res) => {
 });
 
 // ยกเลิกการจอง
-router.post('/reservations/:id/cancel', (req, res) => {
+router.post('/reservations/:id/cancel', async (req, res) => {
   try {
-    const reservation = Reservation.getById(req.params.id);
-    Reservation.cancel(req.params.id);
+    const reservation = await Reservation.getById(req.params.id);
+    await Reservation.cancel(req.params.id);
 
-    Log.create('reservation_cancelled', {
+    await Log.create('reservation_cancelled', {
       pond_id: reservation.pond_id,
       reservation_id: req.params.id,
       user_id: reservation.line_user_id
@@ -245,12 +245,12 @@ router.post('/reservations/:id/cancel', (req, res) => {
 });
 
 // เสร็จสิ้นการจอง (คืนบ่อ)
-router.post('/reservations/:id/complete', (req, res) => {
+router.post('/reservations/:id/complete', async (req, res) => {
   try {
-    const reservation = Reservation.getById(req.params.id);
-    Reservation.complete(req.params.id);
+    const reservation = await Reservation.getById(req.params.id);
+    await Reservation.complete(req.params.id);
 
-    Log.create('reservation_completed', {
+    await Log.create('reservation_completed', {
       pond_id: reservation.pond_id,
       reservation_id: req.params.id,
       admin_id: req.body.admin_id || 1
@@ -263,9 +263,9 @@ router.post('/reservations/:id/complete', (req, res) => {
 });
 
 // อัพเดทข้อมูลการจอง
-router.put('/reservations/:id', (req, res) => {
+router.put('/reservations/:id', async (req, res) => {
   try {
-    Reservation.update(req.params.id, req.body);
+    await Reservation.update(req.params.id, req.body);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -273,9 +273,9 @@ router.put('/reservations/:id', (req, res) => {
 });
 
 // ดึงประวัติการจองของบ่อ
-router.get('/ponds/:id/history', (req, res) => {
+router.get('/ponds/:id/history', async (req, res) => {
   try {
-    const history = Reservation.getHistoryByPondId(req.params.id);
+    const history = await Reservation.getHistoryByPondId(req.params.id);
     res.json(history);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -285,10 +285,10 @@ router.get('/ponds/:id/history', (req, res) => {
 // ===== LOGS =====
 
 // ดึง log ทั้งหมด
-router.get('/logs', (req, res) => {
+router.get('/logs', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 100;
-    const logs = Log.getAll(limit);
+    const logs = await Log.getAll(limit);
     res.json(logs);
   } catch (error) {
     res.status(500).json({ error: error.message });

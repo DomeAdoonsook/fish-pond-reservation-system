@@ -1,68 +1,73 @@
 const db = require('../config/database');
 
 class EquipmentReservation {
+  // ดึงรายการอุปกรณ์ในการจอง
+  static async getItems(reservationId) {
+    const result = await db.execute({
+      sql: `SELECT eri.*, e.name as equipment_name, e.unit, c.name as category_name
+            FROM equipment_reservation_items eri
+            JOIN equipment e ON eri.equipment_id = e.id
+            LEFT JOIN equipment_categories c ON e.category_id = c.id
+            WHERE eri.reservation_id = ?`,
+      args: [reservationId]
+    });
+    return result.rows;
+  }
+
   // ดึงการจองทั้งหมด
-  static getAll() {
-    const reservations = db.prepare(`
-      SELECT er.*,
-        a.name as approved_by_name
+  static async getAll() {
+    const result = await db.execute(`
+      SELECT er.*, a.name as approved_by_name
       FROM equipment_reservations er
       LEFT JOIN admins a ON er.approved_by = a.id
       ORDER BY er.created_at DESC
-    `).all();
+    `);
 
-    return reservations.map(r => ({
-      ...r,
-      items: this.getItems(r.id)
-    }));
+    const reservations = [];
+    for (const r of result.rows) {
+      const items = await this.getItems(r.id);
+      reservations.push({ ...r, items });
+    }
+    return reservations;
   }
 
   // ดึงการจองตาม ID
-  static getById(id) {
-    const reservation = db.prepare(`
-      SELECT er.*,
-        a.name as approved_by_name
-      FROM equipment_reservations er
-      LEFT JOIN admins a ON er.approved_by = a.id
-      WHERE er.id = ?
-    `).get(id);
+  static async getById(id) {
+    const result = await db.execute({
+      sql: `SELECT er.*, a.name as approved_by_name
+            FROM equipment_reservations er
+            LEFT JOIN admins a ON er.approved_by = a.id
+            WHERE er.id = ?`,
+      args: [id]
+    });
 
+    const reservation = result.rows[0];
     if (reservation) {
-      reservation.items = this.getItems(id);
+      reservation.items = await this.getItems(id);
     }
-
-    return reservation;
-  }
-
-  // ดึงรายการอุปกรณ์ในการจอง
-  static getItems(reservationId) {
-    return db.prepare(`
-      SELECT eri.*, e.name as equipment_name, e.unit, c.name as category_name
-      FROM equipment_reservation_items eri
-      JOIN equipment e ON eri.equipment_id = e.id
-      LEFT JOIN equipment_categories c ON e.category_id = c.id
-      WHERE eri.reservation_id = ?
-    `).all(reservationId);
+    return reservation || null;
   }
 
   // ดึงการจองที่รออนุมัติ
-  static getPending() {
-    const reservations = db.prepare(`
+  static async getPending() {
+    const result = await db.execute(`
       SELECT er.*
       FROM equipment_reservations er
       WHERE er.status = 'pending'
       ORDER BY er.created_at ASC
-    `).all();
+    `);
 
-    return reservations.map(r => ({
-      ...r,
-      items: this.getItems(r.id)
-    }));
+    const reservations = [];
+    for (const r of result.rows) {
+      const items = await this.getItems(r.id);
+      reservations.push({ ...r, items });
+    }
+    return reservations;
   }
 
   // ดึงการจองที่กำลังยืมอยู่
-  static getBorrowed() {
-    const reservations = db.prepare(`
+  static async getBorrowed() {
+    const result = await db.execute(`
       SELECT er.*,
         a.name as approved_by_name,
         CASE
@@ -74,173 +79,152 @@ class EquipmentReservation {
       LEFT JOIN admins a ON er.approved_by = a.id
       WHERE er.status IN ('approved', 'borrowed', 'overdue')
       ORDER BY er.return_date ASC
-    `).all();
+    `);
 
-    return reservations.map(r => ({
-      ...r,
-      items: this.getItems(r.id)
-    }));
+    const reservations = [];
+    for (const r of result.rows) {
+      const items = await this.getItems(r.id);
+      reservations.push({ ...r, items });
+    }
+    return reservations;
   }
 
   // ดึงการจองตาม LINE User ID
-  static getByLineUserId(lineUserId) {
-    const reservations = db.prepare(`
-      SELECT er.*
-      FROM equipment_reservations er
-      WHERE er.line_user_id = ?
-      ORDER BY er.created_at DESC
-      LIMIT 10
-    `).all(lineUserId);
+  static async getByLineUserId(lineUserId) {
+    const result = await db.execute({
+      sql: `SELECT er.*
+            FROM equipment_reservations er
+            WHERE er.line_user_id = ?
+            ORDER BY er.created_at DESC
+            LIMIT 10`,
+      args: [lineUserId]
+    });
 
-    return reservations.map(r => ({
-      ...r,
-      items: this.getItems(r.id)
-    }));
+    const reservations = [];
+    for (const r of result.rows) {
+      const items = await this.getItems(r.id);
+      reservations.push({ ...r, items });
+    }
+    return reservations;
   }
 
   // สร้างการจองใหม่ (พร้อมรายการอุปกรณ์)
-  static create(data, items = null) {
-    // รองรับทั้ง create(data, items) และ create({...data, items})
+  static async create(data, items = null) {
     const itemsList = items || data.items || [];
 
-    const insertReservation = db.prepare(`
-      INSERT INTO equipment_reservations (user_name, line_user_id, phone, purpose, borrow_date, return_date)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
-    const insertItem = db.prepare(`
-      INSERT INTO equipment_reservation_items (reservation_id, equipment_id, quantity)
-      VALUES (?, ?, ?)
-    `);
-
-    const transaction = db.transaction(() => {
-      const result = insertReservation.run(
+    // Insert reservation
+    const reservationResult = await db.execute({
+      sql: `INSERT INTO equipment_reservations (user_name, line_user_id, phone, purpose, borrow_date, return_date)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [
         data.user_name,
         data.line_user_id || null,
         data.phone || null,
         data.purpose || null,
         data.borrow_date,
         data.return_date
-      );
-
-      const reservationId = result.lastInsertRowid;
-
-      for (const item of itemsList) {
-        insertItem.run(reservationId, item.equipment_id, item.quantity);
-      }
-
-      return reservationId;
+      ]
     });
 
-    const reservationId = transaction();
-    return this.getById(reservationId);
+    const reservationId = reservationResult.lastInsertRowid;
+
+    // Insert items
+    for (const item of itemsList) {
+      await db.execute({
+        sql: `INSERT INTO equipment_reservation_items (reservation_id, equipment_id, quantity) VALUES (?, ?, ?)`,
+        args: [reservationId, item.equipment_id, item.quantity]
+      });
+    }
+
+    return await this.getById(reservationId);
   }
 
   // อนุมัติการจอง
-  static approve(id, adminId) {
-    const stmt = db.prepare(`
-      UPDATE equipment_reservations
-      SET status = 'approved', approved_by = ?, approved_at = CURRENT_TIMESTAMP
-      WHERE id = ? AND status = 'pending'
-    `);
-    return stmt.run(adminId, id);
+  static async approve(id, adminId) {
+    return await db.execute({
+      sql: `UPDATE equipment_reservations SET status = 'approved', approved_by = ?, approved_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'pending'`,
+      args: [adminId, id]
+    });
   }
 
   // ปฏิเสธการจอง
-  static reject(id, adminId, reason) {
-    const stmt = db.prepare(`
-      UPDATE equipment_reservations
-      SET status = 'rejected', approved_by = ?, approved_at = CURRENT_TIMESTAMP, reject_reason = ?
-      WHERE id = ? AND status = 'pending'
-    `);
-    return stmt.run(adminId, reason || null, id);
+  static async reject(id, adminId, reason) {
+    return await db.execute({
+      sql: `UPDATE equipment_reservations SET status = 'rejected', approved_by = ?, approved_at = CURRENT_TIMESTAMP, reject_reason = ? WHERE id = ? AND status = 'pending'`,
+      args: [adminId, reason || null, id]
+    });
   }
 
   // บันทึกการยืม (เมื่อมารับอุปกรณ์จริง)
-  static markBorrowed(id) {
-    const stmt = db.prepare(`
-      UPDATE equipment_reservations
-      SET status = 'borrowed'
-      WHERE id = ? AND status = 'approved'
-    `);
-    return stmt.run(id);
+  static async markBorrowed(id) {
+    return await db.execute({
+      sql: `UPDATE equipment_reservations SET status = 'borrowed' WHERE id = ? AND status = 'approved'`,
+      args: [id]
+    });
   }
 
   // บันทึกการคืน
-  static markReturned(id) {
-    const stmt = db.prepare(`
-      UPDATE equipment_reservations
-      SET status = 'returned', actual_return_date = date('now')
-      WHERE id = ? AND status IN ('borrowed', 'overdue', 'approved')
-    `);
-
-    // อัพเดท returned_quantity ของทุก item
-    const updateItems = db.prepare(`
-      UPDATE equipment_reservation_items
-      SET returned_quantity = quantity
-      WHERE reservation_id = ?
-    `);
-
-    const transaction = db.transaction(() => {
-      stmt.run(id);
-      updateItems.run(id);
+  static async markReturned(id) {
+    await db.execute({
+      sql: `UPDATE equipment_reservations SET status = 'returned', actual_return_date = date('now') WHERE id = ? AND status IN ('borrowed', 'overdue', 'approved')`,
+      args: [id]
     });
 
-    return transaction();
+    await db.execute({
+      sql: `UPDATE equipment_reservation_items SET returned_quantity = quantity WHERE reservation_id = ?`,
+      args: [id]
+    });
   }
 
   // บันทึกการคืนบางส่วน
-  static returnPartial(id, itemId, returnedQuantity) {
-    const updateItem = db.prepare(`
-      UPDATE equipment_reservation_items
-      SET returned_quantity = ?
-      WHERE id = ? AND reservation_id = ?
-    `);
-
-    return updateItem.run(returnedQuantity, itemId, id);
+  static async returnPartial(id, itemId, returnedQuantity) {
+    return await db.execute({
+      sql: `UPDATE equipment_reservation_items SET returned_quantity = ? WHERE id = ? AND reservation_id = ?`,
+      args: [returnedQuantity, itemId, id]
+    });
   }
 
   // ยกเลิกการจอง
-  static cancel(id) {
-    const stmt = db.prepare(`
-      UPDATE equipment_reservations
-      SET status = 'cancelled'
-      WHERE id = ? AND status IN ('pending', 'approved')
-    `);
-    return stmt.run(id);
+  static async cancel(id) {
+    return await db.execute({
+      sql: `UPDATE equipment_reservations SET status = 'cancelled' WHERE id = ? AND status IN ('pending', 'approved')`,
+      args: [id]
+    });
   }
 
   // อัพเดทสถานะเกินกำหนด
-  static updateOverdue() {
-    const stmt = db.prepare(`
+  static async updateOverdue() {
+    return await db.execute(`
       UPDATE equipment_reservations
       SET status = 'overdue'
       WHERE status IN ('approved', 'borrowed')
       AND date(return_date) < date('now')
     `);
-    return stmt.run();
   }
 
   // ดึงการจองที่ใกล้ถึงกำหนดคืน
-  static getExpiringSoon(days = 3) {
-    const reservations = db.prepare(`
-      SELECT er.*,
-        julianday(er.return_date) - julianday('now') as days_remaining
-      FROM equipment_reservations er
-      WHERE er.status IN ('approved', 'borrowed')
-      AND julianday(er.return_date) - julianday('now') BETWEEN 0 AND ?
-      ORDER BY er.return_date ASC
-    `).all(days);
+  static async getExpiringSoon(days = 3) {
+    const result = await db.execute({
+      sql: `SELECT er.*,
+              julianday(er.return_date) - julianday('now') as days_remaining
+            FROM equipment_reservations er
+            WHERE er.status IN ('approved', 'borrowed')
+            AND julianday(er.return_date) - julianday('now') BETWEEN 0 AND ?
+            ORDER BY er.return_date ASC`,
+      args: [days]
+    });
 
-    return reservations.map(r => ({
-      ...r,
-      items: this.getItems(r.id)
-    }));
+    const reservations = [];
+    for (const r of result.rows) {
+      const items = await this.getItems(r.id);
+      reservations.push({ ...r, items });
+    }
+    return reservations;
   }
 
   // นับจำนวนตามสถานะ
-  static getCountByStatus() {
-    return db.prepare(`
+  static async getCountByStatus() {
+    const result = await db.execute(`
       SELECT
         SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
         SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
@@ -250,32 +234,32 @@ class EquipmentReservation {
         SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
         SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
       FROM equipment_reservations
-    `).get();
+    `);
+    return result.rows[0];
   }
 
   // นับจำนวนที่รออนุมัติ
-  static getPendingCount() {
-    const result = db.prepare(`
-      SELECT COUNT(*) as count FROM equipment_reservations WHERE status = 'pending'
-    `).get();
-    return result.count;
+  static async getPendingCount() {
+    const result = await db.execute(`SELECT COUNT(*) as count FROM equipment_reservations WHERE status = 'pending'`);
+    return Number(result.rows[0].count);
   }
 
   // ดึงประวัติการจอง
-  static getHistory() {
-    const reservations = db.prepare(`
-      SELECT er.*,
-        a.name as approved_by_name
+  static async getHistory() {
+    const result = await db.execute(`
+      SELECT er.*, a.name as approved_by_name
       FROM equipment_reservations er
       LEFT JOIN admins a ON er.approved_by = a.id
       WHERE er.status IN ('returned', 'rejected', 'cancelled')
       ORDER BY er.created_at DESC
-    `).all();
+    `);
 
-    return reservations.map(r => ({
-      ...r,
-      items: this.getItems(r.id)
-    }));
+    const reservations = [];
+    for (const r of result.rows) {
+      const items = await this.getItems(r.id);
+      reservations.push({ ...r, items });
+    }
+    return reservations;
   }
 }
 

@@ -6,16 +6,16 @@ const EquipmentReservation = require('../models/EquipmentReservation');
 const { notifyAdminNewEquipmentRequest } = require('../utils/lineNotify');
 
 // รายการอุปกรณ์ทั้งหมด
-router.get('/', (req, res) => {
-  const categories = EquipmentCategory.getWithAvailableEquipment();
-  const equipment = Equipment.getActive();
+router.get('/', async (req, res) => {
+  const categories = await EquipmentCategory.getWithAvailableEquipment();
+  const equipment = await Equipment.getActive();
   res.render('public/equipment/index', { categories, equipment });
 });
 
 // ฟอร์มยืมอุปกรณ์
-router.get('/borrow', (req, res) => {
-  const equipment = Equipment.getAvailable();
-  const categories = EquipmentCategory.getAll();
+router.get('/borrow', async (req, res) => {
+  const equipment = await Equipment.getAvailable();
+  const categories = await EquipmentCategory.getAll();
   res.render('public/equipment/borrow', { equipment, categories });
 });
 
@@ -34,9 +34,9 @@ router.post('/borrow', async (req, res) => {
 
     // เช็คจำนวนว่าง
     for (const item of parsedItems) {
-      const available = Equipment.checkAvailability(item.equipment_id, borrow_date, return_date);
+      const available = await Equipment.checkAvailability(item.equipment_id, borrow_date, return_date);
       if (available < item.quantity) {
-        const eq = Equipment.getById(item.equipment_id);
+        const eq = await Equipment.getById(item.equipment_id);
         return res.status(400).json({
           success: false,
           error: `อุปกรณ์ "${eq ? eq.name : 'ไม่ทราบ'}" ไม่เพียงพอ (ต้องการ ${item.quantity}, ว่าง ${available})`
@@ -45,7 +45,7 @@ router.post('/borrow', async (req, res) => {
     }
 
     // สร้างคำขอ
-    const reservation = EquipmentReservation.create({
+    const reservation = await EquipmentReservation.create({
       user_name,
       phone,
       purpose,
@@ -71,22 +71,22 @@ router.post('/borrow', async (req, res) => {
 });
 
 // หน้ายืนยัน
-router.get('/borrow/success/:id', (req, res) => {
-  const reservation = EquipmentReservation.getById(req.params.id);
+router.get('/borrow/success/:id', async (req, res) => {
+  const reservation = await EquipmentReservation.getById(req.params.id);
   if (!reservation) {
     return res.redirect('/equipment');
   }
-  const items = EquipmentReservation.getItems(req.params.id);
+  const items = await EquipmentReservation.getItems(req.params.id);
   res.render('public/equipment/success', { reservation, items });
 });
 
 // API: เช็คจำนวนว่าง
-router.get('/api/availability', (req, res) => {
+router.get('/api/availability', async (req, res) => {
   const { equipment_id, borrow_date, return_date } = req.query;
   if (!equipment_id || !borrow_date || !return_date) {
     return res.json({ available: 0 });
   }
-  const available = Equipment.checkAvailability(equipment_id, borrow_date, return_date);
+  const available = await Equipment.checkAvailability(equipment_id, borrow_date, return_date);
   res.json({ available });
 });
 
@@ -96,7 +96,7 @@ router.get('/status', (req, res) => {
 });
 
 // API: ค้นหาการยืม
-router.get('/api/search', (req, res) => {
+router.get('/api/search', async (req, res) => {
   try {
     const query = req.query.q || '';
     if (!query.trim()) {
@@ -111,25 +111,26 @@ router.get('/api/search', (req, res) => {
     const eqMatch = query.toUpperCase().match(/EQ-?(\d+)/);
     if (eqMatch) {
       const id = parseInt(eqMatch[1]);
-      const r = EquipmentReservation.getById(id);
+      const r = await EquipmentReservation.getById(id);
       if (r) {
         reservations = [r];
       }
     } else {
       // ค้นหาจากชื่อ
-      reservations = db.prepare(`
-        SELECT er.*
-        FROM equipment_reservations er
-        WHERE er.user_name LIKE ?
-        ORDER BY er.created_at DESC
-        LIMIT 20
-      `).all('%' + query + '%');
+      const result = await db.execute({
+        sql: `SELECT er.*
+              FROM equipment_reservations er
+              WHERE er.user_name LIKE ?
+              ORDER BY er.created_at DESC
+              LIMIT 20`,
+        args: ['%' + query + '%']
+      });
 
       // เพิ่ม items ให้แต่ละรายการ
-      reservations = reservations.map(r => ({
-        ...r,
-        items: EquipmentReservation.getItems(r.id)
-      }));
+      for (const r of result.rows) {
+        const items = await EquipmentReservation.getItems(r.id);
+        reservations.push({ ...r, items });
+      }
     }
 
     res.json({ reservations });
@@ -140,12 +141,11 @@ router.get('/api/search', (req, res) => {
 });
 
 // ยกเลิกการยืม (ผู้ใช้ทั่วไป)
-router.post('/cancel/:id', (req, res) => {
+router.post('/cancel/:id', async (req, res) => {
   try {
     const id = req.params.id;
-    const { reason } = req.body;
 
-    const reservation = EquipmentReservation.getById(id);
+    const reservation = await EquipmentReservation.getById(id);
     if (!reservation) {
       return res.json({ success: false, error: 'ไม่พบรายการ' });
     }
@@ -156,7 +156,7 @@ router.post('/cancel/:id', (req, res) => {
     }
 
     // ยกเลิก
-    EquipmentReservation.cancel(id);
+    await EquipmentReservation.cancel(id);
 
     res.json({ success: true });
   } catch (error) {
@@ -166,11 +166,11 @@ router.post('/cancel/:id', (req, res) => {
 });
 
 // แจ้งคืนอุปกรณ์ (ผู้ใช้ทั่วไป)
-router.post('/return/:id', (req, res) => {
+router.post('/return/:id', async (req, res) => {
   try {
     const id = req.params.id;
 
-    const reservation = EquipmentReservation.getById(id);
+    const reservation = await EquipmentReservation.getById(id);
     if (!reservation) {
       return res.json({ success: false, error: 'ไม่พบรายการ' });
     }
@@ -181,7 +181,7 @@ router.post('/return/:id', (req, res) => {
     }
 
     // บันทึกการคืน
-    EquipmentReservation.markReturned(id);
+    await EquipmentReservation.markReturned(id);
 
     res.json({ success: true });
   } catch (error) {

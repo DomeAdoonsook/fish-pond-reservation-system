@@ -5,13 +5,13 @@ const { sendExpiryReminder } = require('./lineNotify');
 async function checkExpiredReservations() {
   try {
     // อัพเดทการจองที่หมดอายุแล้ว
-    const result = Reservation.completeExpired();
-    if (result.changes > 0) {
-      console.log(`✅ Completed ${result.changes} expired reservations`);
+    const result = await Reservation.completeExpired();
+    if (result && result.rowsAffected > 0) {
+      console.log(`✅ Completed ${result.rowsAffected} expired reservations`);
     }
 
     // ส่งแจ้งเตือนการจองที่ใกล้หมดอายุ
-    const expiringSoon = Reservation.getExpiringSoon();
+    const expiringSoon = await Reservation.getExpiringSoon();
     for (const reservation of expiringSoon) {
       // แจ้งเตือนเมื่อเหลือ 7 วัน และ 1 วัน
       if (reservation.days_remaining === 7 || reservation.days_remaining === 1) {

@@ -49,7 +49,7 @@ async function handleEvent(event) {
 // Handle text messages
 async function handleTextMessage(event, userId) {
   const text = event.message.text.trim();
-  const session = UserSession.get(userId);
+  const session = await UserSession.get(userId);
   const state = session?.state || 'idle';
   const data = session?.data || {};
 
@@ -124,7 +124,7 @@ async function handlePostback(event, userId) {
       return confirmCancelBooking(event.replyToken, userId, reservationId);
 
     case 'cancel_flow':
-      UserSession.reset(userId);
+      await UserSession.reset(userId);
       return showMainMenu(event.replyToken);
 
     // Equipment postbacks
@@ -152,7 +152,7 @@ async function handleConversationFlow(event, userId, state, data, text) {
   switch (state) {
     case 'awaiting_name':
       data.user_name = text;
-      UserSession.set(userId, 'awaiting_fish_type', data);
+      await UserSession.set(userId, 'awaiting_fish_type', data);
       return client.replyMessage({
         replyToken: event.replyToken,
         messages: [{
@@ -163,7 +163,7 @@ async function handleConversationFlow(event, userId, state, data, text) {
 
     case 'awaiting_fish_type':
       data.fish_type = text;
-      UserSession.set(userId, 'awaiting_quantity', data);
+      await UserSession.set(userId, 'awaiting_quantity', data);
       return client.replyMessage({
         replyToken: event.replyToken,
         messages: [{
@@ -184,7 +184,7 @@ async function handleConversationFlow(event, userId, state, data, text) {
         });
       }
       data.fish_quantity = quantity;
-      UserSession.set(userId, 'awaiting_start_date', data);
+      await UserSession.set(userId, 'awaiting_start_date', data);
       return client.replyMessage({
         replyToken: event.replyToken,
         messages: [{
@@ -205,7 +205,7 @@ async function handleConversationFlow(event, userId, state, data, text) {
         });
       }
       data.start_date = startDate;
-      UserSession.set(userId, 'awaiting_duration', data);
+      await UserSession.set(userId, 'awaiting_duration', data);
       return client.replyMessage({
         replyToken: event.replyToken,
         messages: [{
@@ -240,7 +240,7 @@ async function handleConversationFlow(event, userId, state, data, text) {
       if (text === 'ยืนยัน' || text.toLowerCase() === 'yes' || text === 'ใช่') {
         return createReservation(event.replyToken, userId, data);
       } else if (text === 'ยกเลิก' || text.toLowerCase() === 'no' || text === 'ไม่') {
-        UserSession.reset(userId);
+        await UserSession.reset(userId);
         return client.replyMessage({
           replyToken: event.replyToken,
           messages: [{
@@ -275,7 +275,7 @@ async function handleConversationFlow(event, userId, state, data, text) {
       }
       data.items = data.items || [];
       data.items.push({ equipment_id: data.current_eq_id, quantity: eqQty, name: data.current_eq_name });
-      UserSession.set(userId, 'eq_awaiting_more', data);
+      await UserSession.set(userId, 'eq_awaiting_more', data);
       return client.replyMessage({
         replyToken: event.replyToken,
         messages: [{
@@ -288,7 +288,7 @@ async function handleConversationFlow(event, userId, state, data, text) {
       if (text.includes('เพิ่ม') || text.includes('อื่น')) {
         return startEquipmentBorrowFlow(event.replyToken, userId, data);
       } else {
-        UserSession.set(userId, 'eq_awaiting_borrow_date', data);
+        await UserSession.set(userId, 'eq_awaiting_borrow_date', data);
         return client.replyMessage({
           replyToken: event.replyToken,
           messages: [{ type: 'text', text: '📅 กรุณาระบุวันที่ต้องการยืม\n\nรูปแบบ: วัน/เดือน/ปี\nตัวอย่าง: 15/12/2567' }]
@@ -304,7 +304,7 @@ async function handleConversationFlow(event, userId, state, data, text) {
         });
       }
       data.borrow_date = borrowDate;
-      UserSession.set(userId, 'eq_awaiting_return_date', data);
+      await UserSession.set(userId, 'eq_awaiting_return_date', data);
       return client.replyMessage({
         replyToken: event.replyToken,
         messages: [{ type: 'text', text: '📅 กรุณาระบุวันที่จะคืน\n\nรูปแบบ: วัน/เดือน/ปี\nตัวอย่าง: 20/12/2567' }]
@@ -319,7 +319,7 @@ async function handleConversationFlow(event, userId, state, data, text) {
         });
       }
       data.return_date = returnDate;
-      UserSession.set(userId, 'eq_awaiting_name', data);
+      await UserSession.set(userId, 'eq_awaiting_name', data);
       return client.replyMessage({
         replyToken: event.replyToken,
         messages: [{ type: 'text', text: '👤 กรุณาระบุชื่อผู้ยืม' }]
@@ -327,7 +327,7 @@ async function handleConversationFlow(event, userId, state, data, text) {
 
     case 'eq_awaiting_name':
       data.user_name = text;
-      UserSession.set(userId, 'eq_awaiting_phone', data);
+      await UserSession.set(userId, 'eq_awaiting_phone', data);
       return client.replyMessage({
         replyToken: event.replyToken,
         messages: [{ type: 'text', text: '📱 กรุณาระบุเบอร์โทรศัพท์\n\nหรือพิมพ์ "ข้าม" หากไม่ต้องการระบุ' }]
@@ -341,7 +341,7 @@ async function handleConversationFlow(event, userId, state, data, text) {
       if (text === 'ยืนยัน' || text.toLowerCase() === 'yes' || text === 'ใช่') {
         return createEquipmentReservation(event.replyToken, userId, data);
       } else if (text === 'ยกเลิก' || text.toLowerCase() === 'no' || text === 'ไม่') {
-        UserSession.reset(userId);
+        await UserSession.reset(userId);
         return client.replyMessage({
           replyToken: event.replyToken,
           messages: [{ type: 'text', text: '❌ ยกเลิกการยืมอุปกรณ์แล้ว' }]
@@ -353,14 +353,14 @@ async function handleConversationFlow(event, userId, state, data, text) {
       });
 
     default:
-      UserSession.reset(userId);
+      await UserSession.reset(userId);
       return showMainMenu(event.replyToken);
   }
 }
 
 // Show main menu
 async function showMainMenu(replyToken) {
-  const status = Pond.getStatusCount();
+  const status = await Pond.getStatusCount();
 
   return client.replyMessage({
     replyToken,
@@ -518,7 +518,7 @@ async function showMainMenu(replyToken) {
 
 // Start booking flow (ขอใช้บ่อ) - show zones
 async function startBookingFlow(replyToken, userId) {
-  const zones = Pond.getAvailableCountByZone();
+  const zones = await Pond.getAvailableCountByZone();
 
   const zoneButtons = zones.map(z => ({
     type: 'button',
@@ -574,7 +574,7 @@ async function startBookingFlow(replyToken, userId) {
 
 // Show ponds in zone
 async function showPondsInZone(replyToken, userId, zone) {
-  const ponds = Pond.getAvailableByZone(zone);
+  const ponds = await Pond.getAvailableByZone(zone);
 
   if (ponds.length === 0) {
     return client.replyMessage({
@@ -645,7 +645,7 @@ async function showPondsInZone(replyToken, userId, zone) {
 
 // Start pond booking (เริ่มขอใช้บ่อ)
 async function startPondBooking(replyToken, userId, pondId) {
-  const pond = Pond.getById(pondId);
+  const pond = await Pond.getById(pondId);
 
   if (!pond || pond.status !== 'available') {
     return client.replyMessage({
@@ -658,7 +658,7 @@ async function startPondBooking(replyToken, userId, pondId) {
   }
 
   // เริ่ม session การขอใช้บ่อ
-  UserSession.set(userId, 'awaiting_name', {
+  await UserSession.set(userId, 'awaiting_name', {
     pond_id: pondId,
     pond_code: pond.pond_code
   });
@@ -674,7 +674,7 @@ async function startPondBooking(replyToken, userId, pondId) {
 
 // Show booking confirmation
 async function showBookingConfirmation(replyToken, userId, data) {
-  UserSession.set(userId, 'awaiting_confirm', data);
+  await UserSession.set(userId, 'awaiting_confirm', data);
 
   const startDateThai = formatThaiDate(data.start_date);
   const endDateThai = formatThaiDate(data.end_date);
@@ -827,7 +827,7 @@ async function showBookingConfirmation(replyToken, userId, data) {
 // Create reservation
 async function createReservation(replyToken, userId, data) {
   try {
-    const reservationId = Reservation.create({
+    const reservationId = await Reservation.create({
       pond_id: data.pond_id,
       user_name: data.user_name,
       line_user_id: userId,
@@ -837,14 +837,14 @@ async function createReservation(replyToken, userId, data) {
       end_date: data.end_date
     });
 
-    Log.create('reservation_created', {
+    await Log.create('reservation_created', {
       pond_id: data.pond_id,
       reservation_id: reservationId,
       user_id: userId,
       details: data
     });
 
-    UserSession.reset(userId);
+    await UserSession.reset(userId);
 
     // แจ้งเตือน Admin
     const { notifyAdminNewRequest } = require('../utils/lineNotify');
@@ -910,7 +910,7 @@ async function createReservation(replyToken, userId, data) {
     });
   } catch (error) {
     console.error('Create reservation error:', error);
-    UserSession.reset(userId);
+    await UserSession.reset(userId);
     return client.replyMessage({
       replyToken,
       messages: [{
@@ -923,8 +923,8 @@ async function createReservation(replyToken, userId, data) {
 
 // Show available ponds
 async function showAvailablePonds(replyToken) {
-  const zones = Pond.getAvailableCountByZone();
-  const status = Pond.getStatusCount();
+  const zones = await Pond.getAvailableCountByZone();
+  const status = await Pond.getStatusCount();
 
   let zoneText = zones.map(z =>
     `โซน ${z.zone}: ว่าง ${z.available}/${z.total} บ่อ`
@@ -995,7 +995,7 @@ async function showAvailablePonds(replyToken) {
 
 // Show user reservations
 async function showUserReservations(replyToken, userId, mode) {
-  const reservations = Reservation.getByLineUserId(userId);
+  const reservations = await Reservation.getByLineUserId(userId);
 
   if (reservations.length === 0) {
     return client.replyMessage({
@@ -1091,7 +1091,7 @@ async function showUserReservations(replyToken, userId, mode) {
 
 // Confirm cancel booking
 async function confirmCancelBooking(replyToken, userId, reservationId) {
-  const reservation = Reservation.getById(reservationId);
+  const reservation = await Reservation.getById(reservationId);
 
   if (!reservation || reservation.line_user_id !== userId) {
     return client.replyMessage({
@@ -1103,9 +1103,9 @@ async function confirmCancelBooking(replyToken, userId, reservationId) {
     });
   }
 
-  Reservation.cancel(reservationId);
+  await Reservation.cancel(reservationId);
 
-  Log.create('reservation_cancelled', {
+  await Log.create('reservation_cancelled', {
     pond_id: reservation.pond_id,
     reservation_id: reservationId,
     user_id: userId
@@ -1153,7 +1153,7 @@ function formatThaiDate(dateStr) {
 
 // เริ่ม flow ยืมอุปกรณ์
 async function startEquipmentBorrowFlow(replyToken, userId, existingData = null) {
-  const categories = EquipmentCategory.getAll();
+  const categories = await EquipmentCategory.getAll();
 
   if (categories.length === 0) {
     return client.replyMessage({
@@ -1175,7 +1175,7 @@ async function startEquipmentBorrowFlow(replyToken, userId, existingData = null)
 
   // เก็บ session ถ้ามี data เดิม
   if (existingData && existingData.items) {
-    UserSession.set(userId, 'eq_selecting', existingData);
+    await UserSession.set(userId, 'eq_selecting', existingData);
   }
 
   return client.replyMessage({
@@ -1226,7 +1226,8 @@ async function startEquipmentBorrowFlow(replyToken, userId, existingData = null)
 
 // แสดงอุปกรณ์ในหมวดหมู่
 async function showEquipmentInCategory(replyToken, userId, categoryId) {
-  const equipment = Equipment.getByCategory(categoryId).filter(e => e.available_quantity > 0);
+  const allEquipment = await Equipment.getByCategory(categoryId);
+  const equipment = allEquipment.filter(e => e.available_quantity > 0);
 
   if (equipment.length === 0) {
     return client.replyMessage({
@@ -1289,7 +1290,7 @@ async function showEquipmentInCategory(replyToken, userId, categoryId) {
 
 // เริ่มเลือกอุปกรณ์
 async function startEquipmentSelection(replyToken, userId, equipmentId) {
-  const eq = Equipment.getById(equipmentId);
+  const eq = await Equipment.getById(equipmentId);
   if (!eq || eq.available_quantity <= 0) {
     return client.replyMessage({
       replyToken,
@@ -1297,13 +1298,13 @@ async function startEquipmentSelection(replyToken, userId, equipmentId) {
     });
   }
 
-  const session = UserSession.get(userId);
+  const session = await UserSession.get(userId);
   const data = session?.data || {};
   data.current_eq_id = equipmentId;
   data.current_eq_name = eq.name;
   data.available = eq.available_quantity;
 
-  UserSession.set(userId, 'eq_awaiting_quantity', data);
+  await UserSession.set(userId, 'eq_awaiting_quantity', data);
 
   return client.replyMessage({
     replyToken,
@@ -1316,7 +1317,7 @@ async function startEquipmentSelection(replyToken, userId, equipmentId) {
 
 // แสดงสรุปการยืมอุปกรณ์
 async function showEquipmentConfirmation(replyToken, userId, data) {
-  UserSession.set(userId, 'eq_awaiting_confirm', data);
+  await UserSession.set(userId, 'eq_awaiting_confirm', data);
 
   const itemsList = data.items.map(i => `• ${i.name} x${i.quantity}`).join('\n');
 
@@ -1397,7 +1398,7 @@ async function showEquipmentConfirmation(replyToken, userId, data) {
 // สร้างคำขอยืมอุปกรณ์
 async function createEquipmentReservation(replyToken, userId, data) {
   try {
-    const reservation = EquipmentReservation.create({
+    const reservation = await EquipmentReservation.create({
       user_name: data.user_name,
       line_user_id: userId,
       phone: data.phone,
@@ -1406,7 +1407,7 @@ async function createEquipmentReservation(replyToken, userId, data) {
       items: data.items.map(i => ({ equipment_id: i.equipment_id, quantity: i.quantity }))
     });
 
-    UserSession.reset(userId);
+    await UserSession.reset(userId);
 
     // แจ้ง Admin
     const { notifyAdminNewEquipmentRequest } = require('../utils/lineNotify');
@@ -1466,7 +1467,7 @@ async function createEquipmentReservation(replyToken, userId, data) {
     });
   } catch (error) {
     console.error('Create equipment reservation error:', error);
-    UserSession.reset(userId);
+    await UserSession.reset(userId);
     return client.replyMessage({
       replyToken,
       messages: [{ type: 'text', text: '❌ เกิดข้อผิดพลาด กรุณาลองใหม่' }]
@@ -1476,7 +1477,7 @@ async function createEquipmentReservation(replyToken, userId, data) {
 
 // แสดงสถานะการยืมอุปกรณ์ของผู้ใช้
 async function showUserEquipmentReservations(replyToken, userId) {
-  const reservations = EquipmentReservation.getByLineUserId(userId);
+  const reservations = await EquipmentReservation.getByLineUserId(userId);
 
   if (!reservations || reservations.length === 0) {
     return client.replyMessage({
@@ -1485,7 +1486,8 @@ async function showUserEquipmentReservations(replyToken, userId) {
     });
   }
 
-  const bubbles = reservations.slice(0, 5).map(r => {
+  const bubbles = [];
+  for (const r of reservations.slice(0, 5)) {
     const statusText = {
       pending: '🟡 รออนุมัติ',
       approved: '🟢 อนุมัติแล้ว',
@@ -1496,10 +1498,10 @@ async function showUserEquipmentReservations(replyToken, userId) {
       overdue: '🔴 เลยกำหนด'
     }[r.status] || r.status;
 
-    const items = EquipmentReservation.getItems(r.id);
+    const items = await EquipmentReservation.getItems(r.id);
     const itemsText = items.slice(0, 3).map(i => `${i.equipment_name} x${i.quantity}`).join(', ');
 
-    return {
+    bubbles.push({
       type: 'bubble',
       size: 'kilo',
       body: {
@@ -1532,8 +1534,8 @@ async function showUserEquipmentReservations(replyToken, userId) {
           wrap: true
         }]
       }
-    };
-  });
+    });
+  }
 
   return client.replyMessage({
     replyToken,

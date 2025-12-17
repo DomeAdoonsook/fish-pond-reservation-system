@@ -10,11 +10,12 @@ router.get('/', (req, res) => {
 });
 
 // หน้าผังบ่อ
-router.get('/pond', (req, res) => {
-  const ponds = Pond.getAll();
-  const status = Pond.getStatusCount();
-  const pendingCount = Reservation.getPending().length;
-  const savedPositions = Pond.getPositions();
+router.get('/pond', async (req, res) => {
+  const ponds = await Pond.getAll();
+  const status = await Pond.getStatusCount();
+  const pending = await Reservation.getPending();
+  const pendingCount = pending.length;
+  const savedPositions = await Pond.getPositions();
 
   res.render('public/index', {
     ponds,
@@ -25,8 +26,8 @@ router.get('/pond', (req, res) => {
 });
 
 // หน้ากำลังใช้งาน (บ่อ) - ต้องอยู่ก่อน /pond/:id
-router.get('/pond/active', (req, res) => {
-  const active = Reservation.getActive();
+router.get('/pond/active', async (req, res) => {
+  const active = await Reservation.getActive();
 
   res.render('public/active', {
     reservations: active
@@ -34,8 +35,8 @@ router.get('/pond/active', (req, res) => {
 });
 
 // หน้าประวัติ (บ่อ) - ต้องอยู่ก่อน /pond/:id
-router.get('/pond/history', (req, res) => {
-  const reservations = Reservation.getAll();
+router.get('/pond/history', async (req, res) => {
+  const reservations = await Reservation.getAll();
 
   res.render('public/history', {
     reservations
@@ -43,9 +44,9 @@ router.get('/pond/history', (req, res) => {
 });
 
 // หน้ารายละเอียดบ่อ - ต้องอยู่หลัง routes ที่ specific กว่า
-router.get('/pond/:id', (req, res) => {
-  const pond = Pond.getById(req.params.id);
-  const history = Reservation.getHistoryByPondId(req.params.id);
+router.get('/pond/:id', async (req, res) => {
+  const pond = await Pond.getById(req.params.id);
+  const history = await Reservation.getHistoryByPondId(req.params.id);
 
   if (!pond) {
     return res.redirect('/');
@@ -62,8 +63,8 @@ router.get('/active', (req, res) => res.redirect('/pond/active'));
 router.get('/history', (req, res) => res.redirect('/pond/history'));
 
 // หน้าฟอร์มขอใช้บ่อ
-router.get('/booking/:id', (req, res) => {
-  const pond = Pond.getById(req.params.id);
+router.get('/booking/:id', async (req, res) => {
+  const pond = await Pond.getById(req.params.id);
 
   if (!pond) {
     return res.redirect('/');
@@ -86,7 +87,7 @@ router.get('/booking/:id', (req, res) => {
 
 // ส่งคำขอใช้บ่อ
 router.post('/booking/:id', async (req, res) => {
-  const pond = Pond.getById(req.params.id);
+  const pond = await Pond.getById(req.params.id);
 
   if (!pond) {
     return res.redirect('/');
@@ -108,7 +109,7 @@ router.post('/booking/:id', async (req, res) => {
   }
 
   try {
-    const reservationId = Reservation.create({
+    const reservationId = await Reservation.create({
       pond_id: pond.id,
       user_name,
       phone,
@@ -121,7 +122,7 @@ router.post('/booking/:id', async (req, res) => {
 
     // ส่งแจ้งเตือน LINE ให้ admin
     const { notifyAdminNewRequest } = require('../utils/lineNotify');
-    const reservation = Reservation.getById(reservationId);
+    const reservation = await Reservation.getById(reservationId);
     await notifyAdminNewRequest(reservation);
 
     res.redirect('/booking/success/' + reservationId);
@@ -135,8 +136,8 @@ router.post('/booking/:id', async (req, res) => {
 });
 
 // หน้ายืนยันการส่งคำขอสำเร็จ
-router.get('/booking/success/:id', (req, res) => {
-  const reservation = Reservation.getById(req.params.id);
+router.get('/booking/success/:id', async (req, res) => {
+  const reservation = await Reservation.getById(req.params.id);
 
   if (!reservation) {
     return res.redirect('/');
@@ -148,8 +149,8 @@ router.get('/booking/success/:id', (req, res) => {
 });
 
 // หน้าฟอร์มขอยกเลิกการใช้บ่อ
-router.get('/cancel-request/:reservationId', (req, res) => {
-  const reservation = Reservation.getById(req.params.reservationId);
+router.get('/cancel-request/:reservationId', async (req, res) => {
+  const reservation = await Reservation.getById(req.params.reservationId);
 
   if (!reservation) {
     return res.redirect('/');
@@ -161,7 +162,8 @@ router.get('/cancel-request/:reservationId', (req, res) => {
   }
 
   // ตรวจสอบว่ามีคำขอยกเลิกที่รอดำเนินการอยู่แล้วหรือไม่
-  if (CancellationRequest.hasPendingRequest(req.params.reservationId)) {
+  const hasPending = await CancellationRequest.hasPendingRequest(req.params.reservationId);
+  if (hasPending) {
     return res.redirect('/pond/' + reservation.pond_id + '?error=pending_cancel');
   }
 
@@ -173,7 +175,7 @@ router.get('/cancel-request/:reservationId', (req, res) => {
 
 // ส่งคำขอยกเลิกการใช้บ่อ
 router.post('/cancel-request/:reservationId', async (req, res) => {
-  const reservation = Reservation.getById(req.params.reservationId);
+  const reservation = await Reservation.getById(req.params.reservationId);
 
   if (!reservation) {
     return res.redirect('/');
@@ -185,7 +187,8 @@ router.post('/cancel-request/:reservationId', async (req, res) => {
   }
 
   // ตรวจสอบว่ามีคำขอยกเลิกที่รอดำเนินการอยู่แล้วหรือไม่
-  if (CancellationRequest.hasPendingRequest(req.params.reservationId)) {
+  const hasPending = await CancellationRequest.hasPendingRequest(req.params.reservationId);
+  if (hasPending) {
     return res.render('public/cancel-request', {
       reservation,
       error: 'มีคำขอยกเลิกที่รอดำเนินการอยู่แล้ว'
@@ -195,7 +198,7 @@ router.post('/cancel-request/:reservationId', async (req, res) => {
   const { reason, phone } = req.body;
 
   try {
-    const requestId = CancellationRequest.create({
+    const requestId = await CancellationRequest.create({
       reservation_id: reservation.id,
       reason: reason || null,
       phone: phone || null
@@ -203,7 +206,7 @@ router.post('/cancel-request/:reservationId', async (req, res) => {
 
     // ส่งแจ้งเตือน LINE ให้ Admin
     const { notifyAdminCancellationRequest } = require('../utils/lineNotify');
-    const request = CancellationRequest.getById(requestId);
+    const request = await CancellationRequest.getById(requestId);
     await notifyAdminCancellationRequest(request);
 
     res.redirect('/cancel-request/success/' + requestId);
@@ -217,8 +220,8 @@ router.post('/cancel-request/:reservationId', async (req, res) => {
 });
 
 // หน้ายืนยันการส่งคำขอยกเลิกสำเร็จ
-router.get('/cancel-request/success/:id', (req, res) => {
-  const request = CancellationRequest.getById(req.params.id);
+router.get('/cancel-request/success/:id', async (req, res) => {
+  const request = await CancellationRequest.getById(req.params.id);
 
   if (!request) {
     return res.redirect('/');
