@@ -935,6 +935,48 @@ async function sendEquipmentReturnReminder(lineUserId, reservation, daysRemainin
   }
 }
 
+// ดึงข้อมูล LINE Message Quota
+async function getLineQuota() {
+  try {
+    // ดึง quota limit
+    const quotaResponse = await fetch('https://api.line.me/v2/bot/message/quota', {
+      headers: {
+        'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+      }
+    });
+    const quotaData = await quotaResponse.json();
+
+    // ดึง consumption (จำนวนที่ใช้ไปแล้ว)
+    const consumptionResponse = await fetch('https://api.line.me/v2/bot/message/quota/consumption', {
+      headers: {
+        'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+      }
+    });
+    const consumptionData = await consumptionResponse.json();
+
+    // คำนวณวันรีเซ็ต (วันที่ 1 ของเดือนหน้า)
+    const now = new Date();
+    const resetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    return {
+      limit: quotaData.value || 500, // Free plan = 500
+      used: consumptionData.totalUsage || 0,
+      remaining: (quotaData.value || 500) - (consumptionData.totalUsage || 0),
+      resetDate: resetDate.toISOString().split('T')[0],
+      type: quotaData.type || 'none' // limited, none
+    };
+  } catch (error) {
+    console.error('Error fetching LINE quota:', error);
+    return {
+      limit: 500,
+      used: 0,
+      remaining: 500,
+      resetDate: null,
+      error: error.message
+    };
+  }
+}
+
 module.exports = {
   notifyAdminNewRequest,
   sendApprovalNotification,
@@ -948,5 +990,7 @@ module.exports = {
   notifyAdminNewEquipmentRequest,
   sendEquipmentApprovalNotification,
   sendEquipmentRejectionNotification,
-  sendEquipmentReturnReminder
+  sendEquipmentReturnReminder,
+  // Quota
+  getLineQuota
 };

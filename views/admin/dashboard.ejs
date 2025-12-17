@@ -197,6 +197,64 @@
           </div>
         </div>
 
+        <!-- LINE Quota (แสดงเฉพาะ admin ที่ login) -->
+        <% if (isLoggedIn && lineQuota) { %>
+        <div class="card mb-4 border-success">
+          <div class="card-header bg-success text-white py-2">
+            <i class="bi bi-line me-2"></i>LINE Message Quota
+          </div>
+          <div class="card-body py-3">
+            <div class="row align-items-center">
+              <div class="col-md-6">
+                <div class="d-flex align-items-center mb-2">
+                  <div class="me-3">
+                    <span class="fs-3 fw-bold text-<%= lineQuota.remaining < 50 ? 'danger' : lineQuota.remaining < 100 ? 'warning' : 'success' %>">
+                      <%= lineQuota.remaining %>
+                    </span>
+                    <span class="text-muted">/ <%= lineQuota.limit %></span>
+                  </div>
+                  <div class="text-muted small">ข้อความที่เหลือ</div>
+                </div>
+                <div class="progress" style="height: 8px;">
+                  <% const usedPercent = (lineQuota.used / lineQuota.limit) * 100; %>
+                  <div class="progress-bar bg-<%= usedPercent > 90 ? 'danger' : usedPercent > 70 ? 'warning' : 'success' %>"
+                       role="progressbar"
+                       style="width: <%= usedPercent %>%">
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="row text-center">
+                  <div class="col-4">
+                    <div class="text-muted small">ใช้ไปแล้ว</div>
+                    <div class="fw-bold"><%= lineQuota.used %></div>
+                  </div>
+                  <div class="col-4">
+                    <div class="text-muted small">Quota ทั้งหมด</div>
+                    <div class="fw-bold"><%= lineQuota.limit %></div>
+                  </div>
+                  <div class="col-4">
+                    <div class="text-muted small">รีเซ็ตวันที่</div>
+                    <div class="fw-bold">
+                      <% if (lineQuota.resetDate) { %>
+                        <%= new Date(lineQuota.resetDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }) %>
+                      <% } else { %>
+                        -
+                      <% } %>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <% if (lineQuota.error) { %>
+            <div class="alert alert-warning mt-2 mb-0 py-1 small">
+              <i class="bi bi-exclamation-triangle me-1"></i>ไม่สามารถดึงข้อมูลจาก LINE API ได้
+            </div>
+            <% } %>
+          </div>
+        </div>
+        <% } %>
+
         <!-- Legend -->
         <div class="card mb-4">
           <div class="card-body py-2">
