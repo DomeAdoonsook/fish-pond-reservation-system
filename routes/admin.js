@@ -5,6 +5,7 @@ const Pond = require('../models/Pond');
 const Reservation = require('../models/Reservation');
 const CancellationRequest = require('../models/CancellationRequest');
 const EquipmentReservation = require('../models/EquipmentReservation');
+const StockRequest = require('../models/StockRequest');
 const Log = require('../models/Log');
 
 // Middleware ตรวจสอบ login
@@ -25,6 +26,13 @@ const optionalLogin = (req, res, next) => {
 const addCommonData = async (req, res, next) => {
   res.locals.cancelPendingCount = await CancellationRequest.getPendingCount();
   res.locals.equipmentPendingCount = await EquipmentReservation.getPendingCount();
+
+  // ดึง Stock pending count
+  try {
+    res.locals.stockPendingCount = await StockRequest.getPendingCount();
+  } catch (error) {
+    res.locals.stockPendingCount = 0;
+  }
 
   // ดึง LINE quota (เฉพาะ admin ที่ login แล้ว)
   if (req.session.admin) {
