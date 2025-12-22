@@ -271,7 +271,7 @@ router.post('/requests/:id/reject', async (req, res) => {
 router.get('/transactions', async (req, res) => {
   try {
     const items = await StockItem.getAll();
-    const transactions = await StockTransaction.getAll(50);
+    const transactions = await StockTransaction.getRecent(50);
 
     res.render('admin/stock/transactions', {
       title: 'รับ-จ่าย Stock',
