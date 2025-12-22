@@ -105,6 +105,46 @@ router.get('/', optionalLogin, async (req, res) => {
   });
 });
 
+// ======= หน้าหลัก บ่อปลา (3 กล่อง) =======
+router.get('/ponds', optionalLogin, async (req, res) => {
+  const ponds = await Pond.getAll();
+  const status = await Pond.getStatusCount();
+  const pending = await Reservation.getPending();
+  const pendingCount = pending.length;
+  const active = await Reservation.getActive();
+  const activeCount = active.length;
+
+  res.render('admin/ponds/index', {
+    admin: req.session.admin || { name: 'ผู้เยี่ยมชม' },
+    isLoggedIn: !!req.session.admin,
+    ponds,
+    status,
+    pendingCount,
+    activeCount,
+    cancelPendingCount: res.locals.cancelPendingCount || 0,
+    page: 'ponds'
+  });
+});
+
+// ======= ผังบ่อปลา =======
+router.get('/ponds/map', optionalLogin, async (req, res) => {
+  const ponds = await Pond.getAll();
+  const status = await Pond.getStatusCount();
+  const pending = await Reservation.getPending();
+  const pendingCount = pending.length;
+  const savedPositions = await Pond.getPositions();
+
+  res.render('admin/ponds/map', {
+    admin: req.session.admin || { name: 'ผู้เยี่ยมชม' },
+    isLoggedIn: !!req.session.admin,
+    ponds,
+    status,
+    pendingCount,
+    savedPositions,
+    page: 'ponds-map'
+  });
+});
+
 // หน้าอนุมัติคำขอ (ดูได้ไม่ต้อง login)
 router.get('/requests', optionalLogin, async (req, res) => {
   const pending = await Reservation.getPending();

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ผังบ่อปลา - ระบบงานฟาร์ม</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+      min-height: 100vh;
+    }
+    .page-header {
+      background: linear-gradient(135deg, #2196f3, #1976d2);
+      color: white;
+      padding: 25px 30px;
+      border-radius: 0 0 20px 20px;
+      margin-bottom: 25px;
+    }
+    .back-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .back-btn:hover {
+      background: rgba(255,255,255,0.3);
+      color: white;
+    }
+    .pond-map-container {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+      min-height: 500px;
+      position: relative;
+    }
+    .pond-box {
+      position: absolute;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 500;
+      font-size: 0.85rem;
+      text-decoration: none;
+      color: white;
+    }
+    .pond-box:hover {
+      transform: scale(1.05);
+      z-index: 10;
+    }
+    .pond-box.available {
+      background: linear-gradient(135deg, #4caf50, #388e3c);
+    }
+    .pond-box.occupied {
+      background: linear-gradient(135deg, #f44336, #d32f2f);
+    }
+    .pond-box.maintenance {
+      background: linear-gradient(135deg, #9e9e9e, #757575);
+    }
+    .pond-box.pending {
+      background: linear-gradient(135deg, #ff9800, #f57c00);
+    }
+    .pond-code {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .pond-status {
+      font-size: 0.7rem;
+      opacity: 0.9;
+    }
+    .legend {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+    }
+    .legend-color.available { background: #4caf50; }
+    .legend-color.occupied { background: #f44336; }
+    .legend-color.maintenance { background: #9e9e9e; }
+    .legend-color.pending { background: #ff9800; }
+  </style>
+</head>
+<body>
+  <div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <a href="/admin/ponds" class="back-btn mb-2 d-inline-block">
+              <i class="bi bi-arrow-left me-1"></i>กลับ
+            </a>
+            <h2 class="mb-1"><i class="bi bi-grid-3x3-gap me-2"></i>ผังบ่อปลา</h2>
+            <p class="mb-0 opacity-75">แสดงสถานะบ่อทั้งหมด</p>
+          </div>
+          <div>
+            <% if (isLoggedIn) { %>
+            <a href="/admin/pond-positions" class="btn btn-light btn-sm">
+              <i class="bi bi-arrows-move me-1"></i>จัดตำแหน่งบ่อ
+            </a>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container pb-4">
+      <!-- Legend -->
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-color available"></div>
+          <span>ว่าง</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color occupied"></div>
+          <span>ใช้งานอยู่</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color pending"></div>
+          <span>รออนุมัติ</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color maintenance"></div>
+          <span>ปิดปรับปรุง</span>
+        </div>
+      </div>
+
+      <!-- Pond Map -->
+      <div class="pond-map-container" id="pondMap">
+        <% ponds.forEach(function(pond, index) { %>
+          <%
+            let statusClass = pond.status;
+            let statusText = '';
+            if (pond.status === 'available') statusText = 'ว่าง';
+            else if (pond.status === 'occupied') statusText = 'ใช้งาน';
+            else if (pond.status === 'maintenance') statusText = 'ปรับปรุง';
+
+            // Check if has pending reservation
+            if (pond.pending_count > 0 && pond.status === 'available') {
+              statusClass = 'pending';
+              statusText = 'รออนุมัติ';
+            }
+
+            // Position from savedPositions or calculate default
+            let left = 10 + (index % 6) * 16;
+            let top = 10 + Math.floor(index / 6) * 20;
+            let width = 14;
+            let height = 18;
+
+            if (savedPositions && savedPositions[pond.pond_code]) {
+              left = savedPositions[pond.pond_code].left;
+              top = savedPositions[pond.pond_code].top;
+              width = savedPositions[pond.pond_code].width || 14;
+              height = savedPositions[pond.pond_code].height || 18;
+            }
+          %>
+          <a href="/admin/pond/<%= pond.id %>"
+             class="pond-box <%= statusClass %>"
+             style="left: <%= left %>%; top: <%= top %>%; width: <%= width %>%; height: <%= height %>%;">
+            <span class="pond-code"><%= pond.pond_code %></span>
+            <span class="pond-status"><%= statusText %></span>
+          </a>
+        <% }); %>
+      </div>
+
+      <!-- Stats Summary -->
+      <div class="row g-3 mt-4">
+        <div class="col-6 col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <h3 class="text-success mb-1"><%= status.available %></h3>
+              <small class="text-muted">บ่อว่าง</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <h3 class="text-danger mb-1"><%= status.occupied %></h3>
+              <small class="text-muted">ใช้งานอยู่</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <h3 class="text-warning mb-1"><%= status.pending %></h3>
+              <small class="text-muted">รออนุมัติ</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <h3 class="text-secondary mb-1"><%= status.maintenance %></h3>
+              <small class="text-muted">ปิดปรับปรุง</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -3,264 +3,263 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>รายการอุปกรณ์ - ระบบจัดการบ่อเลี้ยงปลา</title>
+  <title>ยืม-คืน อุปกรณ์ - ระบบงานฟาร์ม</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="/css/style.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+      min-height: 100vh;
+    }
+    .hero-section {
+      padding: 50px 0 30px;
+      text-align: center;
+    }
+    .hero-title {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #e65100;
+      margin-bottom: 10px;
+    }
+    .hero-subtitle {
+      font-size: 1rem;
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .menu-card {
+      background: white;
+      border-radius: 20px;
+      padding: 35px 25px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      height: 100%;
+      border: none;
+    }
+    .menu-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+    .menu-icon {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 2.5rem;
+      color: white;
+    }
+    .menu-icon.items { background: linear-gradient(135deg, #ff9800, #f57c00); }
+    .menu-icon.requests { background: linear-gradient(135deg, #e91e63, #c2185b); }
+    .menu-icon.borrowed { background: linear-gradient(135deg, #9c27b0, #7b1fa2); }
+    .menu-icon.history { background: linear-gradient(135deg, #607d8b, #455a64); }
+
+    .menu-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 12px;
+    }
+    .menu-desc {
+      color: #7f8c8d;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .menu-btn {
+      padding: 10px 30px;
+      border-radius: 50px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: all 0.3s;
+    }
+    .menu-btn.items { background: linear-gradient(135deg, #ff9800, #f57c00); border: none; }
+    .menu-btn.items:hover { background: linear-gradient(135deg, #f57c00, #ef6c00); transform: scale(1.05); }
+    .menu-btn.requests { background: linear-gradient(135deg, #e91e63, #c2185b); border: none; }
+    .menu-btn.requests:hover { background: linear-gradient(135deg, #c2185b, #ad1457); transform: scale(1.05); }
+    .menu-btn.borrowed { background: linear-gradient(135deg, #9c27b0, #7b1fa2); border: none; }
+    .menu-btn.borrowed:hover { background: linear-gradient(135deg, #7b1fa2, #6a1b9a); transform: scale(1.05); }
+    .menu-btn.history { background: linear-gradient(135deg, #607d8b, #455a64); border: none; }
+    .menu-btn.history:hover { background: linear-gradient(135deg, #455a64, #37474f); transform: scale(1.05); }
+
+    .badge-pending {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      font-size: 0.85rem;
+      padding: 8px 12px;
+      border-radius: 20px;
+    }
+
+    .stats-row {
+      margin-top: 40px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    }
+    .stat-number {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+    .stat-label {
+      color: #7f8c8d;
+      font-size: 0.85rem;
+    }
+
+    .footer-section {
+      text-align: center;
+      padding: 25px;
+      color: #7f8c8d;
+      font-size: 0.85rem;
+    }
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: white;
+      color: #e65100;
+      padding: 10px 20px;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+      text-decoration: none;
+      z-index: 1000;
+    }
+    .back-btn:hover {
+      background: #e65100;
+      color: white;
+    }
+  </style>
 </head>
 <body>
-  <div class="wrapper">
-    <%- include('../../partials/sidebar-admin', { page: 'equipment', isLoggedIn: true, admin, pendingCount, cancelPendingCount: cancelPendingCount || 0, equipmentPendingCount: equipmentPendingCount || 0 }) %>
+  <!-- Back Button -->
+  <a href="/admin" class="back-btn">
+    <i class="bi bi-arrow-left me-2"></i>กลับหน้าหลัก
+  </a>
 
-    <div id="content">
-      <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
-        <div class="container-fluid">
-          <button type="button" id="sidebarCollapse" class="btn btn-dark"><i class="bi bi-list"></i></button>
-          <span class="navbar-brand ms-3 mb-0 h5"><i class="bi bi-tools"></i> รายการอุปกรณ์</span>
-          <div class="ms-auto">
-            <button class="btn btn-outline-secondary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#categoryModal">
-              <i class="bi bi-folder-plus"></i> จัดการหมวดหมู่
-            </button>
-            <a href="/admin/equipment/add" class="btn btn-primary btn-sm">
-              <i class="bi bi-plus-lg"></i> เพิ่มอุปกรณ์
-            </a>
+  <div class="container">
+    <!-- Hero Section -->
+    <div class="hero-section">
+      <h1 class="hero-title"><i class="bi bi-tools me-2"></i>ยืม-คืน อุปกรณ์</h1>
+      <p class="hero-subtitle">จัดการอุปกรณ์ อนุมัติคำขอยืม ติดตามการคืน</p>
+    </div>
+
+    <!-- Menu Cards -->
+    <div class="row g-4 justify-content-center">
+      <!-- รายการอุปกรณ์ -->
+      <div class="col-md-6 col-lg-3">
+        <div class="menu-card position-relative">
+          <div class="menu-icon items">
+            <i class="bi bi-box-seam"></i>
           </div>
+          <h3 class="menu-title">รายการอุปกรณ์</h3>
+          <p class="menu-desc">
+            ดูรายการอุปกรณ์<br>
+            เพิ่ม แก้ไข ลบ
+          </p>
+          <a href="/admin/equipment/list" class="btn menu-btn items text-white">
+            <i class="bi bi-list-ul me-2"></i>จัดการ
+          </a>
         </div>
-      </nav>
+      </div>
 
-      <div class="container-fluid p-4">
-        <% if (typeof success !== 'undefined' || typeof error !== 'undefined') { %>
-          <% if (success === 'added') { %>
-            <div class="alert alert-success alert-dismissible fade show"><i class="bi bi-check-circle me-2"></i>เพิ่มอุปกรณ์เรียบร้อย<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-          <% } else if (success === 'updated') { %>
-            <div class="alert alert-success alert-dismissible fade show"><i class="bi bi-check-circle me-2"></i>แก้ไขอุปกรณ์เรียบร้อย<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+      <!-- คำขอยืม -->
+      <div class="col-md-6 col-lg-3">
+        <div class="menu-card position-relative">
+          <% if (typeof equipmentPendingCount !== 'undefined' && equipmentPendingCount > 0) { %>
+            <span class="badge bg-danger badge-pending"><%= equipmentPendingCount %> รออนุมัติ</span>
           <% } %>
-        <% } %>
+          <div class="menu-icon requests">
+            <i class="bi bi-clipboard-check"></i>
+          </div>
+          <h3 class="menu-title">คำขอยืม</h3>
+          <p class="menu-desc">
+            อนุมัติ/ปฏิเสธ<br>
+            คำขอยืมอุปกรณ์
+          </p>
+          <a href="/admin/equipment/requests" class="btn menu-btn requests text-white">
+            <i class="bi bi-check2-square me-2"></i>คำขอยืม
+          </a>
+        </div>
+      </div>
 
-        <% if (equipment.length === 0) { %>
-          <div class="card">
-            <div class="card-body text-center py-5">
-              <i class="bi bi-tools text-muted" style="font-size: 4rem;"></i>
-              <h5 class="mt-3 text-muted">ยังไม่มีรายการอุปกรณ์</h5>
-              <a href="/admin/equipment/add" class="btn btn-primary mt-3"><i class="bi bi-plus-lg me-2"></i>เพิ่มอุปกรณ์</a>
-            </div>
+      <!-- กำลังยืม -->
+      <div class="col-md-6 col-lg-3">
+        <div class="menu-card position-relative">
+          <div class="menu-icon borrowed">
+            <i class="bi bi-person-badge"></i>
           </div>
-        <% } else { %>
-          <div class="card mb-4">
-            <div class="card-body">
-              <div class="row g-3">
-                <div class="col-md-4">
-                  <label class="form-label">หมวดหมู่</label>
-                  <select class="form-select" id="filterCategory" onchange="filterTable()">
-                    <option value="">ทั้งหมด</option>
-                    <% categories.forEach(function(c) { %>
-                      <option value="<%= c.id %>"><%= c.name %></option>
-                    <% }); %>
-                    <option value="none">ไม่มีหมวดหมู่</option>
-                  </select>
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">สถานะ</label>
-                  <select class="form-select" id="filterStatus" onchange="filterTable()">
-                    <option value="">ทั้งหมด</option>
-                    <option value="active">ใช้งาน</option>
-                    <option value="inactive">ปิดใช้งาน</option>
-                  </select>
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">ค้นหา</label>
-                  <input type="text" class="form-control" id="filterSearch" placeholder="ค้นหาชื่ออุปกรณ์..." oninput="filterTable()">
-                </div>
-              </div>
-            </div>
-          </div>
+          <h3 class="menu-title">กำลังยืม</h3>
+          <p class="menu-desc">
+            ติดตามอุปกรณ์<br>
+            ที่ถูกยืมอยู่
+          </p>
+          <a href="/admin/equipment/borrowed" class="btn menu-btn borrowed text-white">
+            <i class="bi bi-hourglass-split me-2"></i>กำลังยืม
+          </a>
+        </div>
+      </div>
 
-          <div class="table-responsive">
-            <table class="table table-hover bg-white rounded shadow-sm" id="equipmentTable">
-              <thead class="table-dark">
-                <tr>
-                  <th>ชื่ออุปกรณ์</th>
-                  <th>หมวดหมู่</th>
-                  <th class="text-center">จำนวนทั้งหมด</th>
-                  <th class="text-center">ยืมอยู่</th>
-                  <th class="text-center">ว่าง</th>
-                  <th>หน่วย</th>
-                  <th>สถานะ</th>
-                  <th class="text-center">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% equipment.forEach(function(eq) { %>
-                  <tr data-category="<%= eq.category_id || 'none' %>" data-status="<%= eq.status %>">
-                    <td class="fw-bold"><%= eq.name %></td>
-                    <td><%= eq.category_name || '-' %></td>
-                    <td class="text-center"><%= eq.total_quantity %></td>
-                    <td class="text-center text-danger"><%= eq.borrowed_quantity || 0 %></td>
-                    <td class="text-center text-success fw-bold"><%= eq.available_quantity %></td>
-                    <td><%= eq.unit %></td>
-                    <td>
-                      <% if (eq.status === 'active') { %>
-                        <span class="badge bg-success">ใช้งาน</span>
-                      <% } else { %>
-                        <span class="badge bg-secondary">ปิดใช้งาน</span>
-                      <% } %>
-                    </td>
-                    <td class="text-center">
-                      <a href="/admin/equipment/<%= eq.id %>/edit" class="btn btn-warning btn-sm">
-                        <i class="bi bi-pencil"></i>
-                      </a>
-                      <button class="btn btn-danger btn-sm" onclick="deleteEquipment(<%= eq.id %>, '<%= eq.name %>')">
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </td>
-                  </tr>
-                <% }); %>
-              </tbody>
-            </table>
+      <!-- ประวัติ -->
+      <div class="col-md-6 col-lg-3">
+        <div class="menu-card position-relative">
+          <div class="menu-icon history">
+            <i class="bi bi-clock-history"></i>
           </div>
-        <% } %>
+          <h3 class="menu-title">ประวัติ</h3>
+          <p class="menu-desc">
+            ดูประวัติ<br>
+            การยืม-คืน
+          </p>
+          <a href="/admin/equipment/history" class="btn menu-btn history text-white">
+            <i class="bi bi-journal-text me-2"></i>ประวัติ
+          </a>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Category Modal -->
-  <div class="modal fade" id="categoryModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header bg-dark text-white">
-          <h5 class="modal-title"><i class="bi bi-folder me-2"></i>จัดการหมวดหมู่อุปกรณ์</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form id="addCategoryForm" class="mb-4">
-            <div class="row g-2">
-              <div class="col-md-5">
-                <input type="text" class="form-control" id="newCategoryName" placeholder="ชื่อหมวดหมู่" required>
-              </div>
-              <div class="col-md-5">
-                <input type="text" class="form-control" id="newCategoryDesc" placeholder="คำอธิบาย (ไม่บังคับ)">
-              </div>
-              <div class="col-md-2">
-                <button type="submit" class="btn btn-success w-100"><i class="bi bi-plus-lg"></i> เพิ่ม</button>
-              </div>
-            </div>
-          </form>
-          <table class="table table-sm" id="categoryTable">
-            <thead class="table-light">
-              <tr>
-                <th>ชื่อหมวดหมู่</th>
-                <th>คำอธิบาย</th>
-                <th class="text-center">จำนวนอุปกรณ์</th>
-                <th class="text-center">จัดการ</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% categories.forEach(function(c) { %>
-                <tr id="category-<%= c.id %>">
-                  <td><span class="cat-name"><%= c.name %></span></td>
-                  <td><span class="cat-desc"><%= c.description || '-' %></span></td>
-                  <td class="text-center"><%= c.equipment_count || 0 %></td>
-                  <td class="text-center">
-                    <button class="btn btn-warning btn-sm" onclick="editCategory(<%= c.id %>, '<%= c.name %>', '<%= c.description || '' %>')">
-                      <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteCategory(<%= c.id %>, '<%= c.name %>')">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </td>
-                </tr>
-              <% }); %>
-            </tbody>
-          </table>
+    <!-- Stats Row -->
+    <div class="row g-3 stats-row justify-content-center">
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-number text-warning"><%= equipment.length %></div>
+          <div class="stat-label">รายการอุปกรณ์</div>
         </div>
       </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-number text-success"><%= equipment.reduce((sum, e) => sum + (e.available_quantity || 0), 0) %></div>
+          <div class="stat-label">พร้อมยืม</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-number text-danger"><%= equipment.reduce((sum, e) => sum + (e.borrowed_quantity || 0), 0) %></div>
+          <div class="stat-label">ถูกยืมอยู่</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-number text-primary"><%= categories.length %></div>
+          <div class="stat-label">หมวดหมู่</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer-section">
+      ระบบงานฟาร์ม - คณะเทคโนโลยีการประมงและทรัพยากรทางน้ำ มหาวิทยาลัยแม่โจ้
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="/js/main.js"></script>
-  <script>
-    function filterTable() {
-      const category = document.getElementById('filterCategory').value;
-      const status = document.getElementById('filterStatus').value;
-      const search = document.getElementById('filterSearch').value.toLowerCase();
-      const rows = document.querySelectorAll('#equipmentTable tbody tr');
-      rows.forEach(row => {
-        const rowCategory = row.dataset.category;
-        const rowStatus = row.dataset.status;
-        const rowText = row.textContent.toLowerCase();
-        const matchCategory = !category || rowCategory === category;
-        const matchStatus = !status || rowStatus === status;
-        const matchSearch = !search || rowText.includes(search);
-        row.style.display = (matchCategory && matchStatus && matchSearch) ? '' : 'none';
-      });
-    }
-
-    async function deleteEquipment(id, name) {
-      if (!confirm(`ยืนยันการลบอุปกรณ์ "${name}"?`)) return;
-      try {
-        const res = await fetch('/admin/equipment/' + id + '/delete', { method: 'POST' });
-        const data = await res.json();
-        if (data.success) {
-          location.reload();
-        } else {
-          showToast(data.error || 'ไม่สามารถลบได้', 'danger');
-        }
-      } catch (err) {
-        showToast('เกิดข้อผิดพลาด', 'danger');
-      }
-    }
-
-    document.getElementById('addCategoryForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = document.getElementById('newCategoryName').value;
-      const description = document.getElementById('newCategoryDesc').value;
-      try {
-        const res = await fetch('/admin/equipment/categories/add', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, description })
-        });
-        const data = await res.json();
-        if (data.success) {
-          location.reload();
-        } else {
-          showToast(data.error || 'ไม่สามารถเพิ่มได้', 'danger');
-        }
-      } catch (err) {
-        showToast('เกิดข้อผิดพลาด', 'danger');
-      }
-    });
-
-    function editCategory(id, name, desc) {
-      const newName = prompt('ชื่อหมวดหมู่:', name);
-      if (!newName) return;
-      const newDesc = prompt('คำอธิบาย:', desc);
-      fetch('/admin/equipment/categories/' + id + '/edit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName, description: newDesc })
-      }).then(res => res.json()).then(data => {
-        if (data.success) location.reload();
-        else showToast(data.error || 'ไม่สามารถแก้ไขได้', 'danger');
-      });
-    }
-
-    async function deleteCategory(id, name) {
-      if (!confirm(`ยืนยันการลบหมวดหมู่ "${name}"?`)) return;
-      try {
-        const res = await fetch('/admin/equipment/categories/' + id + '/delete', { method: 'POST' });
-        const data = await res.json();
-        if (data.success) {
-          location.reload();
-        } else {
-          showToast(data.error || 'ไม่สามารถลบได้', 'danger');
-        }
-      } catch (err) {
-        showToast('เกิดข้อผิดพลาด', 'danger');
-      }
-    }
-  </script>
 </body>
 </html>

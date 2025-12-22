@@ -30,11 +30,18 @@ router.use(addCommonData);
 
 // ===== Equipment Management =====
 
-// รายการอุปกรณ์ทั้งหมด
+// หน้าหลัก (4 กล่อง)
 router.get('/', async (req, res) => {
   const equipment = await Equipment.getAll();
   const categories = await EquipmentCategory.getAll();
   res.render('admin/equipment/index', { equipment, categories });
+});
+
+// รายการอุปกรณ์ทั้งหมด (จัดการ)
+router.get('/list', async (req, res) => {
+  const equipment = await Equipment.getAll();
+  const categories = await EquipmentCategory.getAll();
+  res.render('admin/equipment/list', { equipment, categories });
 });
 
 // ฟอร์มเพิ่มอุปกรณ์
