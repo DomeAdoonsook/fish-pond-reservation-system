@@ -131,6 +131,68 @@ const schemaSQL = `
     FOREIGN KEY (reservation_id) REFERENCES equipment_reservations(id) ON DELETE CASCADE,
     FOREIGN KEY (equipment_id) REFERENCES equipment(id)
   );
+
+  -- Stock System Tables
+  CREATE TABLE IF NOT EXISTS stock_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS stock_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    category_id INTEGER,
+    unit TEXT DEFAULT 'หน่วย',
+    unit_price REAL DEFAULT 0,
+    current_quantity REAL DEFAULT 0,
+    min_quantity REAL DEFAULT 0,
+    description TEXT,
+    status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES stock_categories(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS stock_transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id INTEGER NOT NULL,
+    transaction_type TEXT NOT NULL CHECK(transaction_type IN ('in', 'out', 'adjust')),
+    quantity REAL NOT NULL,
+    unit_price REAL,
+    total_price REAL,
+    reference_no TEXT,
+    note TEXT,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (item_id) REFERENCES stock_items(id),
+    FOREIGN KEY (created_by) REFERENCES admins(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS stock_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_name TEXT NOT NULL,
+    line_user_id TEXT,
+    phone TEXT,
+    purpose TEXT NOT NULL,
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected', 'completed')),
+    reject_reason TEXT,
+    approved_by INTEGER,
+    approved_at DATETIME,
+    completed_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (approved_by) REFERENCES admins(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS stock_request_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_id INTEGER NOT NULL,
+    item_id INTEGER NOT NULL,
+    requested_quantity REAL NOT NULL,
+    approved_quantity REAL,
+    FOREIGN KEY (request_id) REFERENCES stock_requests(id) ON DELETE CASCADE,
+    FOREIGN KEY (item_id) REFERENCES stock_items(id)
+  );
 `;
 
 const indexSQL = `
@@ -145,6 +207,11 @@ const indexSQL = `
   CREATE INDEX IF NOT EXISTS idx_eq_reservations_status ON equipment_reservations(status);
   CREATE INDEX IF NOT EXISTS idx_eq_reservations_line_user ON equipment_reservations(line_user_id);
   CREATE INDEX IF NOT EXISTS idx_eq_reservation_items_reservation ON equipment_reservation_items(reservation_id);
+  CREATE INDEX IF NOT EXISTS idx_stock_items_category ON stock_items(category_id);
+  CREATE INDEX IF NOT EXISTS idx_stock_items_status ON stock_items(status);
+  CREATE INDEX IF NOT EXISTS idx_stock_transactions_item ON stock_transactions(item_id);
+  CREATE INDEX IF NOT EXISTS idx_stock_requests_status ON stock_requests(status);
+  CREATE INDEX IF NOT EXISTS idx_stock_request_items_request ON stock_request_items(request_id);
 `;
 
 // Initialize database

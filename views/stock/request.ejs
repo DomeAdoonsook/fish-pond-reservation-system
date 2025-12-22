@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - ระบบงานฟาร์ม</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="wrapper">
+    <%- include('../partials/sidebar-stock') %>
+
+    <div id="content">
+      <!-- Top navbar -->
+      <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container-fluid">
+          <button type="button" id="sidebarCollapse" class="btn btn-success">
+            <i class="bi bi-list"></i>
+          </button>
+          <span class="navbar-text ms-3">
+            <i class="bi bi-cart-plus me-2"></i>ขอเบิกวัสดุ
+          </span>
+        </div>
+      </nav>
+
+      <div class="container-fluid py-4">
+        <div class="row justify-content-center">
+          <div class="col-lg-8">
+            <div class="card shadow">
+              <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-cart-plus me-2"></i>แบบฟอร์มขอเบิกวัสดุ</h5>
+              </div>
+              <div class="card-body">
+                <form id="requestForm">
+                  <!-- ข้อมูลผู้ขอ -->
+                  <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                      <label class="form-label"><i class="bi bi-person me-2"></i>ชื่อผู้ขอ <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" name="user_name" required placeholder="ระบุชื่อ-สกุล">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label class="form-label"><i class="bi bi-telephone me-2"></i>เบอร์โทรศัพท์</label>
+                      <input type="tel" class="form-control" name="phone" placeholder="เบอร์โทรติดต่อ">
+                    </div>
+                    <div class="col-12 mb-3">
+                      <label class="form-label"><i class="bi bi-chat-text me-2"></i>เหตุผล/วัตถุประสงค์ในการเบิก <span class="text-danger">*</span></label>
+                      <textarea class="form-control" name="purpose" rows="2" required placeholder="ระบุเหตุผลในการขอเบิกวัสดุ"></textarea>
+                    </div>
+                  </div>
+
+                  <hr>
+
+                  <!-- รายการวัสดุ -->
+                  <h6 class="mb-3"><i class="bi bi-box-seam me-2"></i>รายการวัสดุที่ต้องการ</h6>
+                  <div id="itemsList">
+                    <div class="item-row mb-3">
+                      <div class="row g-2 align-items-end">
+                        <div class="col-md-5">
+                          <label class="form-label">วัสดุ</label>
+                          <select class="form-select item-select" required>
+                            <option value="">-- เลือกวัสดุ --</option>
+                            <% categories.forEach(function(cat) { %>
+                              <optgroup label="<%= cat.name %>">
+                                <% items.filter(i => i.category_id === cat.id).forEach(function(item) { %>
+                                  <option value="<%= item.id %>" data-unit="<%= item.unit %>" data-available="<%= item.current_quantity %>">
+                                    <%= item.name %> (คงเหลือ: <%= item.current_quantity %> <%= item.unit %>)
+                                  </option>
+                                <% }); %>
+                              </optgroup>
+                            <% }); %>
+                            <optgroup label="ไม่ระบุหมวดหมู่">
+                              <% items.filter(i => !i.category_id).forEach(function(item) { %>
+                                <option value="<%= item.id %>" data-unit="<%= item.unit %>" data-available="<%= item.current_quantity %>">
+                                  <%= item.name %> (คงเหลือ: <%= item.current_quantity %> <%= item.unit %>)
+                                </option>
+                              <% }); %>
+                            </optgroup>
+                          </select>
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label">จำนวน</label>
+                          <div class="input-group">
+                            <input type="number" class="form-control item-quantity" min="0.1" step="0.1" required placeholder="0">
+                            <span class="input-group-text unit-label">หน่วย</span>
+                          </div>
+                        </div>
+                        <div class="col-md-2">
+                          <button type="button" class="btn btn-outline-danger btn-remove-item w-100" disabled>
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button type="button" class="btn btn-outline-success mb-4" id="addItemBtn">
+                    <i class="bi bi-plus-circle me-2"></i>เพิ่มรายการ
+                  </button>
+
+                  <hr>
+
+                  <div class="d-flex justify-content-between">
+                    <a href="/stock" class="btn btn-secondary">
+                      <i class="bi bi-arrow-left me-2"></i>ยกเลิก
+                    </a>
+                    <button type="submit" class="btn btn-success">
+                      <i class="bi bi-send me-2"></i>ส่งคำขอเบิก
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-body text-center py-5">
+          <div class="mb-4">
+            <i class="bi bi-check-circle text-success" style="font-size: 5rem;"></i>
+          </div>
+          <h4>ส่งคำขอเบิกเรียบร้อย!</h4>
+          <p class="text-muted">หมายเลขคำขอ: <span id="requestNo" class="fw-bold text-success"></span></p>
+          <p class="text-muted">กรุณารอการอนุมัติจากเจ้าหน้าที่</p>
+          <div class="mt-4">
+            <a href="/stock" class="btn btn-success">
+              <i class="bi bi-check me-2"></i>ตกลง
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Sidebar toggle
+    document.getElementById('sidebarCollapse').addEventListener('click', function() {
+      document.getElementById('sidebar').classList.toggle('active');
+    });
+
+    // Item row template
+    const itemRowTemplate = document.querySelector('.item-row').cloneNode(true);
+
+    // Add item row
+    document.getElementById('addItemBtn').addEventListener('click', function() {
+      const newRow = itemRowTemplate.cloneNode(true);
+      newRow.querySelector('.item-select').value = '';
+      newRow.querySelector('.item-quantity').value = '';
+      newRow.querySelector('.btn-remove-item').disabled = false;
+      document.getElementById('itemsList').appendChild(newRow);
+      attachRowEvents(newRow);
+    });
+
+    // Attach events to row
+    function attachRowEvents(row) {
+      row.querySelector('.item-select').addEventListener('change', function() {
+        const option = this.options[this.selectedIndex];
+        const unit = option.dataset.unit || 'หน่วย';
+        row.querySelector('.unit-label').textContent = unit;
+      });
+
+      row.querySelector('.btn-remove-item').addEventListener('click', function() {
+        row.remove();
+      });
+    }
+
+    // Attach events to initial row
+    attachRowEvents(document.querySelector('.item-row'));
+
+    // Form submit
+    document.getElementById('requestForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(this);
+      const items = [];
+
+      document.querySelectorAll('.item-row').forEach(row => {
+        const select = row.querySelector('.item-select');
+        const quantity = row.querySelector('.item-quantity');
+        if (select.value && quantity.value) {
+          items.push({
+            item_id: select.value,
+            quantity: parseFloat(quantity.value)
+          });
+        }
+      });
+
+      if (items.length === 0) {
+        alert('กรุณาเลือกวัสดุอย่างน้อย 1 รายการ');
+        return;
+      }
+
+      try {
+        const response = await fetch('/stock/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_name: formData.get('user_name'),
+            phone: formData.get('phone'),
+            purpose: formData.get('purpose'),
+            items: items
+          })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          document.getElementById('requestNo').textContent = '#STK-' + String(result.requestId).padStart(4, '0');
+          new bootstrap.Modal(document.getElementById('successModal')).show();
+        } else {
+          alert(result.error || 'เกิดข้อผิดพลาด');
+        }
+      } catch (error) {
+        console.error('Submit error:', error);
+        alert('เกิดข้อผิดพลาดในการส่งคำขอ');
+      }
+    });
+  </script>
+</body>
+</html>

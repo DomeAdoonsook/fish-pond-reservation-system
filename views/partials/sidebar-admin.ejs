@@ -86,6 +86,37 @@
       </div>
     </li>
 
+    <!-- Stock วัสดุ (Dropdown) -->
+    <li class="nav-section">
+      <a href="#stockMenu" data-bs-toggle="collapse" class="nav-link dropdown-toggle <%= ['stock-items', 'stock-requests', 'stock-transactions'].includes(page) ? '' : 'collapsed' %>" aria-expanded="<%= ['stock-items', 'stock-requests', 'stock-transactions'].includes(page) ? 'true' : 'false' %>">
+        <i class="bi bi-archive"></i> Stock วัสดุ
+      </a>
+      <div class="collapse <%= ['stock-items', 'stock-requests', 'stock-transactions'].includes(page) ? 'show' : '' %>" id="stockMenu">
+        <ul class="list-unstyled submenu">
+          <li class="<%= page === 'stock-items' ? 'active' : '' %>">
+            <a href="/admin/stock">
+              <i class="bi bi-box-seam"></i> รายการวัสดุ
+            </a>
+          </li>
+          <% if (isLoggedIn) { %>
+          <li class="<%= page === 'stock-requests' ? 'active' : '' %>">
+            <a href="/admin/stock/requests">
+              <i class="bi bi-clipboard-check"></i> คำขอเบิก
+              <% if (typeof stockPendingCount !== 'undefined' && stockPendingCount > 0) { %>
+                <span class="badge bg-warning text-dark ms-2"><%= stockPendingCount %></span>
+              <% } %>
+            </a>
+          </li>
+          <li class="<%= page === 'stock-transactions' ? 'active' : '' %>">
+            <a href="/admin/stock/transactions">
+              <i class="bi bi-arrow-left-right"></i> รับ-จ่าย Stock
+            </a>
+          </li>
+          <% } %>
+        </ul>
+      </div>
+    </li>
+
     <!-- ตั้งค่า (Dropdown) -->
     <% if (isLoggedIn) { %>
     <li class="nav-section">

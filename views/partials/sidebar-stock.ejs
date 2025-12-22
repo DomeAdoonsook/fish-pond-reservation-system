@@ -1,0 +1,38 @@
+<nav id="sidebar" class="bg-dark">
+  <div class="sidebar-header p-3 text-center">
+    <a href="/" class="text-decoration-none">
+      <img src="/images/faculty-logo.jpg" alt="โลโก้คณะ" style="width: 50px; height: 50px; border-radius: 50%; margin-bottom: 10px; border: 2px solid #20c997;">
+      <h4 class="text-white mb-0">
+        <i class="bi bi-box-seam"></i> Stock วัสดุ
+      </h4>
+      <small class="text-muted">ระบบงานฟาร์ม</small>
+    </a>
+  </div>
+
+  <ul class="list-unstyled components p-3">
+    <li class="<%= page === 'stock' ? 'active' : '' %>">
+      <a href="/stock">
+        <i class="bi bi-boxes"></i> รายการวัสดุ
+      </a>
+    </li>
+    <li class="<%= page === 'stock-request' ? 'active' : '' %>">
+      <a href="/stock/request">
+        <i class="bi bi-cart-plus"></i> ขอเบิกวัสดุ
+      </a>
+    </li>
+    <li class="<%= page === 'stock-status' ? 'active' : '' %>">
+      <a href="/stock/status">
+        <i class="bi bi-search"></i> ตรวจสอบสถานะ
+      </a>
+    </li>
+  </ul>
+
+  <div class="sidebar-footer p-3 border-top border-secondary">
+    <a href="/" class="btn btn-outline-success btn-sm w-100 mb-2">
+      <i class="bi bi-arrow-left me-2"></i>กลับหน้าหลัก
+    </a>
+    <a href="/admin/login" class="btn btn-outline-light btn-sm w-100">
+      <i class="bi bi-person-circle me-2"></i>สำหรับเจ้าหน้าที่
+    </a>
+  </div>
+</nav>

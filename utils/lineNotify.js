@@ -998,6 +998,296 @@ async function getLineQuota() {
   }
 }
 
+// ===== Stock Notifications =====
+
+// แจ้ง Admin เมื่อมีคำขอเบิกวัสดุใหม่
+async function notifyAdminNewStockRequest(request) {
+  try {
+    const itemsList = request.items && request.items.length > 0
+      ? request.items.map(i => `${i.item_name} x${i.requested_quantity}`).join(', ')
+      : 'ไม่ระบุ';
+
+    await pushMessageToAllAdmins([{
+      type: 'flex',
+      altText: 'คำขอเบิกวัสดุใหม่',
+      contents: {
+        type: 'bubble',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          backgroundColor: '#16a085',
+          contents: [{
+            type: 'text',
+            text: '📦 คำขอเบิกวัสดุใหม่!',
+            weight: 'bold',
+            color: '#ffffff',
+            size: 'lg'
+          }]
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'md',
+          contents: [{
+            type: 'text',
+            text: `#STK-${String(request.id).padStart(4, '0')}`,
+            weight: 'bold',
+            size: 'lg'
+          }, {
+            type: 'separator'
+          }, {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [{
+              type: 'text',
+              text: 'ผู้ขอ:',
+              color: '#666666',
+              flex: 2
+            }, {
+              type: 'text',
+              text: request.user_name,
+              weight: 'bold',
+              flex: 3
+            }]
+          }, {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [{
+              type: 'text',
+              text: 'เหตุผล:',
+              color: '#666666',
+              flex: 2
+            }, {
+              type: 'text',
+              text: request.purpose || 'ไม่ระบุ',
+              flex: 3,
+              wrap: true
+            }]
+          }, {
+            type: 'text',
+            text: `รายการ: ${itemsList}`,
+            size: 'sm',
+            color: '#666666',
+            wrap: true,
+            margin: 'md'
+          }]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [{
+            type: 'button',
+            style: 'primary',
+            color: '#16a085',
+            action: {
+              type: 'uri',
+              label: 'ไปหน้าอนุมัติ',
+              uri: `${process.env.BASE_URL || 'http://localhost:3000'}/admin/stock/requests`
+            }
+          }]
+        }
+      }
+    }]);
+    console.log('Admins notified of new stock request');
+  } catch (error) {
+    console.error('Error notifying admins of stock request:', error);
+  }
+}
+
+// แจ้งผู้ใช้เมื่อคำขอเบิกวัสดุได้รับการอนุมัติ
+async function notifyStockRequestApproved(request) {
+  if (!request.line_user_id) return;
+
+  try {
+    await client.pushMessage({
+      to: request.line_user_id,
+      messages: [{
+        type: 'flex',
+        altText: 'คำขอเบิกวัสดุได้รับการอนุมัติ',
+        contents: {
+          type: 'bubble',
+          header: {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#27ae60',
+            contents: [{
+              type: 'text',
+              text: '✅ อนุมัติแล้ว!',
+              weight: 'bold',
+              color: '#ffffff',
+              size: 'lg'
+            }]
+          },
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'md',
+            contents: [{
+              type: 'text',
+              text: `#STK-${String(request.id).padStart(4, '0')}`,
+              weight: 'bold',
+              size: 'lg'
+            }, {
+              type: 'separator'
+            }, {
+              type: 'text',
+              text: '📦 คำขอเบิกวัสดุได้รับการอนุมัติ',
+              size: 'md',
+              margin: 'md'
+            }, {
+              type: 'text',
+              text: 'กรุณามารับวัสดุที่ห้องพัสดุ',
+              size: 'sm',
+              color: '#666666'
+            }]
+          }
+        }
+      }]
+    });
+    console.log('User notified of stock request approval');
+  } catch (error) {
+    console.error('Error sending stock approval notification:', error);
+  }
+}
+
+// แจ้งผู้ใช้เมื่อคำขอเบิกวัสดุไม่ได้รับการอนุมัติ
+async function notifyStockRequestRejected(request) {
+  if (!request.line_user_id) return;
+
+  try {
+    await client.pushMessage({
+      to: request.line_user_id,
+      messages: [{
+        type: 'flex',
+        altText: 'คำขอเบิกวัสดุไม่ได้รับการอนุมัติ',
+        contents: {
+          type: 'bubble',
+          header: {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#e74c3c',
+            contents: [{
+              type: 'text',
+              text: '❌ ไม่อนุมัติ',
+              weight: 'bold',
+              color: '#ffffff',
+              size: 'lg'
+            }]
+          },
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'md',
+            contents: [{
+              type: 'text',
+              text: `#STK-${String(request.id).padStart(4, '0')}`,
+              weight: 'bold',
+              size: 'lg'
+            }, {
+              type: 'separator'
+            }, {
+              type: 'text',
+              text: '📦 คำขอเบิกวัสดุไม่ได้รับการอนุมัติ',
+              size: 'md',
+              margin: 'md',
+              wrap: true
+            }, {
+              type: 'text',
+              text: request.reject_reason ? `เหตุผล: ${request.reject_reason}` : 'ไม่ระบุเหตุผล',
+              size: 'sm',
+              color: '#666666',
+              wrap: true,
+              margin: 'md'
+            }]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [{
+              type: 'text',
+              text: 'สามารถส่งคำขอใหม่ได้',
+              size: 'sm',
+              color: '#666666',
+              align: 'center'
+            }]
+          }
+        }
+      }]
+    });
+    console.log('User notified of stock request rejection');
+  } catch (error) {
+    console.error('Error sending stock rejection notification:', error);
+  }
+}
+
+// แจ้ง Admin เมื่อ Stock ใกล้หมด
+async function notifyLowStock(lowStockItems) {
+  if (!lowStockItems || lowStockItems.length === 0) return;
+
+  try {
+    const itemsList = lowStockItems.map(i => `• ${i.name}: เหลือ ${i.current_quantity} ${i.unit} (ต่ำกว่า ${i.min_quantity})`).join('\n');
+
+    await pushMessageToAllAdmins([{
+      type: 'flex',
+      altText: 'แจ้งเตือน: วัสดุใกล้หมด',
+      contents: {
+        type: 'bubble',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          backgroundColor: '#e74c3c',
+          contents: [{
+            type: 'text',
+            text: '⚠️ วัสดุใกล้หมด!',
+            weight: 'bold',
+            color: '#ffffff',
+            size: 'lg'
+          }]
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'md',
+          contents: [{
+            type: 'text',
+            text: 'รายการวัสดุที่ต้องสั่งซื้อเพิ่ม:',
+            weight: 'bold',
+            size: 'sm'
+          }, {
+            type: 'separator'
+          }, {
+            type: 'text',
+            text: itemsList,
+            size: 'sm',
+            color: '#666666',
+            wrap: true,
+            margin: 'md'
+          }]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [{
+            type: 'button',
+            style: 'primary',
+            color: '#e74c3c',
+            action: {
+              type: 'uri',
+              label: 'ไปหน้า Stock',
+              uri: `${process.env.BASE_URL || 'http://localhost:3000'}/admin/stock`
+            }
+          }]
+        }
+      }
+    }]);
+    console.log('Admins notified of low stock items');
+  } catch (error) {
+    console.error('Error notifying admins of low stock:', error);
+  }
+}
+
 module.exports = {
   notifyAdminNewRequest,
   sendApprovalNotification,
@@ -1012,6 +1302,11 @@ module.exports = {
   sendEquipmentApprovalNotification,
   sendEquipmentRejectionNotification,
   sendEquipmentReturnReminder,
+  // Stock notifications
+  notifyAdminNewStockRequest,
+  notifyStockRequestApproved,
+  notifyStockRequestRejected,
+  notifyLowStock,
   // Quota
   getLineQuota
 };

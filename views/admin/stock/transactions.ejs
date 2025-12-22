@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>รับ-จ่าย Stock - ระบบงานฟาร์ม</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="wrapper">
+    <%- include('../../partials/sidebar-admin', { page: 'stock-transactions', isLoggedIn: true, admin, pendingCount, cancelPendingCount: cancelPendingCount || 0, equipmentPendingCount: equipmentPendingCount || 0, stockPendingCount: stockPendingCount || 0 }) %>
+
+    <div id="content">
+      <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container-fluid">
+          <button type="button" id="sidebarCollapse" class="btn btn-dark"><i class="bi bi-list"></i></button>
+          <span class="navbar-brand ms-3 mb-0 h5"><i class="bi bi-arrow-left-right"></i> รับ-จ่าย Stock</span>
+          <div class="ms-auto">
+            <button class="btn btn-success btn-sm me-2" data-bs-toggle="modal" data-bs-target="#stockInModal">
+              <i class="bi bi-box-arrow-in-down"></i> รับเข้า
+            </button>
+            <button class="btn btn-danger btn-sm me-2" data-bs-toggle="modal" data-bs-target="#stockOutModal">
+              <i class="bi bi-box-arrow-up"></i> จ่ายออก
+            </button>
+            <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#adjustModal">
+              <i class="bi bi-sliders"></i> ปรับยอด
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <div class="container-fluid p-4">
+        <!-- Recent Transactions -->
+        <div class="card">
+          <div class="card-header bg-dark text-white">
+            <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>ประวัติล่าสุด</h6>
+          </div>
+          <div class="card-body p-0">
+            <% if (transactions.length === 0) { %>
+              <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                <p class="mt-2">ยังไม่มีรายการ</p>
+              </div>
+            <% } else { %>
+              <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>วันที่</th>
+                      <th>ประเภท</th>
+                      <th>วัสดุ</th>
+                      <th class="text-center">จำนวน</th>
+                      <th class="text-end">ราคา/หน่วย</th>
+                      <th class="text-end">รวม</th>
+                      <th>หมายเหตุ</th>
+                      <th>โดย</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% transactions.forEach(function(tx) { %>
+                      <%
+                        const date = new Date(tx.created_at);
+                        const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                      %>
+                      <tr>
+                        <td>
+                          <%= date.getDate() %> <%= thaiMonths[date.getMonth()] %> <%= date.getFullYear() + 543 %>
+                          <br><small class="text-muted"><%= date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) %></small>
+                        </td>
+                        <td>
+                          <% if (tx.transaction_type === 'in') { %>
+                            <span class="badge bg-success"><i class="bi bi-box-arrow-in-down me-1"></i>รับเข้า</span>
+                          <% } else if (tx.transaction_type === 'out') { %>
+                            <span class="badge bg-danger"><i class="bi bi-box-arrow-up me-1"></i>จ่ายออก</span>
+                          <% } else { %>
+                            <span class="badge bg-warning text-dark"><i class="bi bi-sliders me-1"></i>ปรับยอด</span>
+                          <% } %>
+                        </td>
+                        <td><strong><%= tx.item_name %></strong></td>
+                        <td class="text-center">
+                          <% if (tx.transaction_type === 'in') { %>
+                            <span class="text-success">+<%= tx.quantity %></span>
+                          <% } else if (tx.transaction_type === 'out') { %>
+                            <span class="text-danger">-<%= tx.quantity %></span>
+                          <% } else { %>
+                            <span><%= tx.quantity %></span>
+                          <% } %>
+                          <%= tx.unit %>
+                        </td>
+                        <td class="text-end"><%= tx.unit_price ? tx.unit_price.toLocaleString() : '-' %></td>
+                        <td class="text-end"><%= tx.total_price ? tx.total_price.toLocaleString() : '-' %></td>
+                        <td><small><%= tx.note || tx.reference_no || '-' %></small></td>
+                        <td><%= tx.created_by_name || '-' %></td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stock In Modal -->
+  <div class="modal fade" id="stockInModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title"><i class="bi bi-box-arrow-in-down me-2"></i>รับ Stock เข้า</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="stockInForm">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">วัสดุ <span class="text-danger">*</span></label>
+              <select class="form-select" id="inItemId" required>
+                <option value="">-- เลือกวัสดุ --</option>
+                <% items.forEach(function(item) { %>
+                  <option value="<%= item.id %>" data-unit="<%= item.unit %>">
+                    <%= item.name %> (คงเหลือ: <%= item.current_quantity %> <%= item.unit %>)
+                  </option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">จำนวน <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="inQuantity" step="0.1" min="0.1" required>
+                  <span class="input-group-text" id="inUnit">หน่วย</span>
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">ราคาต่อหน่วย (บาท)</label>
+                <input type="number" class="form-control" id="inUnitPrice" step="0.01" min="0">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">เลขที่ใบสั่งซื้อ/อ้างอิง</label>
+              <input type="text" class="form-control" id="inReferenceNo" placeholder="เช่น PO-001">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">หมายเหตุ</label>
+              <textarea class="form-control" id="inNote" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="submit" class="btn btn-success"><i class="bi bi-check me-2"></i>บันทึก</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stock Out Modal -->
+  <div class="modal fade" id="stockOutModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title"><i class="bi bi-box-arrow-up me-2"></i>จ่าย Stock ออก</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="stockOutForm">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">วัสดุ <span class="text-danger">*</span></label>
+              <select class="form-select" id="outItemId" required>
+                <option value="">-- เลือกวัสดุ --</option>
+                <% items.forEach(function(item) { %>
+                  <option value="<%= item.id %>" data-unit="<%= item.unit %>" data-max="<%= item.current_quantity %>">
+                    <%= item.name %> (คงเหลือ: <%= item.current_quantity %> <%= item.unit %>)
+                  </option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">จำนวน <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <input type="number" class="form-control" id="outQuantity" step="0.1" min="0.1" required>
+                <span class="input-group-text" id="outUnit">หน่วย</span>
+              </div>
+              <small class="text-muted">สูงสุด: <span id="outMax">-</span></small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">หมายเหตุ</label>
+              <textarea class="form-control" id="outNote" rows="2" placeholder="เช่น เบิกใช้งานปกติ"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="submit" class="btn btn-danger"><i class="bi bi-check me-2"></i>บันทึก</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Adjust Modal -->
+  <div class="modal fade" id="adjustModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-warning">
+          <h5 class="modal-title"><i class="bi bi-sliders me-2"></i>ปรับยอด Stock</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="adjustForm">
+          <div class="modal-body">
+            <div class="alert alert-warning">
+              <i class="bi bi-exclamation-triangle me-2"></i>
+              ใช้สำหรับปรับยอดให้ตรงกับจำนวนจริง (ตรวจนับ Stock)
+            </div>
+            <div class="mb-3">
+              <label class="form-label">วัสดุ <span class="text-danger">*</span></label>
+              <select class="form-select" id="adjustItemId" required>
+                <option value="">-- เลือกวัสดุ --</option>
+                <% items.forEach(function(item) { %>
+                  <option value="<%= item.id %>" data-unit="<%= item.unit %>" data-current="<%= item.current_quantity %>">
+                    <%= item.name %> (คงเหลือ: <%= item.current_quantity %> <%= item.unit %>)
+                  </option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">ยอดปัจจุบันในระบบ</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="adjustCurrent" readonly>
+                  <span class="input-group-text" id="adjustCurrentUnit">หน่วย</span>
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">ยอดจริง (ใหม่) <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="adjustNewQuantity" step="0.1" min="0" required>
+                  <span class="input-group-text" id="adjustUnit">หน่วย</span>
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">เหตุผลในการปรับ <span class="text-danger">*</span></label>
+              <textarea class="form-control" id="adjustNote" rows="2" required placeholder="เช่น ตรวจนับ Stock ประจำเดือน"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="submit" class="btn btn-warning"><i class="bi bi-check me-2"></i>ปรับยอด</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/main.js"></script>
+  <script>
+    // Update unit labels on item select
+    document.getElementById('inItemId').addEventListener('change', function() {
+      const option = this.options[this.selectedIndex];
+      document.getElementById('inUnit').textContent = option.dataset.unit || 'หน่วย';
+    });
+
+    document.getElementById('outItemId').addEventListener('change', function() {
+      const option = this.options[this.selectedIndex];
+      document.getElementById('outUnit').textContent = option.dataset.unit || 'หน่วย';
+      document.getElementById('outMax').textContent = option.dataset.max || '-';
+      document.getElementById('outQuantity').max = option.dataset.max || '';
+    });
+
+    document.getElementById('adjustItemId').addEventListener('change', function() {
+      const option = this.options[this.selectedIndex];
+      const unit = option.dataset.unit || 'หน่วย';
+      document.getElementById('adjustCurrent').value = option.dataset.current || '0';
+      document.getElementById('adjustCurrentUnit').textContent = unit;
+      document.getElementById('adjustUnit').textContent = unit;
+    });
+
+    // Stock In Form
+    document.getElementById('stockInForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const res = await fetch('/admin/stock/stock-in', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            item_id: document.getElementById('inItemId').value,
+            quantity: document.getElementById('inQuantity').value,
+            unit_price: document.getElementById('inUnitPrice').value,
+            reference_no: document.getElementById('inReferenceNo').value,
+            note: document.getElementById('inNote').value
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.error || 'เกิดข้อผิดพลาด');
+        }
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด');
+      }
+    });
+
+    // Stock Out Form
+    document.getElementById('stockOutForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const res = await fetch('/admin/stock/stock-out', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            item_id: document.getElementById('outItemId').value,
+            quantity: document.getElementById('outQuantity').value,
+            note: document.getElementById('outNote').value
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.error || 'เกิดข้อผิดพลาด');
+        }
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด');
+      }
+    });
+
+    // Adjust Form
+    document.getElementById('adjustForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const res = await fetch('/admin/stock/stock-adjust', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            item_id: document.getElementById('adjustItemId').value,
+            new_quantity: document.getElementById('adjustNewQuantity').value,
+            note: document.getElementById('adjustNote').value
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.error || 'เกิดข้อผิดพลาด');
+        }
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด');
+      }
+    });
+  </script>
+</body>
+</html>

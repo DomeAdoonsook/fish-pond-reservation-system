@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>คำขอเบิกวัสดุ - ระบบงานฟาร์ม</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="wrapper">
+    <%- include('../../partials/sidebar-admin', { page: 'stock-requests', isLoggedIn: true, admin, pendingCount, cancelPendingCount: cancelPendingCount || 0, equipmentPendingCount: equipmentPendingCount || 0, stockPendingCount: stockPendingCount || 0 }) %>
+
+    <div id="content">
+      <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container-fluid">
+          <button type="button" id="sidebarCollapse" class="btn btn-dark"><i class="bi bi-list"></i></button>
+          <span class="navbar-brand ms-3 mb-0 h5"><i class="bi bi-clipboard-check"></i> คำขอเบิกวัสดุ</span>
+        </div>
+      </nav>
+
+      <div class="container-fluid p-4">
+        <!-- Filter Tabs -->
+        <ul class="nav nav-tabs mb-4">
+          <li class="nav-item">
+            <a class="nav-link <%= filterStatus === 'all' ? 'active' : '' %>" href="/admin/stock/requests">
+              ทั้งหมด (<%= requests.length %>)
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link <%= filterStatus === 'pending' ? 'active' : '' %>" href="/admin/stock/requests?status=pending">
+              <i class="bi bi-clock text-warning"></i> รออนุมัติ
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link <%= filterStatus === 'approved' ? 'active' : '' %>" href="/admin/stock/requests?status=approved">
+              <i class="bi bi-check-circle text-success"></i> อนุมัติแล้ว
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link <%= filterStatus === 'rejected' ? 'active' : '' %>" href="/admin/stock/requests?status=rejected">
+              <i class="bi bi-x-circle text-danger"></i> ไม่อนุมัติ
+            </a>
+          </li>
+        </ul>
+
+        <!-- Requests Table -->
+        <% if (requests.length === 0) { %>
+          <div class="card">
+            <div class="card-body text-center py-5">
+              <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+              <h5 class="mt-3 text-muted">ไม่มีคำขอเบิก</h5>
+            </div>
+          </div>
+        <% } else { %>
+          <div class="table-responsive">
+            <table class="table table-hover bg-white rounded shadow-sm">
+              <thead class="table-dark">
+                <tr>
+                  <th>หมายเลข</th>
+                  <th>วันที่ขอ</th>
+                  <th>ผู้ขอ</th>
+                  <th>รายการวัสดุ</th>
+                  <th>สถานะ</th>
+                  <th class="text-center">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% requests.forEach(function(req) { %>
+                  <%
+                    const date = new Date(req.created_at);
+                    const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                  %>
+                  <tr>
+                    <td class="fw-bold text-success">#STK-<%= String(req.id).padStart(4, '0') %></td>
+                    <td>
+                      <%= date.getDate() %> <%= thaiMonths[date.getMonth()] %> <%= date.getFullYear() + 543 %>
+                      <br><small class="text-muted"><%= date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) %></small>
+                    </td>
+                    <td>
+                      <strong><%= req.user_name %></strong>
+                      <% if (req.phone) { %><br><small class="text-muted"><i class="bi bi-telephone"></i> <%= req.phone %></small><% } %>
+                    </td>
+                    <td>
+                      <small><%= req.items_summary || '-' %></small>
+                    </td>
+                    <td>
+                      <% if (req.status === 'pending') { %>
+                        <span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>รออนุมัติ</span>
+                      <% } else if (req.status === 'approved') { %>
+                        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>อนุมัติแล้ว</span>
+                        <br><small class="text-muted">โดย <%= req.approved_by_name %></small>
+                      <% } else if (req.status === 'rejected') { %>
+                        <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>ไม่อนุมัติ</span>
+                        <% if (req.reject_reason) { %><br><small class="text-danger"><%= req.reject_reason %></small><% } %>
+                      <% } %>
+                    </td>
+                    <td class="text-center">
+                      <button class="btn btn-info btn-sm" onclick="viewRequest(<%= req.id %>)">
+                        <i class="bi bi-eye"></i> ดู
+                      </button>
+                      <% if (req.status === 'pending') { %>
+                        <button class="btn btn-success btn-sm" onclick="approveRequest(<%= req.id %>)">
+                          <i class="bi bi-check"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="rejectRequest(<%= req.id %>)">
+                          <i class="bi bi-x"></i>
+                        </button>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Modal -->
+  <div class="modal fade" id="viewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-info text-white">
+          <h5 class="modal-title"><i class="bi bi-file-text me-2"></i>รายละเอียดคำขอเบิก</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="viewContent">
+          <div class="text-center py-4">
+            <div class="spinner-border text-info"></div>
+            <p class="mt-2">กำลังโหลด...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Approve Modal -->
+  <div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title"><i class="bi bi-check-circle me-2"></i>อนุมัติคำขอเบิก</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="approveForm">
+          <div class="modal-body" id="approveContent">
+            <div class="text-center py-4">
+              <div class="spinner-border text-success"></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="submit" class="btn btn-success"><i class="bi bi-check me-2"></i>อนุมัติ</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reject Modal -->
+  <div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>ไม่อนุมัติคำขอ</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="rejectForm">
+          <div class="modal-body">
+            <input type="hidden" id="rejectRequestId">
+            <div class="mb-3">
+              <label class="form-label">เหตุผลที่ไม่อนุมัติ</label>
+              <textarea class="form-control" id="rejectReason" rows="3" required placeholder="ระบุเหตุผล..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="submit" class="btn btn-danger"><i class="bi bi-x me-2"></i>ไม่อนุมัติ</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/main.js"></script>
+  <script>
+    let currentRequestId = null;
+    let currentItems = [];
+
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '-';
+      const date = new Date(dateStr);
+      const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+      return date.getDate() + ' ' + thaiMonths[date.getMonth()] + ' ' + (date.getFullYear() + 543);
+    };
+
+    async function viewRequest(id) {
+      const modal = new bootstrap.Modal(document.getElementById('viewModal'));
+      modal.show();
+      const content = document.getElementById('viewContent');
+      content.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-info"></div></div>';
+
+      try {
+        const res = await fetch(`/admin/stock/requests/${id}`);
+        const data = await res.json();
+        if (data.success) {
+          const req = data.request;
+          const items = data.items;
+
+          let statusBadge = '';
+          if (req.status === 'pending') statusBadge = '<span class="badge bg-warning text-dark">รออนุมัติ</span>';
+          else if (req.status === 'approved') statusBadge = '<span class="badge bg-success">อนุมัติแล้ว</span>';
+          else if (req.status === 'rejected') statusBadge = '<span class="badge bg-danger">ไม่อนุมัติ</span>';
+
+          let itemsHtml = items.map(item => `
+            <tr>
+              <td>${item.item_name}</td>
+              <td>${item.category_name || '-'}</td>
+              <td class="text-center">${item.requested_quantity} ${item.unit}</td>
+              <td class="text-center">${item.approved_quantity !== null ? item.approved_quantity + ' ' + item.unit : '-'}</td>
+              <td class="text-center">${item.current_quantity} ${item.unit}</td>
+            </tr>
+          `).join('');
+
+          content.innerHTML = `
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <p><strong>หมายเลข:</strong> <span class="text-success fw-bold">#STK-${String(req.id).padStart(4, '0')}</span></p>
+                <p><strong>ผู้ขอ:</strong> ${req.user_name}</p>
+                <p><strong>เบอร์โทร:</strong> ${req.phone || '-'}</p>
+              </div>
+              <div class="col-md-6">
+                <p><strong>วันที่ขอ:</strong> ${formatDate(req.created_at)}</p>
+                <p><strong>สถานะ:</strong> ${statusBadge}</p>
+                ${req.approved_at ? `<p><strong>วันที่พิจารณา:</strong> ${formatDate(req.approved_at)}</p>` : ''}
+              </div>
+            </div>
+            <div class="mb-4">
+              <p><strong>เหตุผล/วัตถุประสงค์:</strong></p>
+              <p class="bg-light p-3 rounded">${req.purpose}</p>
+            </div>
+            ${req.reject_reason ? `
+              <div class="mb-4">
+                <p><strong>เหตุผลที่ไม่อนุมัติ:</strong></p>
+                <p class="bg-danger bg-opacity-10 text-danger p-3 rounded">${req.reject_reason}</p>
+              </div>
+            ` : ''}
+            <h6 class="mb-3"><i class="bi bi-box-seam me-2"></i>รายการวัสดุ</h6>
+            <table class="table table-bordered table-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>วัสดุ</th>
+                  <th>หมวดหมู่</th>
+                  <th class="text-center">ขอเบิก</th>
+                  <th class="text-center">อนุมัติ</th>
+                  <th class="text-center">คงเหลือใน Stock</th>
+                </tr>
+              </thead>
+              <tbody>${itemsHtml}</tbody>
+            </table>
+          `;
+        } else {
+          content.innerHTML = '<div class="alert alert-danger">ไม่สามารถโหลดข้อมูลได้</div>';
+        }
+      } catch (err) {
+        content.innerHTML = '<div class="alert alert-danger">เกิดข้อผิดพลาด</div>';
+      }
+    }
+
+    async function approveRequest(id) {
+      currentRequestId = id;
+      const modal = new bootstrap.Modal(document.getElementById('approveModal'));
+      modal.show();
+      const content = document.getElementById('approveContent');
+      content.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-success"></div></div>';
+
+      try {
+        const res = await fetch(`/admin/stock/requests/${id}`);
+        const data = await res.json();
+        if (data.success) {
+          const req = data.request;
+          currentItems = data.items;
+
+          let itemsHtml = currentItems.map((item, index) => `
+            <tr>
+              <td>${item.item_name}</td>
+              <td class="text-center">${item.requested_quantity} ${item.unit}</td>
+              <td class="text-center text-muted">${item.current_quantity} ${item.unit}</td>
+              <td>
+                <input type="number" class="form-control form-control-sm approved-qty"
+                       data-index="${index}" data-item-id="${item.id}" data-stock-item-id="${item.item_id}"
+                       value="${Math.min(item.requested_quantity, item.current_quantity)}"
+                       max="${item.current_quantity}" min="0" step="0.1">
+              </td>
+            </tr>
+          `).join('');
+
+          content.innerHTML = `
+            <div class="mb-4">
+              <p><strong>ผู้ขอ:</strong> ${req.user_name}</p>
+              <p><strong>เหตุผล:</strong> ${req.purpose}</p>
+            </div>
+            <h6 class="mb-3">ระบุจำนวนที่อนุมัติ</h6>
+            <table class="table table-bordered">
+              <thead class="table-light">
+                <tr>
+                  <th>วัสดุ</th>
+                  <th class="text-center">ขอเบิก</th>
+                  <th class="text-center">คงเหลือ</th>
+                  <th>อนุมัติ</th>
+                </tr>
+              </thead>
+              <tbody>${itemsHtml}</tbody>
+            </table>
+          `;
+        }
+      } catch (err) {
+        content.innerHTML = '<div class="alert alert-danger">เกิดข้อผิดพลาด</div>';
+      }
+    }
+
+    document.getElementById('approveForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const approvals = [];
+      document.querySelectorAll('.approved-qty').forEach(input => {
+        approvals.push({
+          item_id: parseInt(input.dataset.itemId),
+          stock_item_id: parseInt(input.dataset.stockItemId),
+          approved_quantity: parseFloat(input.value) || 0
+        });
+      });
+
+      try {
+        const res = await fetch(`/admin/stock/requests/${currentRequestId}/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: approvals })
+        });
+        const data = await res.json();
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.error || 'เกิดข้อผิดพลาด');
+        }
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด');
+      }
+    });
+
+    function rejectRequest(id) {
+      currentRequestId = id;
+      document.getElementById('rejectRequestId').value = id;
+      document.getElementById('rejectReason').value = '';
+      new bootstrap.Modal(document.getElementById('rejectModal')).show();
+    }
+
+    document.getElementById('rejectForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const reason = document.getElementById('rejectReason').value;
+
+      try {
+        const res = await fetch(`/admin/stock/requests/${currentRequestId}/reject`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason })
+        });
+        const data = await res.json();
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.error || 'เกิดข้อผิดพลาด');
+        }
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด');
+      }
+    });
+  </script>
+</body>
+</html>

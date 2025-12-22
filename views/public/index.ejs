@@ -307,6 +307,14 @@
       `;
 
       if (pond.user_name) {
+        // Format dates
+        const formatDate = (dateStr) => {
+          if (!dateStr) return '-';
+          const date = new Date(dateStr);
+          const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+          return date.getDate() + ' ' + thaiMonths[date.getMonth()] + ' ' + (date.getFullYear() + 543);
+        };
+
         html += `
           <hr>
           <h6><i class="bi bi-person me-2"></i>ข้อมูลการใช้งาน</h6>
@@ -326,6 +334,14 @@
             <tr>
               <td class="text-muted">อายุปลา:</td>
               <td><span class="badge bg-info">${pond.fish_age_days || 0} วัน</span></td>
+            </tr>
+            <tr>
+              <td class="text-muted">วันที่เริ่ม:</td>
+              <td>${formatDate(pond.start_date)}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">วันสิ้นสุด:</td>
+              <td>${formatDate(pond.end_date)}</td>
             </tr>
           </table>
         `;

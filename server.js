@@ -36,11 +36,15 @@ const lineRoutes = require('./routes/line');
 const publicRoutes = require('./routes/public');
 const equipmentRoutes = require('./routes/equipment');
 const equipmentPublicRoutes = require('./routes/equipment-public');
+const stockRoutes = require('./routes/stock');
+const adminStockRoutes = require('./routes/admin-stock');
 
 app.use('/api', apiRoutes);
 app.use('/admin', adminRoutes);
 app.use('/admin/equipment', equipmentRoutes);
+app.use('/admin/stock', adminStockRoutes);
 app.use('/equipment', equipmentPublicRoutes);
+app.use('/stock', stockRoutes);
 app.use('/webhook', lineRoutes);
 app.use('/', publicRoutes);
 
