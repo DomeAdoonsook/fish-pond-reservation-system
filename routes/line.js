@@ -35,6 +35,9 @@ router.post('/', line.middleware(config), async (req, res) => {
 async function handleEvent(event) {
   const userId = event.source.userId;
 
+  // Log User ID เพื่อใช้เพิ่ม Admin
+  console.log('📩 Received event from User ID:', userId);
+
   if (event.type === 'message' && event.message.type === 'text') {
     return handleTextMessage(event, userId);
   }
