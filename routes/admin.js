@@ -24,8 +24,17 @@ const optionalLogin = (req, res, next) => {
 
 // Middleware เพิ่มข้อมูล common ให้ทุกหน้า
 const addCommonData = async (req, res, next) => {
-  res.locals.cancelPendingCount = await CancellationRequest.getPendingCount();
-  res.locals.equipmentPendingCount = await EquipmentReservation.getPendingCount();
+  try {
+    res.locals.cancelPendingCount = await CancellationRequest.getPendingCount();
+  } catch (e) {
+    res.locals.cancelPendingCount = 0;
+  }
+
+  try {
+    res.locals.equipmentPendingCount = await EquipmentReservation.getPendingCount();
+  } catch (e) {
+    res.locals.equipmentPendingCount = 0;
+  }
 
   // ดึง Stock pending count
   try {
