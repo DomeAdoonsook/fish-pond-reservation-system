@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>จัดการวัสดุ - ระบบงานฟาร์ม</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+      min-height: 100vh;
+    }
+    .page-header {
+      background: linear-gradient(135deg, #4caf50, #388e3c);
+      color: white;
+      padding: 25px 30px;
+      border-radius: 0 0 20px 20px;
+      margin-bottom: 25px;
+    }
+    .stock-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+      border-left: 4px solid #198754;
+      cursor: pointer;
+      border-radius: 12px;
+    }
+    .stock-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    }
+    .stock-card.low-stock { border-left-color: #dc3545; }
+    .stock-card.warning-stock { border-left-color: #ffc107; }
+    .stock-card.inactive { border-left-color: #6c757d; opacity: 0.7; }
+    .quantity-badge {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    .category-header {
+      background: linear-gradient(135deg, #343a40, #495057);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+    .action-btn {
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .stock-card:hover .action-btn {
+      opacity: 1;
+    }
+    .stat-card {
+      border-radius: 15px;
+      border: none;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+    .stat-card .icon-box {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+    .back-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .back-btn:hover {
+      background: rgba(255,255,255,0.3);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <a href="/admin/stock" class="back-btn mb-2 d-inline-block">
+              <i class="bi bi-arrow-left me-1"></i>กลับ
+            </a>
+            <h2 class="mb-1"><i class="bi bi-box-seam me-2"></i>จัดการวัสดุ</h2>
+            <p class="mb-0 opacity-75">เพิ่ม แก้ไข ลบ รายการวัสดุ</p>
+          </div>
+          <div>
+            <button class="btn btn-light btn-sm me-2" data-bs-toggle="modal" data-bs-target="#categoryModal">
+              <i class="bi bi-folder-plus"></i> จัดการหมวดหมู่
+            </button>
+            <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#itemModal" onclick="openAddItem()">
+              <i class="bi bi-plus-lg"></i> เพิ่มวัสดุ
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container pb-4">
+      <!-- Stats Cards -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-3">
+          <div class="card stat-card">
+            <div class="card-body d-flex align-items-center">
+              <div class="icon-box bg-primary bg-opacity-10 text-primary me-3">
+                <i class="bi bi-box-seam"></i>
+              </div>
+              <div>
+                <h4 class="mb-0"><%= items.length %></h4>
+                <small class="text-muted">รายการทั้งหมด</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card stat-card">
+            <div class="card-body d-flex align-items-center">
+              <div class="icon-box bg-success bg-opacity-10 text-success me-3">
+                <i class="bi bi-check-circle"></i>
+              </div>
+              <div>
+                <h4 class="mb-0"><%= items.filter(i => i.status === 'active' && i.current_quantity > i.min_quantity).length %></h4>
+                <small class="text-muted">พร้อมใช้งาน</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card stat-card">
+            <div class="card-body d-flex align-items-center">
+              <div class="icon-box bg-danger bg-opacity-10 text-danger me-3">
+                <i class="bi bi-exclamation-triangle"></i>
+              </div>
+              <div>
+                <h4 class="mb-0"><%= lowStockItems.length %></h4>
+                <small class="text-muted">ใกล้หมด</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card stat-card">
+            <div class="card-body d-flex align-items-center">
+              <div class="icon-box bg-warning bg-opacity-10 text-warning me-3">
+                <i class="bi bi-folder"></i>
+              </div>
+              <div>
+                <h4 class="mb-0"><%= categories.length %></h4>
+                <small class="text-muted">หมวดหมู่</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Low Stock Alert -->
+      <% if (lowStockItems && lowStockItems.length > 0) { %>
+        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center">
+          <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
+          <div>
+            <strong>วัสดุใกล้หมด!</strong>
+            <% lowStockItems.forEach(function(item, index) { %>
+              <%= item.name %> (เหลือ <%= item.current_quantity %> <%= item.unit %>)<%= index < lowStockItems.length - 1 ? ', ' : '' %>
+            <% }); %>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% } %>
+
+      <!-- Search & Filter -->
+      <div class="card mb-4">
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" id="searchInput" placeholder="ค้นหาวัสดุ...">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <select class="form-select" id="filterCategory">
+                <option value="">ทุกหมวดหมู่</option>
+                <% categories.forEach(function(c) { %>
+                  <option value="<%= c.id %>"><%= c.name %></option>
+                <% }); %>
+                <option value="none">ไม่มีหมวดหมู่</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <select class="form-select" id="filterStatus">
+                <option value="">ทุกสถานะ</option>
+                <option value="active">ใช้งาน</option>
+                <option value="inactive">ปิดใช้งาน</option>
+                <option value="low">ใกล้หมด</option>
+              </select>
+            </div>
+            <div class="col-md-2 text-end">
+              <span class="text-muted pt-2 d-inline-block">รวม <span id="itemCount"><%= items.length %></span> รายการ</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Items by Category -->
+      <%
+        const itemsByCategory = {};
+        items.forEach(item => {
+          const catName = item.category_name || 'ไม่ระบุหมวดหมู่';
+          const catId = item.category_id || 'none';
+          if (!itemsByCategory[catName]) {
+            itemsByCategory[catName] = { id: catId, items: [] };
+          }
+          itemsByCategory[catName].items.push(item);
+        });
+      %>
+
+      <% Object.keys(itemsByCategory).forEach(function(catName) { %>
+        <div class="category-section mb-4" data-category-id="<%= itemsByCategory[catName].id %>">
+          <div class="category-header">
+            <i class="bi bi-folder-fill me-2"></i><%= catName %>
+            <span class="badge bg-light text-dark ms-2"><%= itemsByCategory[catName].items.length %> รายการ</span>
+          </div>
+          <div class="row g-3">
+            <% itemsByCategory[catName].items.forEach(function(item) {
+              let stockClass = '';
+              if (item.status === 'inactive') {
+                stockClass = 'inactive';
+              } else if (item.min_quantity > 0 && item.current_quantity <= item.min_quantity) {
+                stockClass = 'low-stock';
+              } else if (item.min_quantity > 0 && item.current_quantity <= item.min_quantity * 1.5) {
+                stockClass = 'warning-stock';
+              }
+            %>
+              <div class="col-md-6 col-lg-4 item-card"
+                   data-name="<%= item.name.toLowerCase() %>"
+                   data-category="<%= item.category_id || 'none' %>"
+                   data-status="<%= item.status %>"
+                   data-low="<%= item.current_quantity <= item.min_quantity %>">
+                <div class="card stock-card h-100 <%= stockClass %>" onclick='openEditItem(<%= JSON.stringify(item) %>)'>
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div class="flex-grow-1">
+                        <h5 class="card-title mb-1">
+                          <%= item.name %>
+                          <% if (item.status === 'inactive') { %>
+                            <span class="badge bg-secondary ms-1">ปิด</span>
+                          <% } %>
+                        </h5>
+                        <p class="text-muted mb-0 small"><%= item.category_name || 'ไม่ระบุหมวดหมู่' %></p>
+                      </div>
+                      <div class="text-end">
+                        <div class="quantity-badge <%= stockClass === 'low-stock' ? 'text-danger' : (stockClass === 'warning-stock' ? 'text-warning' : 'text-success') %>">
+                          <%= item.current_quantity.toLocaleString() %>
+                        </div>
+                        <small class="text-muted"><%= item.unit %></small>
+                      </div>
+                    </div>
+
+                    <hr class="my-2">
+
+                    <div class="d-flex justify-content-between align-items-center">
+                      <small class="text-muted">
+                        <i class="bi bi-tag me-1"></i><%= item.unit_price ? item.unit_price.toLocaleString() + ' บาท/' + item.unit : '-' %>
+                      </small>
+                      <% if (stockClass === 'low-stock') { %>
+                        <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>ใกล้หมด</span>
+                      <% } else if (stockClass === 'warning-stock') { %>
+                        <span class="badge bg-warning text-dark">เหลือน้อย</span>
+                      <% } else if (item.current_quantity > 0 && item.status === 'active') { %>
+                        <span class="badge bg-success">พร้อมใช้</span>
+                      <% } else if (item.status === 'inactive') { %>
+                        <span class="badge bg-secondary">ปิดใช้งาน</span>
+                      <% } else { %>
+                        <span class="badge bg-dark">หมด</span>
+                      <% } %>
+                    </div>
+
+                    <div class="action-btn mt-2 text-end">
+                      <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteItem(<%= item.id %>, '<%= item.name %>')">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        </div>
+      <% }); %>
+
+      <% if (items.length === 0) { %>
+        <div class="text-center py-5">
+          <i class="bi bi-archive text-muted" style="font-size: 4rem;"></i>
+          <h5 class="mt-3 text-muted">ยังไม่มีรายการวัสดุ</h5>
+          <button class="btn btn-success mt-3" data-bs-toggle="modal" data-bs-target="#itemModal" onclick="openAddItem()">
+            <i class="bi bi-plus-lg me-2"></i>เพิ่มวัสดุ
+          </button>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Category Modal -->
+  <div class="modal fade" id="categoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white">
+          <h5 class="modal-title"><i class="bi bi-folder me-2"></i>จัดการหมวดหมู่วัสดุ</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="addCategoryForm" class="mb-4">
+            <div class="row g-2">
+              <div class="col-md-5">
+                <input type="text" class="form-control" id="newCategoryName" placeholder="ชื่อหมวดหมู่" required>
+              </div>
+              <div class="col-md-5">
+                <input type="text" class="form-control" id="newCategoryDesc" placeholder="คำอธิบาย (ไม่บังคับ)">
+              </div>
+              <div class="col-md-2">
+                <button type="submit" class="btn btn-success w-100"><i class="bi bi-plus-lg"></i></button>
+              </div>
+            </div>
+          </form>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>ชื่อหมวดหมู่</th>
+                  <th>คำอธิบาย</th>
+                  <th class="text-center">จำนวน</th>
+                  <th class="text-center">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% categories.forEach(function(c) { %>
+                  <tr>
+                    <td class="fw-bold"><%= c.name %></td>
+                    <td class="text-muted"><%= c.description || '-' %></td>
+                    <td class="text-center"><span class="badge bg-secondary"><%= c.item_count || 0 %></span></td>
+                    <td class="text-center">
+                      <button class="btn btn-warning btn-sm" onclick="editCategory(<%= c.id %>, '<%= c.name %>', '<%= c.description || '' %>')">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button class="btn btn-danger btn-sm" onclick="deleteCategory(<%= c.id %>, '<%= c.name %>')">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                <% }); %>
+                <% if (categories.length === 0) { %>
+                  <tr><td colspan="4" class="text-center text-muted py-3">ยังไม่มีหมวดหมู่</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Item Modal -->
+  <div class="modal fade" id="itemModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title" id="itemModalTitle"><i class="bi bi-box-seam me-2"></i>เพิ่มวัสดุ</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="itemForm">
+          <div class="modal-body">
+            <input type="hidden" id="itemId">
+            <div class="mb-3">
+              <label class="form-label">ชื่อวัสดุ <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="itemName" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">หมวดหมู่</label>
+              <select class="form-select" id="itemCategory">
+                <option value="">-- ไม่ระบุ --</option>
+                <% categories.forEach(function(c) { %>
+                  <option value="<%= c.id %>"><%= c.name %></option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">หน่วยนับ</label>
+                <input type="text" class="form-control" id="itemUnit" value="หน่วย">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">ราคาต่อหน่วย (บาท)</label>
+                <input type="number" class="form-control" id="itemPrice" step="0.01" min="0">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3" id="quantityField">
+                <label class="form-label">จำนวนปัจจุบัน</label>
+                <input type="number" class="form-control" id="itemQuantity" step="0.01" min="0" value="0">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">จุดสั่งซื้อ</label>
+                <input type="number" class="form-control" id="itemMinQuantity" step="0.01" min="0" value="0">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">รายละเอียด</label>
+              <textarea class="form-control" id="itemDescription" rows="2"></textarea>
+            </div>
+            <div class="mb-3" id="statusField" style="display: none;">
+              <label class="form-label">สถานะ</label>
+              <select class="form-select" id="itemStatus">
+                <option value="active">ใช้งาน</option>
+                <option value="inactive">ปิดใช้งาน</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="submit" class="btn btn-success">บันทึก</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let isEditMode = false;
+
+    function filterItems() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const category = document.getElementById('filterCategory').value;
+      const status = document.getElementById('filterStatus').value;
+      let visibleCount = 0;
+
+      document.querySelectorAll('.item-card').forEach(card => {
+        const name = card.dataset.name;
+        const cat = card.dataset.category;
+        const stat = card.dataset.status;
+        const isLow = card.dataset.low === 'true';
+
+        let matchSearch = !search || name.includes(search);
+        let matchCategory = !category || cat === category;
+        let matchStatus = !status || stat === status || (status === 'low' && isLow);
+
+        if (matchSearch && matchCategory && matchStatus) {
+          card.style.display = '';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      document.querySelectorAll('.category-section').forEach(section => {
+        const visibleCards = section.querySelectorAll('.item-card:not([style*="display: none"])').length;
+        section.style.display = visibleCards > 0 ? '' : 'none';
+      });
+
+      document.getElementById('itemCount').textContent = visibleCount;
+    }
+
+    document.getElementById('searchInput').addEventListener('input', filterItems);
+    document.getElementById('filterCategory').addEventListener('change', filterItems);
+    document.getElementById('filterStatus').addEventListener('change', filterItems);
+
+    function openAddItem() {
+      isEditMode = false;
+      document.getElementById('itemModalTitle').innerHTML = '<i class="bi bi-box-seam me-2"></i>เพิ่มวัสดุ';
+      document.getElementById('itemForm').reset();
+      document.getElementById('itemId').value = '';
+      document.getElementById('statusField').style.display = 'none';
+      document.getElementById('quantityField').style.display = '';
+    }
+
+    function openEditItem(item) {
+      isEditMode = true;
+      document.getElementById('itemModalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>แก้ไขวัสดุ';
+      document.getElementById('itemId').value = item.id;
+      document.getElementById('itemName').value = item.name;
+      document.getElementById('itemCategory').value = item.category_id || '';
+      document.getElementById('itemUnit').value = item.unit || 'หน่วย';
+      document.getElementById('itemPrice').value = item.unit_price || '';
+      document.getElementById('itemQuantity').value = item.current_quantity || 0;
+      document.getElementById('itemMinQuantity').value = item.min_quantity || 0;
+      document.getElementById('itemDescription').value = item.description || '';
+      document.getElementById('itemStatus').value = item.status || 'active';
+      document.getElementById('statusField').style.display = '';
+      document.getElementById('quantityField').style.display = 'none';
+      new bootstrap.Modal(document.getElementById('itemModal')).show();
+    }
+
+    document.getElementById('itemForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('itemId').value;
+      const data = {
+        name: document.getElementById('itemName').value,
+        category_id: document.getElementById('itemCategory').value || null,
+        unit: document.getElementById('itemUnit').value,
+        unit_price: document.getElementById('itemPrice').value,
+        current_quantity: document.getElementById('itemQuantity').value,
+        min_quantity: document.getElementById('itemMinQuantity').value,
+        description: document.getElementById('itemDescription').value,
+        status: document.getElementById('itemStatus').value
+      };
+
+      try {
+        const url = isEditMode ? `/admin/stock/item/${id}` : '/admin/stock/item';
+        const method = isEditMode ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (result.success) location.reload();
+        else alert(result.error || 'เกิดข้อผิดพลาด');
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด');
+      }
+    });
+
+    async function deleteItem(id, name) {
+      if (!confirm(`ยืนยันการลบวัสดุ "${name}"?`)) return;
+      try {
+        const res = await fetch(`/admin/stock/item/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) location.reload();
+        else alert(data.error || 'ไม่สามารถลบได้');
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด');
+      }
+    }
+
+    document.getElementById('addCategoryForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('newCategoryName').value;
+      const description = document.getElementById('newCategoryDesc').value;
+      try {
+        const res = await fetch('/admin/stock/category', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, description })
+        });
+        const data = await res.json();
+        if (data.success) location.reload();
+        else alert(data.error || 'ไม่สามารถเพิ่มได้');
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด');
+      }
+    });
+
+    function editCategory(id, name, desc) {
+      const newName = prompt('ชื่อหมวดหมู่:', name);
+      if (!newName) return;
+      const newDesc = prompt('คำอธิบาย:', desc);
+      fetch(`/admin/stock/category/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName, description: newDesc })
+      }).then(res => res.json()).then(data => {
+        if (data.success) location.reload();
+        else alert(data.error || 'ไม่สามารถแก้ไขได้');
+      });
+    }
+
+    async function deleteCategory(id, name) {
+      if (!confirm(`ยืนยันการลบหมวดหมู่ "${name}"?`)) return;
+      try {
+        const res = await fetch(`/admin/stock/category/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) location.reload();
+        else alert(data.error || 'ไม่สามารถลบได้');
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด');
+      }
+    }
+  </script>
+</body>
+</html>

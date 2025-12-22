@@ -45,7 +45,7 @@ router.use(async (req, res, next) => {
   next();
 });
 
-// ======= รายการวัสดุ =======
+// ======= หน้าหลัก Stock (3 กล่อง) =======
 router.get('/', async (req, res) => {
   try {
     const categories = await StockCategory.getAll();
@@ -61,6 +61,26 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Admin stock index error:', error);
+    res.status(500).send('เกิดข้อผิดพลาด');
+  }
+});
+
+// ======= รายการวัสดุ (จัดการ) =======
+router.get('/items', async (req, res) => {
+  try {
+    const categories = await StockCategory.getAll();
+    const items = await StockItem.getAll();
+    const lowStockItems = await StockItem.getLowStock();
+
+    res.render('admin/stock/items', {
+      title: 'จัดการวัสดุ',
+      page: 'stock-items',
+      categories,
+      items,
+      lowStockItems
+    });
+  } catch (error) {
+    console.error('Admin stock items error:', error);
     res.status(500).send('เกิดข้อผิดพลาด');
   }
 });
