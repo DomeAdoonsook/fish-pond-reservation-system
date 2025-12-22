@@ -4,111 +4,150 @@ const client = new line.messagingApi.MessagingApiClient({
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN
 });
 
-// แจ้ง Admin เมื่อมีคำขอใช้บ่อใหม่
-async function notifyAdminNewRequest(reservation) {
-  const adminLineUserId = process.env.ADMIN_LINE_USER_ID;
-  if (!adminLineUserId) {
-    console.log('ADMIN_LINE_USER_ID not configured');
+// Helper: ดึง Admin LINE User IDs ทั้งหมด
+function getAdminUserIds() {
+  const adminIds = [];
+
+  // รองรับ ADMIN_LINE_USER_ID, ADMIN_LINE_USER_ID_2, ADMIN_LINE_USER_ID_3, ...
+  if (process.env.ADMIN_LINE_USER_ID) {
+    adminIds.push(process.env.ADMIN_LINE_USER_ID);
+  }
+  if (process.env.ADMIN_LINE_USER_ID_2) {
+    adminIds.push(process.env.ADMIN_LINE_USER_ID_2);
+  }
+  if (process.env.ADMIN_LINE_USER_ID_3) {
+    adminIds.push(process.env.ADMIN_LINE_USER_ID_3);
+  }
+  if (process.env.ADMIN_LINE_USER_ID_4) {
+    adminIds.push(process.env.ADMIN_LINE_USER_ID_4);
+  }
+  if (process.env.ADMIN_LINE_USER_ID_5) {
+    adminIds.push(process.env.ADMIN_LINE_USER_ID_5);
+  }
+
+  return adminIds;
+}
+
+// Helper: ส่งข้อความไปหา Admin ทุกคน
+async function pushMessageToAllAdmins(messages) {
+  const adminIds = getAdminUserIds();
+
+  if (adminIds.length === 0) {
+    console.log('No ADMIN_LINE_USER_ID configured');
     return;
   }
 
+  const results = await Promise.allSettled(
+    adminIds.map(adminId =>
+      client.pushMessage({ to: adminId, messages })
+    )
+  );
+
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.error(`Failed to notify admin ${index + 1}:`, result.reason);
+    }
+  });
+
+  console.log(`Notified ${results.filter(r => r.status === 'fulfilled').length}/${adminIds.length} admins`);
+}
+
+// แจ้ง Admin เมื่อมีคำขอใช้บ่อใหม่
+async function notifyAdminNewRequest(reservation) {
   try {
-    await client.pushMessage({
-      to: adminLineUserId,
-      messages: [{
-        type: 'flex',
-        altText: 'คำขอใช้บ่อใหม่',
-        contents: {
-          type: 'bubble',
-          header: {
+    await pushMessageToAllAdmins([{
+      type: 'flex',
+      altText: 'คำขอใช้บ่อใหม่',
+      contents: {
+        type: 'bubble',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          backgroundColor: '#f39c12',
+          contents: [{
+            type: 'text',
+            text: '📋 คำขอใช้บ่อใหม่!',
+            weight: 'bold',
+            color: '#ffffff',
+            size: 'lg'
+          }]
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'md',
+          contents: [{
+            type: 'text',
+            text: `#REQ-${String(reservation.id).padStart(4, '0')}`,
+            weight: 'bold',
+            size: 'lg'
+          }, {
+            type: 'separator'
+          }, {
             type: 'box',
-            layout: 'vertical',
-            backgroundColor: '#f39c12',
+            layout: 'horizontal',
             contents: [{
               type: 'text',
-              text: '📋 คำขอใช้บ่อใหม่!',
+              text: 'บ่อ:',
+              color: '#666666',
+              flex: 2
+            }, {
+              type: 'text',
+              text: reservation.pond_code,
               weight: 'bold',
-              color: '#ffffff',
-              size: 'lg'
+              flex: 3
             }]
-          },
-          body: {
+          }, {
             type: 'box',
-            layout: 'vertical',
-            spacing: 'md',
+            layout: 'horizontal',
             contents: [{
               type: 'text',
-              text: `#REQ-${String(reservation.id).padStart(4, '0')}`,
+              text: 'ผู้ขอ:',
+              color: '#666666',
+              flex: 2
+            }, {
+              type: 'text',
+              text: reservation.user_name,
               weight: 'bold',
-              size: 'lg'
-            }, {
-              type: 'separator'
-            }, {
-              type: 'box',
-              layout: 'horizontal',
-              contents: [{
-                type: 'text',
-                text: 'บ่อ:',
-                color: '#666666',
-                flex: 2
-              }, {
-                type: 'text',
-                text: reservation.pond_code,
-                weight: 'bold',
-                flex: 3
-              }]
-            }, {
-              type: 'box',
-              layout: 'horizontal',
-              contents: [{
-                type: 'text',
-                text: 'ผู้ขอ:',
-                color: '#666666',
-                flex: 2
-              }, {
-                type: 'text',
-                text: reservation.user_name,
-                weight: 'bold',
-                flex: 3
-              }]
-            }, {
-              type: 'box',
-              layout: 'horizontal',
-              contents: [{
-                type: 'text',
-                text: 'ปลา:',
-                color: '#666666',
-                flex: 2
-              }, {
-                type: 'text',
-                text: `${reservation.fish_type} ${reservation.fish_quantity.toLocaleString()} ตัว`,
-                weight: 'bold',
-                flex: 3,
-                wrap: true
-              }]
+              flex: 3
             }]
-          },
-          footer: {
+          }, {
             type: 'box',
-            layout: 'vertical',
-            spacing: 'sm',
+            layout: 'horizontal',
             contents: [{
-              type: 'button',
-              style: 'primary',
-              color: '#27ae60',
-              action: {
-                type: 'uri',
-                label: 'ไปหน้าอนุมัติ',
-                uri: `${process.env.BASE_URL || 'http://localhost:3000'}/admin/requests`
-              }
+              type: 'text',
+              text: 'ปลา:',
+              color: '#666666',
+              flex: 2
+            }, {
+              type: 'text',
+              text: `${reservation.fish_type} ${reservation.fish_quantity.toLocaleString()} ตัว`,
+              weight: 'bold',
+              flex: 3,
+              wrap: true
             }]
-          }
+          }]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [{
+            type: 'button',
+            style: 'primary',
+            color: '#27ae60',
+            action: {
+              type: 'uri',
+              label: 'ไปหน้าอนุมัติ',
+              uri: `${process.env.BASE_URL || 'http://localhost:3000'}/admin/requests`
+            }
+          }]
         }
-      }]
-    });
-    console.log('Admin notified of new request');
+      }
+    }]);
+    console.log('Admins notified of new request');
   } catch (error) {
-    console.error('Error notifying admin:', error);
+    console.error('Error notifying admins:', error);
   }
 }
 
@@ -384,109 +423,100 @@ async function sendCancellationNotification(reservation, reason) {
 
 // แจ้ง Admin เมื่อมีคำขอยกเลิกการใช้บ่อ
 async function notifyAdminCancellationRequest(request) {
-  const adminLineUserId = process.env.ADMIN_LINE_USER_ID;
-  if (!adminLineUserId) {
-    console.log('ADMIN_LINE_USER_ID not configured');
-    return;
-  }
-
   try {
-    await client.pushMessage({
-      to: adminLineUserId,
-      messages: [{
-        type: 'flex',
-        altText: 'คำขอยกเลิกการใช้บ่อ',
-        contents: {
-          type: 'bubble',
-          header: {
+    await pushMessageToAllAdmins([{
+      type: 'flex',
+      altText: 'คำขอยกเลิกการใช้บ่อ',
+      contents: {
+        type: 'bubble',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          backgroundColor: '#e74c3c',
+          contents: [{
+            type: 'text',
+            text: '🚫 คำขอยกเลิกการใช้บ่อ',
+            weight: 'bold',
+            color: '#ffffff',
+            size: 'lg'
+          }]
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'md',
+          contents: [{
+            type: 'text',
+            text: `#CANCEL-${String(request.id).padStart(4, '0')}`,
+            weight: 'bold',
+            size: 'lg'
+          }, {
+            type: 'separator'
+          }, {
             type: 'box',
-            layout: 'vertical',
-            backgroundColor: '#e74c3c',
+            layout: 'horizontal',
             contents: [{
               type: 'text',
-              text: '🚫 คำขอยกเลิกการใช้บ่อ',
+              text: 'บ่อ:',
+              color: '#666666',
+              flex: 2
+            }, {
+              type: 'text',
+              text: request.pond_code,
               weight: 'bold',
-              color: '#ffffff',
-              size: 'lg'
+              flex: 3
             }]
-          },
-          body: {
+          }, {
             type: 'box',
-            layout: 'vertical',
-            spacing: 'md',
+            layout: 'horizontal',
             contents: [{
               type: 'text',
-              text: `#CANCEL-${String(request.id).padStart(4, '0')}`,
+              text: 'ผู้ขอ:',
+              color: '#666666',
+              flex: 2
+            }, {
+              type: 'text',
+              text: request.user_name,
               weight: 'bold',
-              size: 'lg'
-            }, {
-              type: 'separator'
-            }, {
-              type: 'box',
-              layout: 'horizontal',
-              contents: [{
-                type: 'text',
-                text: 'บ่อ:',
-                color: '#666666',
-                flex: 2
-              }, {
-                type: 'text',
-                text: request.pond_code,
-                weight: 'bold',
-                flex: 3
-              }]
-            }, {
-              type: 'box',
-              layout: 'horizontal',
-              contents: [{
-                type: 'text',
-                text: 'ผู้ขอ:',
-                color: '#666666',
-                flex: 2
-              }, {
-                type: 'text',
-                text: request.user_name,
-                weight: 'bold',
-                flex: 3
-              }]
-            }, {
-              type: 'box',
-              layout: 'horizontal',
-              contents: [{
-                type: 'text',
-                text: 'เหตุผล:',
-                color: '#666666',
-                flex: 2
-              }, {
-                type: 'text',
-                text: request.reason || 'ไม่ระบุ',
-                weight: 'bold',
-                flex: 3,
-                wrap: true
-              }]
+              flex: 3
             }]
-          },
-          footer: {
+          }, {
             type: 'box',
-            layout: 'vertical',
-            spacing: 'sm',
+            layout: 'horizontal',
             contents: [{
-              type: 'button',
-              style: 'primary',
-              color: '#e74c3c',
-              action: {
-                type: 'uri',
-                label: 'ไปหน้าอนุมัติยกเลิก',
-                uri: `${process.env.BASE_URL || 'http://localhost:3000'}/admin/cancel-requests`
-              }
+              type: 'text',
+              text: 'เหตุผล:',
+              color: '#666666',
+              flex: 2
+            }, {
+              type: 'text',
+              text: request.reason || 'ไม่ระบุ',
+              weight: 'bold',
+              flex: 3,
+              wrap: true
             }]
-          }
+          }]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [{
+            type: 'button',
+            style: 'primary',
+            color: '#e74c3c',
+            action: {
+              type: 'uri',
+              label: 'ไปหน้าอนุมัติยกเลิก',
+              uri: `${process.env.BASE_URL || 'http://localhost:3000'}/admin/cancel-requests`
+            }
+          }]
         }
-      }]
-    });
-    console.log('Admin notified of cancellation request');
+      }
+    }]);
+    console.log('Admins notified of cancellation request');
   } catch (error) {
-    console.error('Error notifying admin of cancellation request:', error);
+    console.error('Error notifying admins of cancellation request:', error);
   }
 }
 
@@ -623,106 +653,97 @@ function formatThaiDate(dateStr) {
 
 // แจ้ง Admin เมื่อมีคำขอยืมอุปกรณ์ใหม่
 async function notifyAdminNewEquipmentRequest(reservation) {
-  const adminLineUserId = process.env.ADMIN_LINE_USER_ID;
-  if (!adminLineUserId) {
-    console.log('ADMIN_LINE_USER_ID not configured');
-    return;
-  }
-
   try {
-    await client.pushMessage({
-      to: adminLineUserId,
-      messages: [{
-        type: 'flex',
-        altText: 'คำขอยืมอุปกรณ์ใหม่',
-        contents: {
-          type: 'bubble',
-          header: {
+    await pushMessageToAllAdmins([{
+      type: 'flex',
+      altText: 'คำขอยืมอุปกรณ์ใหม่',
+      contents: {
+        type: 'bubble',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          backgroundColor: '#9b59b6',
+          contents: [{
+            type: 'text',
+            text: '🔧 คำขอยืมอุปกรณ์ใหม่!',
+            weight: 'bold',
+            color: '#ffffff',
+            size: 'lg'
+          }]
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'md',
+          contents: [{
+            type: 'text',
+            text: `#EQ-${String(reservation.id).padStart(4, '0')}`,
+            weight: 'bold',
+            size: 'lg'
+          }, {
+            type: 'separator'
+          }, {
             type: 'box',
-            layout: 'vertical',
-            backgroundColor: '#9b59b6',
+            layout: 'horizontal',
             contents: [{
               type: 'text',
-              text: '🔧 คำขอยืมอุปกรณ์ใหม่!',
+              text: 'ผู้ขอ:',
+              color: '#666666',
+              flex: 2
+            }, {
+              type: 'text',
+              text: reservation.user_name,
               weight: 'bold',
-              color: '#ffffff',
-              size: 'lg'
+              flex: 3
             }]
-          },
-          body: {
+          }, {
             type: 'box',
-            layout: 'vertical',
-            spacing: 'md',
+            layout: 'horizontal',
             contents: [{
               type: 'text',
-              text: `#EQ-${String(reservation.id).padStart(4, '0')}`,
-              weight: 'bold',
-              size: 'lg'
+              text: 'วันที่ยืม:',
+              color: '#666666',
+              flex: 2
             }, {
-              type: 'separator'
-            }, {
-              type: 'box',
-              layout: 'horizontal',
-              contents: [{
-                type: 'text',
-                text: 'ผู้ขอ:',
-                color: '#666666',
-                flex: 2
-              }, {
-                type: 'text',
-                text: reservation.user_name,
-                weight: 'bold',
-                flex: 3
-              }]
-            }, {
-              type: 'box',
-              layout: 'horizontal',
-              contents: [{
-                type: 'text',
-                text: 'วันที่ยืม:',
-                color: '#666666',
-                flex: 2
-              }, {
-                type: 'text',
-                text: formatThaiDate(reservation.borrow_date),
-                flex: 3
-              }]
-            }, {
-              type: 'box',
-              layout: 'horizontal',
-              contents: [{
-                type: 'text',
-                text: 'กำหนดคืน:',
-                color: '#666666',
-                flex: 2
-              }, {
-                type: 'text',
-                text: formatThaiDate(reservation.return_date),
-                flex: 3
-              }]
+              type: 'text',
+              text: formatThaiDate(reservation.borrow_date),
+              flex: 3
             }]
-          },
-          footer: {
+          }, {
             type: 'box',
-            layout: 'vertical',
-            spacing: 'sm',
+            layout: 'horizontal',
             contents: [{
-              type: 'button',
-              style: 'primary',
-              color: '#9b59b6',
-              action: {
-                type: 'uri',
-                label: 'ไปหน้าอนุมัติ',
-                uri: `${process.env.BASE_URL || 'http://localhost:3000'}/admin/equipment/requests`
-              }
+              type: 'text',
+              text: 'กำหนดคืน:',
+              color: '#666666',
+              flex: 2
+            }, {
+              type: 'text',
+              text: formatThaiDate(reservation.return_date),
+              flex: 3
             }]
-          }
+          }]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [{
+            type: 'button',
+            style: 'primary',
+            color: '#9b59b6',
+            action: {
+              type: 'uri',
+              label: 'ไปหน้าอนุมัติ',
+              uri: `${process.env.BASE_URL || 'http://localhost:3000'}/admin/equipment/requests`
+            }
+          }]
         }
-      }]
-    });
-    console.log('Admin notified of new equipment request');
+      }
+    }]);
+    console.log('Admins notified of new equipment request');
   } catch (error) {
-    console.error('Error notifying admin of equipment request:', error);
+    console.error('Error notifying admins of equipment request:', error);
   }
 }
 
