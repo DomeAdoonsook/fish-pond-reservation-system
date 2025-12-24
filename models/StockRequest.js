@@ -137,6 +137,19 @@ const StockRequest = {
   async getPendingCount() {
     const result = await db.execute(`SELECT COUNT(*) as count FROM stock_requests WHERE status = 'pending'`);
     return result.rows[0].count;
+  },
+
+  async delete(id) {
+    // ลบรายการวัสดุที่เกี่ยวข้องก่อน
+    await db.execute({
+      sql: `DELETE FROM stock_request_items WHERE request_id = ?`,
+      args: [id]
+    });
+    // ลบคำขอ
+    await db.execute({
+      sql: `DELETE FROM stock_requests WHERE id = ?`,
+      args: [id]
+    });
   }
 };
 

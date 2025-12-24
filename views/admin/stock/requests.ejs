@@ -145,6 +145,10 @@
                       <button class="btn btn-danger btn-sm" onclick="rejectRequest(<%= req.id %>)">
                         <i class="bi bi-x"></i>
                       </button>
+                    <% } else { %>
+                      <button class="btn btn-outline-danger btn-sm" onclick="deleteRequest(<%= req.id %>)" title="ลบ">
+                        <i class="bi bi-trash"></i>
+                      </button>
                     <% } %>
                   </td>
                 </tr>
@@ -414,6 +418,24 @@
         alert('เกิดข้อผิดพลาด');
       }
     });
+
+    async function deleteRequest(id) {
+      if (!confirm('ต้องการลบคำขอนี้หรือไม่?')) return;
+
+      try {
+        const res = await fetch(`/admin/stock/requests/${id}`, {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.error || 'เกิดข้อผิดพลาด');
+        }
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด');
+      }
+    }
   </script>
 </body>
 </html>

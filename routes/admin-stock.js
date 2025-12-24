@@ -267,6 +267,18 @@ router.post('/requests/:id/reject', async (req, res) => {
   }
 });
 
+// ลบคำขอเบิก Stock
+router.delete('/requests/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await StockRequest.delete(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete request error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ======= รับ-จ่าย Stock =======
 router.get('/transactions', async (req, res) => {
   try {
