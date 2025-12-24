@@ -494,4 +494,123 @@ router.post('/cancel-requests/:id/reject', requireLogin, async (req, res) => {
   }
 });
 
+// ======= Broadcast ประกาศข่าวสาร =======
+
+// หน้า Broadcast (ต้อง login)
+router.get('/broadcast', requireLogin, async (req, res) => {
+  try {
+    const lineQuota = await getLINEQuota();
+
+    // ดึงจำนวนผู้ติดตาม
+    let followerCount = 0;
+    try {
+      const accessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+      if (accessToken) {
+        const response = await fetch('https://api.line.me/v2/bot/followers/ids', {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        const data = await response.json();
+        followerCount = data.userIds ? data.userIds.length : 0;
+
+        // ถ้าได้ 0 ลองดึงจาก insight
+        if (followerCount === 0) {
+          const insightRes = await fetch('https://api.line.me/v2/bot/insight/followers?date=' +
+            new Date().toISOString().split('T')[0].replace(/-/g, ''), {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+          });
+          const insightData = await insightRes.json();
+          followerCount = insightData.followers || 0;
+        }
+      }
+    } catch (e) {
+      console.error('Error getting follower count:', e);
+    }
+
+    // ดึงประวัติการส่ง broadcast
+    const Broadcast = require('../models/Broadcast');
+    const broadcasts = await Broadcast.getAll();
+
+    res.render('admin/broadcast', {
+      admin: req.session.admin,
+      isLoggedIn: true,
+      lineQuota,
+      followerCount,
+      broadcasts,
+      page: 'broadcast'
+    });
+  } catch (error) {
+    console.error('Broadcast page error:', error);
+    res.status(500).send('เกิดข้อผิดพลาด');
+  }
+});
+
+// ส่ง Broadcast
+router.post('/broadcast/send', requireLogin, async (req, res) => {
+  try {
+    const { message, imageUrl } = req.body;
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({ error: 'กรุณากรอกข้อความ' });
+    }
+
+    const accessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+    if (!accessToken) {
+      return res.status(400).json({ error: 'ไม่ได้ตั้งค่า LINE Token' });
+    }
+
+    // สร้าง messages array
+    const messages = [];
+
+    // ถ้ามีรูปภาพ
+    if (imageUrl) {
+      messages.push({
+        type: 'image',
+        originalContentUrl: imageUrl,
+        previewImageUrl: imageUrl
+      });
+    }
+
+    // ข้อความ
+    messages.push({
+      type: 'text',
+      text: message.trim()
+    });
+
+    // ส่ง Broadcast
+    const response = await fetch('https://api.line.me/v2/bot/message/broadcast', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({ messages })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('LINE Broadcast error:', errorData);
+      return res.status(400).json({ error: errorData.message || 'ส่งไม่สำเร็จ' });
+    }
+
+    // บันทึกประวัติ
+    const Broadcast = require('../models/Broadcast');
+    await Broadcast.create({
+      message: message.trim(),
+      image_url: imageUrl || null,
+      admin_id: req.session.admin.id
+    });
+
+    // Log
+    await Log.create('broadcast_sent', {
+      admin_id: req.session.admin.id,
+      details: { message: message.substring(0, 100) }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Broadcast error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

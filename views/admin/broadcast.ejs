@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ประกาศข่าวสาร - Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Sarabun', sans-serif; }
+    body { background: #f8f9fa; }
+    .header-bar {
+      background: linear-gradient(135deg, #9b59b6, #8e44ad);
+      color: white;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+    .main-card {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+      padding: 30px;
+      margin-bottom: 30px;
+    }
+    .form-label { font-weight: 500; color: #333; }
+    .form-control, .form-select {
+      border-radius: 10px;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: #9b59b6;
+      box-shadow: 0 0 0 3px rgba(155, 89, 182, 0.1);
+    }
+    .btn-send {
+      background: linear-gradient(135deg, #9b59b6, #8e44ad);
+      border: none;
+      padding: 15px 40px;
+      font-size: 1.1rem;
+      border-radius: 10px;
+    }
+    .btn-send:hover {
+      background: linear-gradient(135deg, #8e44ad, #7d3c98);
+    }
+    .preview-card {
+      background: #f0f0f0;
+      border-radius: 15px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .preview-bubble {
+      background: white;
+      border-radius: 15px;
+      padding: 15px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      max-width: 280px;
+    }
+    .history-item {
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-date { color: #888; font-size: 0.85rem; }
+    .history-message { color: #333; }
+    .quota-warning {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    .char-count { font-size: 0.85rem; color: #888; }
+    .success-toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-bar">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <a href="/admin" class="text-white text-decoration-none me-3">
+            <i class="bi bi-arrow-left"></i> กลับ
+          </a>
+          <span class="fs-4 fw-bold"><i class="bi bi-megaphone me-2"></i>ประกาศข่าวสาร</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <span class="badge bg-light text-dark">
+            <i class="bi bi-people me-1"></i><%= followerCount || 0 %> ผู้ติดตาม
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="row">
+      <!-- Form Section -->
+      <div class="col-lg-7">
+        <div class="main-card">
+          <h5 class="mb-4"><i class="bi bi-pencil-square me-2"></i>เขียนข้อความประกาศ</h5>
+
+          <% if (typeof lineQuota !== 'undefined' && !lineQuota.error) { %>
+          <div class="quota-warning">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>โควต้า LINE:</strong> ใช้ไป <%= lineQuota.used %>/<%= lineQuota.limit %> ข้อความ
+              </div>
+              <div>
+                เหลือ <strong><%= lineQuota.limit - lineQuota.used %></strong> ข้อความ
+              </div>
+            </div>
+            <div class="progress mt-2" style="height: 8px;">
+              <div class="progress-bar bg-warning" style="width: <%= (lineQuota.used / lineQuota.limit * 100) %>%"></div>
+            </div>
+            <small class="text-muted mt-1 d-block">
+              * การส่ง Broadcast จะใช้โควต้าตามจำนวนผู้ติดตาม (เช่น 10 คน = 10 ข้อความ)
+            </small>
+          </div>
+          <% } %>
+
+          <form id="broadcastForm">
+            <div class="mb-4">
+              <label class="form-label">ประเภทข้อความ</label>
+              <select class="form-select" id="messageType" onchange="toggleMessageType()">
+                <option value="text">ข้อความธรรมดา</option>
+                <option value="image">รูปภาพ + ข้อความ</option>
+              </select>
+            </div>
+
+            <div class="mb-4" id="textSection">
+              <label class="form-label">ข้อความ</label>
+              <textarea class="form-control" id="message" rows="5"
+                placeholder="พิมพ์ข้อความที่ต้องการประกาศ..."
+                maxlength="2000" oninput="updatePreview(); updateCharCount()"></textarea>
+              <div class="d-flex justify-content-between mt-2">
+                <small class="text-muted">รองรับ Emoji</small>
+                <span class="char-count"><span id="charCount">0</span>/2000</span>
+              </div>
+            </div>
+
+            <div class="mb-4" id="imageSection" style="display: none;">
+              <label class="form-label">URL รูปภาพ</label>
+              <input type="url" class="form-control" id="imageUrl"
+                placeholder="https://example.com/image.jpg" oninput="updatePreview()">
+              <small class="text-muted">* รูปภาพต้องเป็น HTTPS และขนาดไม่เกิน 10MB</small>
+            </div>
+
+            <div class="d-flex gap-3">
+              <button type="submit" class="btn btn-send text-white flex-grow-1" id="sendBtn">
+                <i class="bi bi-send me-2"></i>ส่งประกาศ
+              </button>
+              <button type="button" class="btn btn-outline-secondary" onclick="confirmSend()">
+                <i class="bi bi-eye me-1"></i>ดูตัวอย่าง
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- History -->
+        <div class="main-card">
+          <h5 class="mb-3"><i class="bi bi-clock-history me-2"></i>ประวัติการส่ง (ล่าสุด)</h5>
+          <% if (broadcasts && broadcasts.length > 0) { %>
+            <% broadcasts.slice(0, 5).forEach(b => { %>
+              <div class="history-item">
+                <div class="d-flex justify-content-between">
+                  <span class="history-date">
+                    <i class="bi bi-calendar me-1"></i>
+                    <%= new Date(b.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' }) %>
+                  </span>
+                  <span class="badge bg-success">ส่งแล้ว <%= b.sent_count || 0 %> คน</span>
+                </div>
+                <div class="history-message mt-1">
+                  <%= b.message.length > 100 ? b.message.substring(0, 100) + '...' : b.message %>
+                </div>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <div class="text-center text-muted py-4">
+              <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+              <p class="mt-2">ยังไม่มีประวัติการส่ง</p>
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Preview Section -->
+      <div class="col-lg-5">
+        <div class="main-card">
+          <h5 class="mb-3"><i class="bi bi-phone me-2"></i>ตัวอย่างข้อความ</h5>
+          <div class="preview-card">
+            <div class="text-center mb-3">
+              <small class="text-muted">แสดงผลใน LINE</small>
+            </div>
+            <div id="previewArea">
+              <div class="preview-bubble" id="previewBubble">
+                <div id="previewImage" style="display: none;">
+                  <img src="" alt="preview" class="img-fluid rounded mb-2" style="max-height: 150px;">
+                </div>
+                <div id="previewText" style="white-space: pre-wrap; color: #333;">
+                  ข้อความจะแสดงที่นี่...
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <h6><i class="bi bi-info-circle me-2"></i>คำแนะนำ</h6>
+            <ul class="small text-muted">
+              <li>ข้อความควรกระชับ ชัดเจน</li>
+              <li>หลีกเลี่ยงการส่งบ่อยเกินไป</li>
+              <li>ใช้ Emoji เพื่อดึงดูดความสนใจ</li>
+              <li>ตรวจสอบโควต้าก่อนส่ง</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Modal -->
+  <div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-warning">
+          <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>ยืนยันการส่ง</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>คุณต้องการส่งข้อความประกาศนี้หรือไม่?</p>
+          <div class="alert alert-info">
+            <i class="bi bi-people me-2"></i>จะส่งถึงผู้ติดตามทั้งหมด <strong><%= followerCount || 0 %></strong> คน
+            <br>
+            <small>ใช้โควต้า: <%= followerCount || 0 %> ข้อความ</small>
+          </div>
+          <div class="preview-bubble mx-auto" style="max-width: 280px;">
+            <div id="modalPreviewImage" style="display: none;">
+              <img src="" alt="preview" class="img-fluid rounded mb-2">
+            </div>
+            <div id="modalPreviewText" style="white-space: pre-wrap;"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="button" class="btn btn-success" onclick="sendBroadcast()">
+            <i class="bi bi-send me-2"></i>ส่งเลย
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Toast -->
+  <div class="success-toast" id="successToast" style="display: none;">
+    <div class="alert alert-success shadow">
+      <i class="bi bi-check-circle me-2"></i>ส่งประกาศสำเร็จ!
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function toggleMessageType() {
+      const type = document.getElementById('messageType').value;
+      document.getElementById('imageSection').style.display = type === 'image' ? 'block' : 'none';
+      updatePreview();
+    }
+
+    function updatePreview() {
+      const message = document.getElementById('message').value || 'ข้อความจะแสดงที่นี่...';
+      const imageUrl = document.getElementById('imageUrl').value;
+      const type = document.getElementById('messageType').value;
+
+      document.getElementById('previewText').textContent = message;
+
+      const previewImg = document.getElementById('previewImage');
+      if (type === 'image' && imageUrl) {
+        previewImg.style.display = 'block';
+        previewImg.querySelector('img').src = imageUrl;
+      } else {
+        previewImg.style.display = 'none';
+      }
+    }
+
+    function updateCharCount() {
+      const count = document.getElementById('message').value.length;
+      document.getElementById('charCount').textContent = count;
+    }
+
+    function confirmSend() {
+      const message = document.getElementById('message').value;
+      if (!message.trim()) {
+        alert('กรุณากรอกข้อความ');
+        return;
+      }
+
+      // Update modal preview
+      document.getElementById('modalPreviewText').textContent = message;
+
+      const type = document.getElementById('messageType').value;
+      const imageUrl = document.getElementById('imageUrl').value;
+      const modalImg = document.getElementById('modalPreviewImage');
+
+      if (type === 'image' && imageUrl) {
+        modalImg.style.display = 'block';
+        modalImg.querySelector('img').src = imageUrl;
+      } else {
+        modalImg.style.display = 'none';
+      }
+
+      new bootstrap.Modal(document.getElementById('confirmModal')).show();
+    }
+
+    async function sendBroadcast() {
+      const message = document.getElementById('message').value;
+      const imageUrl = document.getElementById('imageUrl').value;
+      const type = document.getElementById('messageType').value;
+
+      const btn = document.querySelector('#confirmModal .btn-success');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>กำลังส่ง...';
+
+      try {
+        const res = await fetch('/admin/broadcast/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, imageUrl: type === 'image' ? imageUrl : null })
+        });
+
+        const result = await res.json();
+
+        bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+
+        if (result.success) {
+          document.getElementById('successToast').style.display = 'block';
+          document.getElementById('message').value = '';
+          document.getElementById('imageUrl').value = '';
+          updatePreview();
+          updateCharCount();
+
+          setTimeout(() => {
+            document.getElementById('successToast').style.display = 'none';
+            location.reload();
+          }, 2000);
+        } else {
+          alert('เกิดข้อผิดพลาด: ' + result.error);
+        }
+      } catch (err) {
+        alert('เกิดข้อผิดพลาดในการส่ง');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send me-2"></i>ส่งเลย';
+      }
+    }
+
+    document.getElementById('broadcastForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      confirmSend();
+    });
+  </script>
+</body>
+</html>

@@ -61,6 +61,7 @@
     .menu-icon.pond { background: linear-gradient(135deg, #3498db, #2980b9); }
     .menu-icon.equipment { background: linear-gradient(135deg, #f39c12, #e67e22); }
     .menu-icon.stock { background: linear-gradient(135deg, #27ae60, #16a085); }
+    .menu-icon.broadcast { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
 
     .menu-title {
       font-size: 1.5rem;
@@ -87,6 +88,8 @@
     .menu-btn.equipment:hover { background: linear-gradient(135deg, #e67e22, #d35400); transform: scale(1.05); }
     .menu-btn.stock { background: linear-gradient(135deg, #27ae60, #16a085); border: none; }
     .menu-btn.stock:hover { background: linear-gradient(135deg, #16a085, #138d75); transform: scale(1.05); }
+    .menu-btn.broadcast { background: linear-gradient(135deg, #9b59b6, #8e44ad); border: none; }
+    .menu-btn.broadcast:hover { background: linear-gradient(135deg, #8e44ad, #7d3c98); transform: scale(1.05); }
 
     .badge-pending {
       position: absolute;
@@ -284,6 +287,23 @@
           </p>
           <a href="/admin/stock" class="btn btn-success menu-btn stock text-white">
             <i class="bi bi-clipboard-data me-2"></i>เข้าสู่ระบบสต็อก
+          </a>
+        </div>
+      </div>
+
+      <!-- Broadcast ประกาศข่าวสาร -->
+      <div class="col-md-6 col-lg-4">
+        <div class="menu-card position-relative">
+          <div class="menu-icon broadcast">
+            <i class="bi bi-megaphone"></i>
+          </div>
+          <h3 class="menu-title">ประกาศข่าวสาร</h3>
+          <p class="menu-desc">
+            ส่งข้อความถึงผู้ใช้ทุกคน<br>
+            แจ้งข่าว ประกาศสำคัญ
+          </p>
+          <a href="/admin/broadcast" class="btn menu-btn broadcast text-white">
+            <i class="bi bi-send me-2"></i>ส่งประกาศ
           </a>
         </div>
       </div>
