@@ -55,12 +55,12 @@
             <% catItems.forEach(item => { %>
               <%
                 let qtyClass = 'high';
-                if (item.quantity <= (item.min_quantity || 5)) qtyClass = 'low';
-                else if (item.quantity <= (item.min_quantity || 5) * 2) qtyClass = 'medium';
+                if (item.current_quantity <= (item.min_quantity || 5)) qtyClass = 'low';
+                else if (item.current_quantity <= (item.min_quantity || 5) * 2) qtyClass = 'medium';
               %>
               <div class="stock-item" data-name="<%= item.name.toLowerCase() %>">
                 <span class="item-name"><%= item.name %></span>
-                <span class="item-qty <%= qtyClass %>"><%= item.quantity %> <%= item.unit || 'ชิ้น' %></span>
+                <span class="item-qty <%= qtyClass %>"><%= item.current_quantity %> <%= item.unit || 'ชิ้น' %></span>
               </div>
             <% }) %>
           </div>

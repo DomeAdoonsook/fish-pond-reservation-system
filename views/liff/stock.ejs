@@ -52,13 +52,13 @@
       <div class="mb-4">
         <label class="form-label">เลือกวัสดุที่ต้องการเบิก</label>
         <div id="itemList" style="max-height: 250px; overflow-y: auto;">
-          <% items.filter(i => i.quantity > 0).forEach(item => { %>
-            <div class="stock-item" data-id="<%= item.id %>" data-name="<%= item.name %>" data-category="<%= item.category_id %>" data-max="<%= item.quantity %>" data-unit="<%= item.unit || 'ชิ้น' %>">
+          <% items.filter(i => i.current_quantity > 0).forEach(item => { %>
+            <div class="stock-item" data-id="<%= item.id %>" data-name="<%= item.name %>" data-category="<%= item.category_id %>" data-max="<%= item.current_quantity %>" data-unit="<%= item.unit || 'ชิ้น' %>">
               <div>
                 <div class="stock-name"><%= item.name %></div>
-                <div class="stock-qty">คงเหลือ: <%= item.quantity %> <%= item.unit || 'ชิ้น' %></div>
+                <div class="stock-qty">คงเหลือ: <%= item.current_quantity %> <%= item.unit || 'ชิ้น' %></div>
               </div>
-              <input type="number" class="qty-input" min="0" max="<%= item.quantity %>" value="0" onchange="updateSelection(this)">
+              <input type="number" class="qty-input" min="0" max="<%= item.current_quantity %>" value="0" onchange="updateSelection(this)">
             </div>
           <% }) %>
         </div>
