@@ -14,16 +14,29 @@ const StockRequest = require('../models/StockRequest');
 
 // LINE Config
 const config = {
-  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
-  channelSecret: process.env.LINE_CHANNEL_SECRET
+  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || '',
+  channelSecret: process.env.LINE_CHANNEL_SECRET || ''
 };
 
+// Log config status
+console.log('🔧 LINE Config loaded:', {
+  hasAccessToken: !!process.env.LINE_CHANNEL_ACCESS_TOKEN,
+  hasChannelSecret: !!process.env.LINE_CHANNEL_SECRET
+});
+
 const client = new line.messagingApi.MessagingApiClient({
-  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN
+  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || ''
 });
 
 // Webhook endpoint
-router.post('/', line.middleware(config), async (req, res) => {
+router.post('/', (req, res, next) => {
+  // Check if LINE credentials are configured
+  if (!process.env.LINE_CHANNEL_SECRET) {
+    console.error('❌ LINE_CHANNEL_SECRET is not configured');
+    return res.status(200).send('OK'); // Return 200 to avoid LINE retry
+  }
+  next();
+}, line.middleware(config), async (req, res) => {
   try {
     const events = req.body.events;
     await Promise.all(events.map(handleEvent));
