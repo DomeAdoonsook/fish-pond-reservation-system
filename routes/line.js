@@ -8,6 +8,9 @@ const Log = require('../models/Log');
 const Equipment = require('../models/Equipment');
 const EquipmentCategory = require('../models/EquipmentCategory');
 const EquipmentReservation = require('../models/EquipmentReservation');
+const StockItem = require('../models/StockItem');
+const StockCategory = require('../models/StockCategory');
+const StockRequest = require('../models/StockRequest');
 
 // LINE Config
 const config = {
@@ -88,6 +91,19 @@ async function handleTextMessage(event, userId) {
     return showAvailablePonds(event.replyToken);
   }
 
+  // Stock commands
+  if (lowerText.includes('สต็อก') || lowerText.includes('stock') || lowerText.includes('วัสดุ') || lowerText.includes('เช็ควัสดุ')) {
+    return showStockSummary(event.replyToken);
+  }
+
+  if (lowerText.includes('เบิก') || lowerText.includes('ขอเบิก')) {
+    return startStockRequestFlow(event.replyToken, userId);
+  }
+
+  if (lowerText.includes('คำขอเบิก') || lowerText.includes('สถานะเบิก')) {
+    return showUserStockRequests(event.replyToken, userId);
+  }
+
   // Default - show menu
   return showMainMenu(event.replyToken);
 }
@@ -144,6 +160,24 @@ async function handlePostback(event, userId) {
 
     case 'my_equipment':
       return showUserEquipmentReservations(event.replyToken, userId);
+
+    // Stock postbacks
+    case 'check_stock':
+      return showStockSummary(event.replyToken);
+
+    case 'request_stock':
+      return startStockRequestFlow(event.replyToken, userId);
+
+    case 'select_stock_category':
+      const stockCatId = params.get('cat_id');
+      return showStockItemsInCategory(event.replyToken, userId, stockCatId);
+
+    case 'select_stock_item':
+      const stockItemId = params.get('item_id');
+      return startStockItemSelection(event.replyToken, userId, stockItemId);
+
+    case 'my_stock_requests':
+      return showUserStockRequests(event.replyToken, userId);
 
     default:
       return showMainMenu(event.replyToken);
@@ -355,6 +389,78 @@ async function handleConversationFlow(event, userId, state, data, text) {
         messages: [{ type: 'text', text: 'กรุณาพิมพ์ "ยืนยัน" เพื่อยืนยัน หรือ "ยกเลิก" เพื่อยกเลิก' }]
       });
 
+    // Stock request flow
+    case 'stock_awaiting_quantity':
+      const stockQty = parseInt(text);
+      if (isNaN(stockQty) || stockQty <= 0) {
+        return client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: 'text', text: '❌ กรุณาระบุจำนวนเป็นตัวเลขที่มากกว่า 0' }]
+        });
+      }
+      if (stockQty > data.available) {
+        return client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: 'text', text: `❌ จำนวนไม่เพียงพอ (มี ${data.available} ${data.unit})` }]
+        });
+      }
+      data.items = data.items || [];
+      data.items.push({ item_id: data.current_item_id, quantity: stockQty, name: data.current_item_name, unit: data.unit });
+      await UserSession.set(userId, 'stock_awaiting_more', data);
+      return client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{
+          type: 'text',
+          text: `✅ เพิ่ม ${data.current_item_name} x${stockQty} ${data.unit} แล้ว\n\nต้องการเพิ่มวัสดุอื่นไหม?\nพิมพ์ "เพิ่ม" หรือ "ต่อไป" เพื่อไปขั้นตอนถัดไป`
+        }]
+      });
+
+    case 'stock_awaiting_more':
+      if (text.includes('เพิ่ม') || text.includes('อื่น')) {
+        return startStockRequestFlow(event.replyToken, userId, data);
+      } else {
+        await UserSession.set(userId, 'stock_awaiting_name', data);
+        return client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: 'text', text: '👤 กรุณาระบุชื่อผู้ขอเบิก' }]
+        });
+      }
+
+    case 'stock_awaiting_name':
+      data.user_name = text;
+      await UserSession.set(userId, 'stock_awaiting_phone', data);
+      return client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: 'text', text: '📱 กรุณาระบุเบอร์โทรศัพท์\n\nหรือพิมพ์ "ข้าม" หากไม่ต้องการระบุ' }]
+      });
+
+    case 'stock_awaiting_phone':
+      data.phone = text === 'ข้าม' ? null : text;
+      await UserSession.set(userId, 'stock_awaiting_purpose', data);
+      return client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: 'text', text: '📝 กรุณาระบุเหตุผล/วัตถุประสงค์ในการขอเบิก' }]
+      });
+
+    case 'stock_awaiting_purpose':
+      data.purpose = text;
+      return showStockRequestConfirmation(event.replyToken, userId, data);
+
+    case 'stock_awaiting_confirm':
+      if (text === 'ยืนยัน' || text.toLowerCase() === 'yes' || text === 'ใช่') {
+        return createStockRequest(event.replyToken, userId, data);
+      } else if (text === 'ยกเลิก' || text.toLowerCase() === 'no' || text === 'ไม่') {
+        await UserSession.reset(userId);
+        return client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: 'text', text: '❌ ยกเลิกการขอเบิกวัสดุแล้ว' }]
+        });
+      }
+      return client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: 'text', text: 'กรุณาพิมพ์ "ยืนยัน" เพื่อยืนยัน หรือ "ยกเลิก" เพื่อยกเลิก' }]
+      });
+
     default:
       await UserSession.reset(userId);
       return showMainMenu(event.replyToken);
@@ -511,6 +617,34 @@ async function showMainMenu(replyToken) {
               type: 'postback',
               label: '📦 สถานะการยืมอุปกรณ์',
               data: 'action=my_equipment'
+            }
+          }, {
+            type: 'separator',
+            margin: 'md'
+          }, {
+            type: 'button',
+            style: 'primary',
+            color: '#e67e22',
+            action: {
+              type: 'postback',
+              label: '📊 เช็ค Stock วัสดุ',
+              data: 'action=check_stock'
+            }
+          }, {
+            type: 'button',
+            style: 'secondary',
+            action: {
+              type: 'postback',
+              label: '📝 ขอเบิกวัสดุ',
+              data: 'action=request_stock'
+            }
+          }, {
+            type: 'button',
+            style: 'secondary',
+            action: {
+              type: 'postback',
+              label: '📋 สถานะคำขอเบิกของฉัน',
+              data: 'action=my_stock_requests'
             }
           }]
         }
@@ -1551,6 +1685,521 @@ async function showUserEquipmentReservations(replyToken, userId) {
       }
     }]
   });
+}
+
+// ===== Stock Functions =====
+
+// แสดงสรุป Stock
+async function showStockSummary(replyToken) {
+  try {
+    const categories = await StockCategory.getAll();
+    const items = await StockItem.getAll();
+
+    // สรุปตามหมวดหมู่
+    const catSummary = categories.map(cat => {
+      const catItems = items.filter(i => i.category_id === cat.id);
+      const lowStock = catItems.filter(i => i.current_quantity <= i.min_quantity).length;
+      return `📦 ${cat.name}: ${catItems.length} รายการ ${lowStock > 0 ? `(⚠️ ใกล้หมด ${lowStock})` : ''}`;
+    }).join('\n');
+
+    // รายการใกล้หมด
+    const lowStockItems = items.filter(i => i.current_quantity <= i.min_quantity).slice(0, 5);
+    let lowStockText = '';
+    if (lowStockItems.length > 0) {
+      lowStockText = '\n\n⚠️ วัสดุใกล้หมด:\n' + lowStockItems.map(i =>
+        `• ${i.name}: ${i.current_quantity}/${i.min_quantity} ${i.unit}`
+      ).join('\n');
+    }
+
+    return client.replyMessage({
+      replyToken,
+      messages: [{
+        type: 'flex',
+        altText: 'สรุป Stock วัสดุ',
+        contents: {
+          type: 'bubble',
+          header: {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#e67e22',
+            contents: [{
+              type: 'text',
+              text: '📊 สรุป Stock วัสดุ',
+              weight: 'bold',
+              size: 'lg',
+              color: '#ffffff'
+            }]
+          },
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'md',
+            contents: [{
+              type: 'text',
+              text: catSummary + lowStockText,
+              wrap: true,
+              size: 'sm'
+            }]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            contents: [{
+              type: 'button',
+              style: 'primary',
+              color: '#e67e22',
+              action: {
+                type: 'postback',
+                label: '📝 ขอเบิกวัสดุ',
+                data: 'action=request_stock'
+              }
+            }, {
+              type: 'button',
+              style: 'secondary',
+              action: {
+                type: 'postback',
+                label: '🏠 กลับเมนูหลัก',
+                data: 'action=menu'
+              }
+            }]
+          }
+        }
+      }]
+    });
+  } catch (error) {
+    console.error('showStockSummary error:', error);
+    return client.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: '❌ เกิดข้อผิดพลาดในการโหลดข้อมูล Stock' }]
+    });
+  }
+}
+
+// เริ่ม flow ขอเบิกวัสดุ
+async function startStockRequestFlow(replyToken, userId, existingData = null) {
+  try {
+    const categories = await StockCategory.getAll();
+
+    if (categories.length === 0) {
+      return client.replyMessage({
+        replyToken,
+        messages: [{ type: 'text', text: '❌ ยังไม่มีหมวดหมู่วัสดุในระบบ' }]
+      });
+    }
+
+    const catButtons = categories.slice(0, 10).map(c => ({
+      type: 'button',
+      style: 'primary',
+      color: '#e67e22',
+      action: {
+        type: 'postback',
+        label: c.name,
+        data: `action=select_stock_category&cat_id=${c.id}`
+      }
+    }));
+
+    // เก็บ session ถ้ามี data เดิม
+    if (existingData && existingData.items) {
+      await UserSession.set(userId, 'stock_selecting', existingData);
+    }
+
+    return client.replyMessage({
+      replyToken,
+      messages: [{
+        type: 'flex',
+        altText: 'เลือกหมวดหมู่วัสดุ',
+        contents: {
+          type: 'bubble',
+          header: {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#e67e22',
+            contents: [{
+              type: 'text',
+              text: '📝 ขอเบิกวัสดุ',
+              weight: 'bold',
+              size: 'lg',
+              color: '#ffffff'
+            }]
+          },
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            contents: [
+              { type: 'text', text: 'เลือกหมวดหมู่วัสดุ:', size: 'sm', color: '#666666' },
+              ...catButtons
+            ]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [{
+              type: 'button',
+              style: 'secondary',
+              action: {
+                type: 'postback',
+                label: '🔙 กลับเมนูหลัก',
+                data: 'action=menu'
+              }
+            }]
+          }
+        }
+      }]
+    });
+  } catch (error) {
+    console.error('startStockRequestFlow error:', error);
+    return client.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: '❌ เกิดข้อผิดพลาด' }]
+    });
+  }
+}
+
+// แสดงวัสดุในหมวดหมู่
+async function showStockItemsInCategory(replyToken, userId, categoryId) {
+  try {
+    const items = await StockItem.getByCategory(categoryId);
+    const availableItems = items.filter(i => i.current_quantity > 0);
+
+    if (availableItems.length === 0) {
+      return client.replyMessage({
+        replyToken,
+        messages: [{ type: 'text', text: '❌ ไม่มีวัสดุในหมวดหมู่นี้ หรือหมดแล้ว' }]
+      });
+    }
+
+    const itemButtons = availableItems.slice(0, 10).map(i => ({
+      type: 'button',
+      style: 'primary',
+      color: '#27ae60',
+      action: {
+        type: 'postback',
+        label: `${i.name} (${i.current_quantity} ${i.unit})`,
+        data: `action=select_stock_item&item_id=${i.id}`
+      }
+    }));
+
+    return client.replyMessage({
+      replyToken,
+      messages: [{
+        type: 'flex',
+        altText: 'เลือกวัสดุ',
+        contents: {
+          type: 'bubble',
+          header: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [{
+              type: 'text',
+              text: '📦 เลือกวัสดุ',
+              weight: 'bold',
+              size: 'lg'
+            }]
+          },
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            contents: itemButtons
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [{
+              type: 'button',
+              style: 'secondary',
+              action: {
+                type: 'postback',
+                label: '🔙 เลือกหมวดหมู่อื่น',
+                data: 'action=request_stock'
+              }
+            }]
+          }
+        }
+      }]
+    });
+  } catch (error) {
+    console.error('showStockItemsInCategory error:', error);
+    return client.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: '❌ เกิดข้อผิดพลาด' }]
+    });
+  }
+}
+
+// เริ่มเลือกจำนวนวัสดุ
+async function startStockItemSelection(replyToken, userId, itemId) {
+  try {
+    const item = await StockItem.getById(itemId);
+    if (!item || item.current_quantity <= 0) {
+      return client.replyMessage({
+        replyToken,
+        messages: [{ type: 'text', text: '❌ วัสดุนี้หมดแล้ว' }]
+      });
+    }
+
+    const session = await UserSession.get(userId);
+    const data = session?.data || {};
+    data.current_item_id = itemId;
+    data.current_item_name = item.name;
+    data.available = item.current_quantity;
+    data.unit = item.unit;
+
+    await UserSession.set(userId, 'stock_awaiting_quantity', data);
+
+    return client.replyMessage({
+      replyToken,
+      messages: [{
+        type: 'text',
+        text: `📦 ${item.name}\nคงเหลือ: ${item.current_quantity} ${item.unit}\n\n🔢 กรุณาระบุจำนวนที่ต้องการเบิก`
+      }]
+    });
+  } catch (error) {
+    console.error('startStockItemSelection error:', error);
+    return client.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: '❌ เกิดข้อผิดพลาด' }]
+    });
+  }
+}
+
+// แสดงสรุปการขอเบิกวัสดุ
+async function showStockRequestConfirmation(replyToken, userId, data) {
+  await UserSession.set(userId, 'stock_awaiting_confirm', data);
+
+  const itemsList = data.items.map(i => `• ${i.name} x${i.quantity} ${i.unit}`).join('\n');
+
+  return client.replyMessage({
+    replyToken,
+    messages: [{
+      type: 'flex',
+      altText: 'ยืนยันการขอเบิกวัสดุ',
+      contents: {
+        type: 'bubble',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          backgroundColor: '#e67e22',
+          contents: [{
+            type: 'text',
+            text: '📋 สรุปการขอเบิกวัสดุ',
+            weight: 'bold',
+            size: 'lg',
+            color: '#ffffff'
+          }]
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'md',
+          contents: [{
+            type: 'text',
+            text: `👤 ผู้ขอ: ${data.user_name}`,
+            size: 'sm'
+          }, {
+            type: 'text',
+            text: `📱 โทร: ${data.phone || '-'}`,
+            size: 'sm'
+          }, {
+            type: 'text',
+            text: `📝 เหตุผล: ${data.purpose}`,
+            size: 'sm',
+            wrap: true
+          }, {
+            type: 'separator',
+            margin: 'md'
+          }, {
+            type: 'text',
+            text: '📦 รายการวัสดุ:',
+            size: 'sm',
+            weight: 'bold',
+            margin: 'md'
+          }, {
+            type: 'text',
+            text: itemsList,
+            size: 'sm',
+            wrap: true
+          }, {
+            type: 'separator',
+            margin: 'md'
+          }, {
+            type: 'text',
+            text: 'พิมพ์ "ยืนยัน" เพื่อส่งคำขอ',
+            size: 'sm',
+            color: '#27ae60',
+            margin: 'md'
+          }, {
+            type: 'text',
+            text: 'หรือ "ยกเลิก" เพื่อยกเลิก',
+            size: 'sm',
+            color: '#e74c3c'
+          }]
+        }
+      }
+    }]
+  });
+}
+
+// สร้างคำขอเบิกวัสดุ
+async function createStockRequest(replyToken, userId, data) {
+  try {
+    const request = await StockRequest.create({
+      user_name: data.user_name,
+      line_user_id: userId,
+      phone: data.phone,
+      purpose: data.purpose,
+      items: data.items.map(i => ({ item_id: i.item_id, quantity: i.quantity }))
+    });
+
+    await UserSession.reset(userId);
+
+    // แจ้ง Admin
+    try {
+      const { notifyAdminNewStockRequest } = require('../utils/lineNotify');
+      if (notifyAdminNewStockRequest) {
+        await notifyAdminNewStockRequest({
+          id: request.id,
+          user_name: data.user_name,
+          items_summary: data.items.map(i => `${i.name} x${i.quantity}`).join(', ')
+        });
+      }
+    } catch (e) {
+      console.error('Notify error:', e);
+    }
+
+    return client.replyMessage({
+      replyToken,
+      messages: [{
+        type: 'flex',
+        altText: 'ส่งคำขอเบิกวัสดุเรียบร้อย',
+        contents: {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [{
+              type: 'text',
+              text: '✅ ส่งคำขอเบิกวัสดุเรียบร้อย!',
+              weight: 'bold',
+              size: 'lg',
+              color: '#27ae60'
+            }, {
+              type: 'text',
+              text: `หมายเลขคำขอ: #STK-${String(request.id).padStart(4, '0')}`,
+              size: 'sm',
+              color: '#666666',
+              margin: 'md'
+            }, {
+              type: 'text',
+              text: 'กรุณารอการอนุมัติจากเจ้าหน้าที่',
+              size: 'sm',
+              color: '#666666',
+              margin: 'sm'
+            }]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [{
+              type: 'button',
+              style: 'primary',
+              color: '#27ae60',
+              action: {
+                type: 'postback',
+                label: '🏠 กลับเมนูหลัก',
+                data: 'action=menu'
+              }
+            }]
+          }
+        }
+      }]
+    });
+  } catch (error) {
+    console.error('createStockRequest error:', error);
+    await UserSession.reset(userId);
+    return client.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: '❌ เกิดข้อผิดพลาด กรุณาลองใหม่' }]
+    });
+  }
+}
+
+// แสดงสถานะคำขอเบิกของผู้ใช้
+async function showUserStockRequests(replyToken, userId) {
+  try {
+    const requests = await StockRequest.getByLineUserId(userId);
+
+    if (!requests || requests.length === 0) {
+      return client.replyMessage({
+        replyToken,
+        messages: [{ type: 'text', text: '📋 คุณยังไม่มีคำขอเบิกวัสดุ' }]
+      });
+    }
+
+    const bubbles = requests.slice(0, 5).map(r => {
+      const statusText = {
+        pending: '🟡 รออนุมัติ',
+        approved: '🟢 อนุมัติแล้ว',
+        rejected: '🔴 ไม่อนุมัติ'
+      }[r.status] || r.status;
+
+      return {
+        type: 'bubble',
+        size: 'kilo',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [{
+            type: 'text',
+            text: `#STK-${String(r.id).padStart(4, '0')}`,
+            weight: 'bold',
+            size: 'lg'
+          }, {
+            type: 'text',
+            text: statusText,
+            size: 'sm'
+          }, {
+            type: 'separator',
+            margin: 'md'
+          }, {
+            type: 'text',
+            text: `📦 ${r.items_summary || '-'}`,
+            size: 'xs',
+            color: '#666666',
+            wrap: true,
+            margin: 'md'
+          }, {
+            type: 'text',
+            text: `📝 ${r.purpose || '-'}`,
+            size: 'xs',
+            color: '#666666',
+            wrap: true
+          }]
+        }
+      };
+    });
+
+    return client.replyMessage({
+      replyToken,
+      messages: [{
+        type: 'flex',
+        altText: 'สถานะคำขอเบิกวัสดุ',
+        contents: {
+          type: 'carousel',
+          contents: bubbles
+        }
+      }]
+    });
+  } catch (error) {
+    console.error('showUserStockRequests error:', error);
+    return client.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: '❌ เกิดข้อผิดพลาดในการโหลดข้อมูล' }]
+    });
+  }
 }
 
 module.exports = router;
