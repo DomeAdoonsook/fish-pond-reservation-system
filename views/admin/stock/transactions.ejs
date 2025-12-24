@@ -92,13 +92,16 @@
                 <tbody>
                   <% transactions.forEach(function(tx) { %>
                     <%
-                      const date = new Date(tx.created_at);
+                      const utcDate = new Date(tx.created_at);
+                      const thaiDate = new Date(utcDate.getTime() + (7 * 60 * 60 * 1000)); // UTC+7
                       const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                      const hours = String(thaiDate.getUTCHours()).padStart(2, '0');
+                      const minutes = String(thaiDate.getUTCMinutes()).padStart(2, '0');
                     %>
                     <tr>
                       <td>
-                        <%= date.getDate() %> <%= thaiMonths[date.getMonth()] %> <%= date.getFullYear() + 543 %>
-                        <br><small class="text-muted"><%= date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) %></small>
+                        <%= thaiDate.getUTCDate() %> <%= thaiMonths[thaiDate.getUTCMonth()] %> <%= thaiDate.getUTCFullYear() + 543 %>
+                        <br><small class="text-muted"><%= hours %>:<%= minutes %></small>
                       </td>
                       <td>
                         <% if (tx.transaction_type === 'in') { %>
