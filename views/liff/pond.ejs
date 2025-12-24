@@ -145,8 +145,8 @@
           <% } else { %>
             <% ponds.forEach(pond => { %>
               <div class="pond-select-item" data-pond-id="<%= pond.id %>" onclick="selectPond(this, <%= pond.id %>)">
-                <div class="pond-name"><%= pond.name %></div>
-                <div class="pond-size">ขนาด: <%= pond.size || '-' %></div>
+                <div class="pond-name"><%= pond.pond_code || pond.name || 'บ่อ #' + pond.id %></div>
+                <div class="pond-size">ขนาด: <%= pond.size || '-' %> | โซน: <%= pond.zone || '-' %></div>
               </div>
             <% }) %>
           <% } %>
