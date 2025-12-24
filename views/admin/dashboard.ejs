@@ -140,68 +140,53 @@
       color: white;
     }
 
-    /* LINE Quota Card */
-    .line-quota-card {
+    /* LINE Quota Bar - Compact */
+    .line-quota-bar {
       background: linear-gradient(135deg, #00B900, #00C300);
-      border-radius: 15px;
-      padding: 20px 25px;
+      border-radius: 8px;
+      padding: 8px 15px;
       color: white;
-      box-shadow: 0 5px 20px rgba(0, 185, 0, 0.3);
-      margin-bottom: 30px;
-    }
-    .line-quota-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 15px;
+      font-size: 0.85rem;
+      box-shadow: 0 2px 8px rgba(0, 185, 0, 0.2);
     }
-    .line-quota-title {
-      font-size: 1.1rem;
-      font-weight: 600;
+    .line-quota-bar svg {
+      width: 18px;
+      height: 18px;
+      margin-right: 8px;
+    }
+    .line-quota-bar .quota-info {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 15px;
     }
-    .line-quota-title img {
-      width: 24px;
-      height: 24px;
+    .line-quota-bar .quota-text {
+      font-weight: 500;
     }
-    .line-quota-numbers {
+    .line-quota-bar .quota-numbers {
       display: flex;
-      gap: 30px;
-      margin-bottom: 12px;
+      align-items: center;
+      gap: 5px;
     }
-    .quota-item {
-      text-align: center;
-    }
-    .quota-value {
-      font-size: 1.8rem;
+    .line-quota-bar .quota-used {
       font-weight: 700;
     }
-    .quota-label {
-      font-size: 0.8rem;
-      opacity: 0.9;
-    }
-    .quota-progress {
+    .line-quota-bar .quota-progress-mini {
+      width: 80px;
+      height: 6px;
       background: rgba(255,255,255,0.3);
-      border-radius: 10px;
-      height: 10px;
+      border-radius: 3px;
       overflow: hidden;
     }
-    .quota-progress-bar {
+    .line-quota-bar .quota-progress-fill {
       height: 100%;
-      border-radius: 10px;
-      transition: width 0.5s ease;
+      border-radius: 3px;
+      background: #fff;
     }
-    .quota-progress-bar.safe { background: #fff; }
-    .quota-progress-bar.warning { background: #ffc107; }
-    .quota-progress-bar.danger { background: #dc3545; }
-    .quota-reset-info {
-      font-size: 0.75rem;
-      opacity: 0.8;
-      margin-top: 8px;
-      text-align: right;
-    }
+    .line-quota-bar .quota-progress-fill.warning { background: #ffc107; }
+    .line-quota-bar .quota-progress-fill.danger { background: #dc3545; }
   </style>
 </head>
 <body>
@@ -213,55 +198,29 @@
       <p class="hero-subtitle">คณะเทคโนโลยีการประมงและทรัพยากรทางน้ำ มหาวิทยาลัยแม่โจ้</p>
     </div>
 
-    <!-- LINE Quota Card -->
+    <!-- LINE Quota Bar (Compact) -->
     <% if (typeof lineQuota !== 'undefined' && !lineQuota.error) { %>
     <%
       const usedPercent = lineQuota.limit > 0 ? (lineQuota.used / lineQuota.limit * 100) : 0;
-      let progressClass = 'safe';
+      let progressClass = '';
       if (usedPercent >= 80) progressClass = 'danger';
       else if (usedPercent >= 50) progressClass = 'warning';
     %>
-    <div class="row justify-content-center mb-4">
-      <div class="col-md-8 col-lg-6">
-        <div class="line-quota-card">
-          <div class="line-quota-header">
-            <div class="line-quota-title">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="white">
-                <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
-              </svg>
-              LINE Bot โควต้า
-            </div>
-            <span class="badge bg-light text-success">เดือนนี้</span>
+    <div class="row justify-content-center mb-3">
+      <div class="col-md-6 col-lg-5">
+        <div class="line-quota-bar">
+          <div class="quota-info">
+            <svg viewBox="0 0 24 24" fill="white">
+              <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+            </svg>
+            <span class="quota-text">โควต้า</span>
           </div>
-          <div class="line-quota-numbers">
-            <div class="quota-item">
-              <div class="quota-value"><%= lineQuota.used.toLocaleString() %></div>
-              <div class="quota-label">ใช้ไปแล้ว</div>
-            </div>
-            <div class="quota-item">
-              <div class="quota-value"><%= lineQuota.remaining.toLocaleString() %></div>
-              <div class="quota-label">คงเหลือ</div>
-            </div>
-            <div class="quota-item">
-              <div class="quota-value"><%= lineQuota.limit.toLocaleString() %></div>
-              <div class="quota-label">โควต้าทั้งหมด</div>
+          <div class="quota-numbers">
+            <span class="quota-used"><%= lineQuota.used %></span>/<%= lineQuota.limit %>
+            <div class="quota-progress-mini">
+              <div class="quota-progress-fill <%= progressClass %>" style="width: <%= usedPercent.toFixed(0) %>%"></div>
             </div>
           </div>
-          <div class="quota-progress">
-            <div class="quota-progress-bar <%= progressClass %>" style="width: <%= usedPercent.toFixed(1) %>%"></div>
-          </div>
-          <div class="quota-reset-info">
-            <i class="bi bi-info-circle me-1"></i>โควต้าจะรีเซ็ตทุกวันที่ 1 ของเดือน
-          </div>
-        </div>
-      </div>
-    </div>
-    <% } else if (typeof lineQuota !== 'undefined' && lineQuota.error) { %>
-    <div class="row justify-content-center mb-4">
-      <div class="col-md-8 col-lg-6">
-        <div class="alert alert-warning d-flex align-items-center" role="alert">
-          <i class="bi bi-exclamation-triangle me-2"></i>
-          <small>LINE Bot: <%= lineQuota.error %></small>
         </div>
       </div>
     </div>
