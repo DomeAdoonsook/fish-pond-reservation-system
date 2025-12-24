@@ -613,4 +613,95 @@ router.post('/broadcast/send', requireLogin, async (req, res) => {
   }
 });
 
+// ======= จัดการผู้ดูแลระบบ =======
+
+// หน้าจัดการ Admin
+router.get('/admins', requireLogin, async (req, res) => {
+  try {
+    const admins = await Admin.getAll();
+    res.render('admin/admins', {
+      admin: req.session.admin,
+      admins,
+      page: 'admins'
+    });
+  } catch (error) {
+    console.error('Admins page error:', error);
+    res.status(500).send('เกิดข้อผิดพลาด');
+  }
+});
+
+// เพิ่ม Admin ใหม่
+router.post('/admins', requireLogin, async (req, res) => {
+  try {
+    const { username, password, name, lineUserId } = req.body;
+
+    if (!username || !password || !name) {
+      return res.status(400).json({ error: 'กรุณากรอกข้อมูลให้ครบ' });
+    }
+
+    const id = await Admin.create(username, password, name, lineUserId || null);
+
+    await Log.create('admin_created', {
+      admin_id: req.session.admin.id,
+      details: { new_admin_id: id, username }
+    });
+
+    res.json({ success: true, id });
+  } catch (error) {
+    console.error('Create admin error:', error);
+    if (error.message.includes('UNIQUE')) {
+      return res.status(400).json({ error: 'ชื่อผู้ใช้นี้มีอยู่แล้ว' });
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// อัพเดท Admin
+router.put('/admins/:id', requireLogin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, lineUserId, receiveNotifications } = req.body;
+
+    await Admin.update(id, {
+      name,
+      line_user_id: lineUserId,
+      receive_notifications: receiveNotifications
+    });
+
+    await Log.create('admin_updated', {
+      admin_id: req.session.admin.id,
+      details: { updated_admin_id: id }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Update admin error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ลบ Admin
+router.delete('/admins/:id', requireLogin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // ป้องกันลบตัวเอง
+    if (parseInt(id) === req.session.admin.id) {
+      return res.status(400).json({ error: 'ไม่สามารถลบตัวเองได้' });
+    }
+
+    await Admin.delete(id);
+
+    await Log.create('admin_deleted', {
+      admin_id: req.session.admin.id,
+      details: { deleted_admin_id: id }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete admin error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

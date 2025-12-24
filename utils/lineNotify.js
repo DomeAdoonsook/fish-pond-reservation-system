@@ -1,28 +1,35 @@
 const line = require('@line/bot-sdk');
+const Admin = require('../models/Admin');
 
 const client = new line.messagingApi.MessagingApiClient({
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN
 });
 
-// Helper: ดึง Admin LINE User IDs ทั้งหมด
-function getAdminUserIds() {
+// Helper: ดึง Admin LINE User IDs ทั้งหมด (จากฐานข้อมูล + Environment Variables)
+async function getAdminUserIds() {
   const adminIds = [];
 
-  // รองรับ ADMIN_LINE_USER_ID, ADMIN_LINE_USER_ID_2, ADMIN_LINE_USER_ID_3, ...
-  if (process.env.ADMIN_LINE_USER_ID) {
+  // ดึงจากฐานข้อมูล (Admin ที่เปิดรับแจ้งเตือน)
+  try {
+    const dbAdmins = await Admin.getNotificationReceivers();
+    dbAdmins.forEach(admin => {
+      if (admin.line_user_id && !adminIds.includes(admin.line_user_id)) {
+        adminIds.push(admin.line_user_id);
+      }
+    });
+  } catch (e) {
+    console.error('Error getting admins from database:', e);
+  }
+
+  // Fallback: รองรับ Environment Variables (backward compatible)
+  if (process.env.ADMIN_LINE_USER_ID && !adminIds.includes(process.env.ADMIN_LINE_USER_ID)) {
     adminIds.push(process.env.ADMIN_LINE_USER_ID);
   }
-  if (process.env.ADMIN_LINE_USER_ID_2) {
+  if (process.env.ADMIN_LINE_USER_ID_2 && !adminIds.includes(process.env.ADMIN_LINE_USER_ID_2)) {
     adminIds.push(process.env.ADMIN_LINE_USER_ID_2);
   }
-  if (process.env.ADMIN_LINE_USER_ID_3) {
+  if (process.env.ADMIN_LINE_USER_ID_3 && !adminIds.includes(process.env.ADMIN_LINE_USER_ID_3)) {
     adminIds.push(process.env.ADMIN_LINE_USER_ID_3);
-  }
-  if (process.env.ADMIN_LINE_USER_ID_4) {
-    adminIds.push(process.env.ADMIN_LINE_USER_ID_4);
-  }
-  if (process.env.ADMIN_LINE_USER_ID_5) {
-    adminIds.push(process.env.ADMIN_LINE_USER_ID_5);
   }
 
   return adminIds;
@@ -30,10 +37,10 @@ function getAdminUserIds() {
 
 // Helper: ส่งข้อความไปหา Admin ทุกคน
 async function pushMessageToAllAdmins(messages) {
-  const adminIds = getAdminUserIds();
+  const adminIds = await getAdminUserIds();
 
   if (adminIds.length === 0) {
-    console.log('No ADMIN_LINE_USER_ID configured');
+    console.log('No admin LINE IDs configured (database or environment)');
     return;
   }
 

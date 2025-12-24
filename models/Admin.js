@@ -52,18 +52,64 @@ class Admin {
 
   // ดึง admin ทั้งหมด
   static async getAll() {
-    const result = await db.execute('SELECT id, username, name, line_user_id, created_at FROM admins');
+    const result = await db.execute('SELECT id, username, name, line_user_id, receive_notifications, created_at FROM admins');
     return result.rows;
   }
 
   // สร้าง admin ใหม่
-  static async create(username, password, name) {
+  static async create(username, password, name, lineUserId = null) {
     const hashedPassword = bcrypt.hashSync(password, 10);
     const result = await db.execute({
-      sql: 'INSERT INTO admins (username, password, name) VALUES (?, ?, ?)',
-      args: [username, hashedPassword, name]
+      sql: 'INSERT INTO admins (username, password, name, line_user_id) VALUES (?, ?, ?, ?)',
+      args: [username, hashedPassword, name, lineUserId]
     });
     return result.lastInsertRowid;
+  }
+
+  // อัพเดทข้อมูล admin
+  static async update(id, data) {
+    const fields = [];
+    const values = [];
+
+    if (data.name !== undefined) {
+      fields.push('name = ?');
+      values.push(data.name);
+    }
+    if (data.line_user_id !== undefined) {
+      fields.push('line_user_id = ?');
+      values.push(data.line_user_id || null);
+    }
+    if (data.receive_notifications !== undefined) {
+      fields.push('receive_notifications = ?');
+      values.push(data.receive_notifications ? 1 : 0);
+    }
+
+    if (fields.length === 0) return;
+
+    values.push(id);
+    await db.execute({
+      sql: `UPDATE admins SET ${fields.join(', ')} WHERE id = ?`,
+      args: values
+    });
+  }
+
+  // ลบ admin
+  static async delete(id) {
+    await db.execute({
+      sql: 'DELETE FROM admins WHERE id = ?',
+      args: [id]
+    });
+  }
+
+  // ดึง admin ที่ต้องการรับแจ้งเตือน
+  static async getNotificationReceivers() {
+    const result = await db.execute(`
+      SELECT * FROM admins
+      WHERE line_user_id IS NOT NULL
+        AND line_user_id != ''
+        AND (receive_notifications = 1 OR receive_notifications IS NULL)
+    `);
+    return result.rows;
   }
 }
 

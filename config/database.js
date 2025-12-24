@@ -14,6 +14,7 @@ const schemaSQL = `
     password TEXT NOT NULL,
     name TEXT NOT NULL,
     line_user_id TEXT,
+    receive_notifications INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -235,6 +236,14 @@ async function initDatabase() {
           // Index might already exist
         }
       }
+    }
+
+    // Migration: Add receive_notifications column if not exists
+    try {
+      await db.execute('ALTER TABLE admins ADD COLUMN receive_notifications INTEGER DEFAULT 1');
+      console.log('✅ Added receive_notifications column to admins table');
+    } catch (e) {
+      // Column already exists
     }
 
     console.log('✅ Database initialized successfully');

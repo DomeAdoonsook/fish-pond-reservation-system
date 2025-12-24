@@ -62,6 +62,7 @@
     .menu-icon.equipment { background: linear-gradient(135deg, #f39c12, #e67e22); }
     .menu-icon.stock { background: linear-gradient(135deg, #27ae60, #16a085); }
     .menu-icon.broadcast { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+    .menu-icon.admins { background: linear-gradient(135deg, #e74c3c, #c0392b); }
 
     .menu-title {
       font-size: 1.5rem;
@@ -90,6 +91,8 @@
     .menu-btn.stock:hover { background: linear-gradient(135deg, #16a085, #138d75); transform: scale(1.05); }
     .menu-btn.broadcast { background: linear-gradient(135deg, #9b59b6, #8e44ad); border: none; }
     .menu-btn.broadcast:hover { background: linear-gradient(135deg, #8e44ad, #7d3c98); transform: scale(1.05); }
+    .menu-btn.admins { background: linear-gradient(135deg, #e74c3c, #c0392b); border: none; }
+    .menu-btn.admins:hover { background: linear-gradient(135deg, #c0392b, #a93226); transform: scale(1.05); }
 
     .badge-pending {
       position: absolute;
@@ -304,6 +307,23 @@
           </p>
           <a href="/admin/broadcast" class="btn menu-btn broadcast text-white">
             <i class="bi bi-send me-2"></i>ส่งประกาศ
+          </a>
+        </div>
+      </div>
+
+      <!-- จัดการผู้ดูแล -->
+      <div class="col-md-6 col-lg-4">
+        <div class="menu-card position-relative">
+          <div class="menu-icon admins">
+            <i class="bi bi-people"></i>
+          </div>
+          <h3 class="menu-title">จัดการผู้ดูแล</h3>
+          <p class="menu-desc">
+            เพิ่ม/ลบผู้ดูแลระบบ<br>
+            ตั้งค่าการรับแจ้งเตือน LINE
+          </p>
+          <a href="/admin/admins" class="btn menu-btn admins text-white">
+            <i class="bi bi-person-gear me-2"></i>จัดการผู้ดูแล
           </a>
         </div>
       </div>
