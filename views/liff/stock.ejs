@@ -129,21 +129,21 @@
     function updateSelection(input) {
       const item = input.closest('.stock-item');
       const qty = parseInt(input.value) || 0;
-      const id = item.dataset.id;
+      const itemId = parseInt(item.dataset.id);
       const name = item.dataset.name;
       const unit = item.dataset.unit;
 
       if (qty > 0) {
         item.classList.add('selected');
-        const existing = selectedItems.find(i => i.id === id);
+        const existing = selectedItems.find(i => i.item_id === itemId);
         if (existing) {
           existing.quantity = qty;
         } else {
-          selectedItems.push({ id, name, quantity: qty, unit });
+          selectedItems.push({ item_id: itemId, name, quantity: qty, unit });
         }
       } else {
         item.classList.remove('selected');
-        selectedItems = selectedItems.filter(i => i.id !== id);
+        selectedItems = selectedItems.filter(i => i.item_id !== itemId);
       }
 
       renderSelectedItems();

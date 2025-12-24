@@ -154,6 +154,18 @@
         <input type="hidden" id="pondId" name="pondId" required>
       </div>
 
+      <!-- ข้อมูลปลา -->
+      <div class="row">
+        <div class="col-7 mb-3">
+          <label class="form-label">ชนิดปลา</label>
+          <input type="text" class="form-control" id="fishType" name="fishType" placeholder="เช่น ปลานิล, ปลาดุก" required>
+        </div>
+        <div class="col-5 mb-3">
+          <label class="form-label">จำนวน (ตัว)</label>
+          <input type="number" class="form-control" id="fishQuantity" name="fishQuantity" placeholder="0" min="1" required>
+        </div>
+      </div>
+
       <!-- วันที่ -->
       <div class="row">
         <div class="col-6 mb-3">
@@ -179,7 +191,7 @@
 
       <div class="mb-3">
         <label class="form-label">วัตถุประสงค์</label>
-        <textarea class="form-control" id="purpose" name="purpose" rows="3" placeholder="ระบุวัตถุประสงค์การใช้บ่อ" required></textarea>
+        <textarea class="form-control" id="purpose" name="purpose" rows="2" placeholder="ระบุวัตถุประสงค์การใช้บ่อ" required></textarea>
       </div>
 
       <button type="submit" class="btn btn-submit" id="submitBtn">
@@ -243,6 +255,8 @@
 
       const formData = {
         pondId: document.getElementById('pondId').value,
+        fishType: document.getElementById('fishType').value,
+        fishQuantity: parseInt(document.getElementById('fishQuantity').value) || 0,
         startDate: document.getElementById('startDate').value,
         endDate: document.getElementById('endDate').value,
         name: document.getElementById('name').value,

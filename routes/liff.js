@@ -29,12 +29,14 @@ router.get('/pond', async (req, res) => {
 // API สร้างการจองบ่อ
 router.post('/api/pond/reserve', async (req, res) => {
   try {
-    const { pondId, startDate, endDate, name, phone, purpose, lineUserId, lineDisplayName } = req.body;
+    const { pondId, fishType, fishQuantity, startDate, endDate, name, phone, purpose, lineUserId, lineDisplayName } = req.body;
 
     const reservation = await Reservation.create({
       pond_id: pondId,
       user_name: name || lineDisplayName,
       phone: phone,
+      fish_type: fishType || 'ไม่ระบุ',
+      fish_quantity: parseInt(fishQuantity) || 0,
       purpose: purpose,
       start_date: startDate,
       end_date: endDate,
@@ -65,15 +67,20 @@ router.post('/api/equipment/borrow', async (req, res) => {
   try {
     const { equipmentId, quantity, borrowDate, returnDate, name, phone, purpose, lineUserId, lineDisplayName } = req.body;
 
+    // สร้าง items array
+    const items = [{
+      equipment_id: parseInt(equipmentId),
+      quantity: parseInt(quantity) || 1
+    }];
+
     const reservation = await EquipmentReservation.create({
-      equipment_id: equipmentId,
-      quantity: quantity,
-      borrower_name: name || lineDisplayName,
-      borrower_phone: phone,
+      user_name: name || lineDisplayName,
+      phone: phone,
       purpose: purpose,
       borrow_date: borrowDate,
-      expected_return_date: returnDate,
-      line_user_id: lineUserId
+      return_date: returnDate,
+      line_user_id: lineUserId,
+      items: items
     });
 
     res.json({ success: true, reservation });
@@ -101,8 +108,8 @@ router.post('/api/stock/request', async (req, res) => {
     const { items, name, phone, purpose, lineUserId, lineDisplayName } = req.body;
 
     const request = await StockRequest.create({
-      requester_name: name || lineDisplayName,
-      requester_phone: phone,
+      user_name: name || lineDisplayName,
+      phone: phone,
       purpose: purpose,
       items: items,
       line_user_id: lineUserId
