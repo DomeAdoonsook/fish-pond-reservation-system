@@ -41,6 +41,7 @@ const equipmentRoutes = require('./routes/equipment');
 const equipmentPublicRoutes = require('./routes/equipment-public');
 const stockRoutes = require('./routes/stock');
 const adminStockRoutes = require('./routes/admin-stock');
+const liffRoutes = require('./routes/liff');
 
 app.use('/api', apiRoutes);
 app.use('/admin', adminRoutes);
@@ -48,6 +49,7 @@ app.use('/admin/equipment', equipmentRoutes);
 app.use('/admin/stock', adminStockRoutes);
 app.use('/equipment', equipmentPublicRoutes);
 app.use('/stock', stockRoutes);
+app.use('/liff', liffRoutes);
 // LINE webhook ถูกตั้งค่าไว้ด้านบนแล้ว (ก่อน express.json)
 app.use('/', publicRoutes);
 

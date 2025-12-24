@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>เบิกวัสดุ - LIFF</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Sarabun', sans-serif; }
+    body {
+      background: linear-gradient(135deg, #27ae60 0%, #16a085 100%);
+      min-height: 100vh;
+      padding: 15px;
+      padding-bottom: 100px;
+    }
+    .back-btn { color: white; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 15px; }
+    .page-title { color: white; font-size: 1.5rem; font-weight: 600; margin-bottom: 20px; text-align: center; }
+    .form-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+    .form-label { font-weight: 500; color: #333; margin-bottom: 8px; }
+    .form-control, .form-select { border-radius: 12px; padding: 12px 15px; border: 2px solid #e0e0e0; }
+    .form-control:focus, .form-select:focus { border-color: #27ae60; box-shadow: 0 0 0 3px rgba(39,174,96,0.1); }
+    .btn-submit { background: linear-gradient(135deg, #27ae60, #16a085); border: none; border-radius: 12px; padding: 15px; font-size: 1.1rem; font-weight: 600; width: 100%; color: white; margin-top: 20px; }
+    .stock-item { padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .stock-item.selected { border-color: #27ae60; background: #e8f8f0; }
+    .stock-name { font-weight: 500; }
+    .stock-qty { font-size: 0.85rem; color: #666; }
+    .qty-input { width: 70px; text-align: center; border-radius: 8px; border: 1px solid #ddd; padding: 5px; }
+    .selected-items { background: #f8f9fa; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+    .selected-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+    .selected-item:last-child { border-bottom: none; }
+    .success-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(39, 174, 96, 0.95); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 9999; color: white; text-align: center; padding: 30px; }
+  </style>
+</head>
+<body>
+  <a href="/liff" class="back-btn"><i class="bi bi-arrow-left"></i> กลับ</a>
+  <h1 class="page-title"><i class="bi bi-box-seam me-2"></i>เบิกวัสดุ</h1>
+
+  <div class="form-card">
+    <form id="requestForm">
+      <div class="mb-4">
+        <label class="form-label">เลือกหมวดหมู่</label>
+        <select class="form-select" id="categorySelect" onchange="filterItems()">
+          <option value="">-- ทั้งหมด --</option>
+          <% categories.forEach(cat => { %>
+            <option value="<%= cat.id %>"><%= cat.name %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label">เลือกวัสดุที่ต้องการเบิก</label>
+        <div id="itemList" style="max-height: 250px; overflow-y: auto;">
+          <% items.filter(i => i.quantity > 0).forEach(item => { %>
+            <div class="stock-item" data-id="<%= item.id %>" data-name="<%= item.name %>" data-category="<%= item.category_id %>" data-max="<%= item.quantity %>" data-unit="<%= item.unit || 'ชิ้น' %>">
+              <div>
+                <div class="stock-name"><%= item.name %></div>
+                <div class="stock-qty">คงเหลือ: <%= item.quantity %> <%= item.unit || 'ชิ้น' %></div>
+              </div>
+              <input type="number" class="qty-input" min="0" max="<%= item.quantity %>" value="0" onchange="updateSelection(this)">
+            </div>
+          <% }) %>
+        </div>
+      </div>
+
+      <div class="selected-items" id="selectedItems" style="display: none;">
+        <label class="form-label">รายการที่เลือก</label>
+        <div id="selectedList"></div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">ชื่อผู้เบิก</label>
+        <input type="text" class="form-control" id="name" placeholder="ชื่อ-นามสกุล" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">เบอร์โทรศัพท์</label>
+        <input type="tel" class="form-control" id="phone" placeholder="0xx-xxx-xxxx" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">วัตถุประสงค์</label>
+        <textarea class="form-control" id="purpose" rows="2" placeholder="ระบุวัตถุประสงค์การเบิก" required></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-submit" id="submitBtn">
+        <i class="bi bi-check-circle me-2"></i>ส่งคำขอเบิก
+      </button>
+    </form>
+  </div>
+
+  <div class="success-overlay" id="successOverlay">
+    <i class="bi bi-check-circle" style="font-size: 4rem; margin-bottom: 20px;"></i>
+    <div style="font-size: 1.5rem; font-weight: 600; margin-bottom: 10px;">ส่งคำขอสำเร็จ!</div>
+    <div style="margin-bottom: 30px;">รอการอนุมัติจากผู้ดูแล</div>
+    <button class="btn btn-light" onclick="closeLiff()">ปิด</button>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    const LIFF_ID = '2008768325-oHaS2ARL';
+    let lineUserId = '', lineDisplayName = '';
+    let selectedItems = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          lineUserId = profile.userId;
+          lineDisplayName = profile.displayName;
+          document.getElementById('name').value = profile.displayName;
+        }
+      } catch (e) {
+        lineUserId = sessionStorage.getItem('lineUserId') || '';
+        lineDisplayName = sessionStorage.getItem('lineDisplayName') || '';
+        if (lineDisplayName) document.getElementById('name').value = lineDisplayName;
+      }
+    });
+
+    function filterItems() {
+      const catId = document.getElementById('categorySelect').value;
+      document.querySelectorAll('.stock-item').forEach(el => {
+        el.style.display = (!catId || el.dataset.category === catId) ? 'flex' : 'none';
+      });
+    }
+
+    function updateSelection(input) {
+      const item = input.closest('.stock-item');
+      const qty = parseInt(input.value) || 0;
+      const id = item.dataset.id;
+      const name = item.dataset.name;
+      const unit = item.dataset.unit;
+
+      if (qty > 0) {
+        item.classList.add('selected');
+        const existing = selectedItems.find(i => i.id === id);
+        if (existing) {
+          existing.quantity = qty;
+        } else {
+          selectedItems.push({ id, name, quantity: qty, unit });
+        }
+      } else {
+        item.classList.remove('selected');
+        selectedItems = selectedItems.filter(i => i.id !== id);
+      }
+
+      renderSelectedItems();
+    }
+
+    function renderSelectedItems() {
+      const container = document.getElementById('selectedItems');
+      const list = document.getElementById('selectedList');
+
+      if (selectedItems.length === 0) {
+        container.style.display = 'none';
+        return;
+      }
+
+      container.style.display = 'block';
+      list.innerHTML = selectedItems.map(item => `
+        <div class="selected-item">
+          <span>${item.name}</span>
+          <span>${item.quantity} ${item.unit}</span>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('requestForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (selectedItems.length === 0) {
+        alert('กรุณาเลือกวัสดุที่ต้องการเบิก');
+        return;
+      }
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>กำลังส่ง...';
+
+      try {
+        const res = await fetch('/liff/api/stock/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: selectedItems,
+            name: document.getElementById('name').value,
+            phone: document.getElementById('phone').value,
+            purpose: document.getElementById('purpose').value,
+            lineUserId, lineDisplayName
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          document.getElementById('successOverlay').style.display = 'flex';
+        } else {
+          alert('เกิดข้อผิดพลาด: ' + result.error);
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>ส่งคำขอเบิก';
+        }
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>ส่งคำขอเบิก';
+      }
+    });
+
+    function closeLiff() {
+      if (liff.isInClient()) liff.closeWindow();
+      else window.location.href = '/liff';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ระบบงานฟาร์ม - LINE LIFF</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Sarabun', sans-serif;
+    }
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+    }
+    .liff-container {
+      padding: 20px;
+      padding-bottom: 100px;
+    }
+    .header-card {
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      text-align: center;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    .user-avatar {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      margin-bottom: 10px;
+      border: 3px solid #667eea;
+    }
+    .user-name {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .welcome-text {
+      color: #666;
+      font-size: 0.9rem;
+    }
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .menu-item {
+      background: white;
+      border-radius: 20px;
+      padding: 25px 15px;
+      text-align: center;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.3s ease;
+    }
+    .menu-item:hover, .menu-item:active {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      color: inherit;
+    }
+    .menu-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 15px;
+      font-size: 1.8rem;
+      color: white;
+    }
+    .menu-icon.pond { background: linear-gradient(135deg, #3498db, #2980b9); }
+    .menu-icon.equipment { background: linear-gradient(135deg, #f39c12, #e67e22); }
+    .menu-icon.stock { background: linear-gradient(135deg, #27ae60, #16a085); }
+    .menu-icon.history { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+    .menu-icon.check { background: linear-gradient(135deg, #1abc9c, #16a085); }
+    .menu-icon.help { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+    .menu-title {
+      font-weight: 600;
+      font-size: 1rem;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .menu-desc {
+      font-size: 0.8rem;
+      color: #888;
+    }
+    .footer-info {
+      text-align: center;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.8rem;
+      padding: 20px;
+    }
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 9999;
+    }
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .loading-text {
+      color: white;
+      margin-top: 15px;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">กำลังโหลด...</div>
+  </div>
+
+  <div class="liff-container" id="mainContent" style="display: none;">
+    <!-- Header with User Info -->
+    <div class="header-card">
+      <img id="userAvatar" src="https://via.placeholder.com/70" alt="Avatar" class="user-avatar">
+      <div class="user-name" id="userName">ผู้ใช้งาน</div>
+      <div class="welcome-text">ยินดีต้อนรับสู่ระบบงานฟาร์ม</div>
+    </div>
+
+    <!-- Menu Grid -->
+    <div class="menu-grid">
+      <a href="/liff/pond" class="menu-item">
+        <div class="menu-icon pond">
+          <i class="bi bi-droplet-half"></i>
+        </div>
+        <div class="menu-title">จองบ่อปลา</div>
+        <div class="menu-desc">จองใช้บ่อเลี้ยงปลา</div>
+      </a>
+
+      <a href="/liff/equipment" class="menu-item">
+        <div class="menu-icon equipment">
+          <i class="bi bi-tools"></i>
+        </div>
+        <div class="menu-title">ยืมอุปกรณ์</div>
+        <div class="menu-desc">ยืม-คืน อุปกรณ์</div>
+      </a>
+
+      <a href="/liff/stock" class="menu-item">
+        <div class="menu-icon stock">
+          <i class="bi bi-box-seam"></i>
+        </div>
+        <div class="menu-title">เบิกวัสดุ</div>
+        <div class="menu-desc">ขอเบิกวัสดุเกษตร</div>
+      </a>
+
+      <a href="/liff/my-bookings" class="menu-item">
+        <div class="menu-icon history">
+          <i class="bi bi-clock-history"></i>
+        </div>
+        <div class="menu-title">การจองของฉัน</div>
+        <div class="menu-desc">ดูประวัติการจอง</div>
+      </a>
+
+      <a href="/liff/stock-check" class="menu-item">
+        <div class="menu-icon check">
+          <i class="bi bi-clipboard-data"></i>
+        </div>
+        <div class="menu-title">เช็ควัสดุ</div>
+        <div class="menu-desc">ดูวัสดุคงคลัง</div>
+      </a>
+
+      <a href="/liff/help" class="menu-item">
+        <div class="menu-icon help">
+          <i class="bi bi-question-circle"></i>
+        </div>
+        <div class="menu-title">ช่วยเหลือ</div>
+        <div class="menu-desc">วิธีใช้งาน</div>
+      </a>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer-info">
+      คณะเทคโนโลยีการประมงและทรัพยากรทางน้ำ<br>
+      มหาวิทยาลัยแม่โจ้
+    </div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    const LIFF_ID = '2008768325-oHaS2ARL';
+
+    async function initializeLiff() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        // Get user profile
+        const profile = await liff.getProfile();
+        document.getElementById('userName').textContent = profile.displayName;
+        document.getElementById('userAvatar').src = profile.pictureUrl || 'https://via.placeholder.com/70';
+
+        // Store user info for later use
+        sessionStorage.setItem('lineUserId', profile.userId);
+        sessionStorage.setItem('lineDisplayName', profile.displayName);
+        sessionStorage.setItem('linePictureUrl', profile.pictureUrl || '');
+
+        // Hide loading, show content
+        document.getElementById('loadingOverlay').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+
+      } catch (error) {
+        console.error('LIFF initialization failed:', error);
+        document.getElementById('loadingOverlay').innerHTML = `
+          <div style="color: white; text-align: center; padding: 20px;">
+            <i class="bi bi-exclamation-circle" style="font-size: 3rem;"></i>
+            <p style="margin-top: 15px;">เกิดข้อผิดพลาด กรุณาลองใหม่</p>
+            <button onclick="location.reload()" class="btn btn-light mt-3">ลองใหม่</button>
+          </div>
+        `;
+      }
+    }
+
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', initializeLiff);
+  </script>
+</body>
+</html>

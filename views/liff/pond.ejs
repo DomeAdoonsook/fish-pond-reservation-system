@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>จองบ่อปลา - LIFF</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Sarabun', sans-serif; }
+    body {
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+      min-height: 100vh;
+      padding: 15px;
+      padding-bottom: 100px;
+    }
+    .back-btn {
+      color: white;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 15px;
+      font-size: 0.95rem;
+    }
+    .page-title {
+      color: white;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .form-card {
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    .form-label {
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    .form-control, .form-select {
+      border-radius: 12px;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      font-size: 1rem;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: #3498db;
+      box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
+    }
+    .btn-submit {
+      background: linear-gradient(135deg, #3498db, #2980b9);
+      border: none;
+      border-radius: 12px;
+      padding: 15px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      width: 100%;
+      color: white;
+      margin-top: 20px;
+    }
+    .btn-submit:hover {
+      background: linear-gradient(135deg, #2980b9, #1f6dad);
+    }
+    .btn-submit:disabled {
+      background: #ccc;
+    }
+    .pond-select-item {
+      padding: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .pond-select-item:hover {
+      border-color: #3498db;
+    }
+    .pond-select-item.selected {
+      border-color: #3498db;
+      background: #ebf5fb;
+    }
+    .pond-name {
+      font-weight: 600;
+      color: #333;
+    }
+    .pond-size {
+      font-size: 0.85rem;
+      color: #666;
+    }
+    .success-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(39, 174, 96, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 9999;
+      color: white;
+      text-align: center;
+      padding: 30px;
+    }
+    .success-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+    .success-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .success-text {
+      font-size: 1rem;
+      opacity: 0.9;
+      margin-bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+  <a href="/liff" class="back-btn">
+    <i class="bi bi-arrow-left"></i> กลับ
+  </a>
+
+  <h1 class="page-title"><i class="bi bi-droplet-half me-2"></i>จองบ่อปลา</h1>
+
+  <div class="form-card">
+    <form id="reservationForm">
+      <!-- เลือกบ่อ -->
+      <div class="mb-4">
+        <label class="form-label">เลือกบ่อที่ต้องการจอง</label>
+        <div id="pondList">
+          <% if (ponds.length === 0) { %>
+            <div class="text-center text-muted py-4">
+              <i class="bi bi-exclamation-circle" style="font-size: 2rem;"></i>
+              <p class="mt-2">ไม่มีบ่อว่างในขณะนี้</p>
+            </div>
+          <% } else { %>
+            <% ponds.forEach(pond => { %>
+              <div class="pond-select-item" data-pond-id="<%= pond.id %>" onclick="selectPond(this, <%= pond.id %>)">
+                <div class="pond-name"><%= pond.name %></div>
+                <div class="pond-size">ขนาด: <%= pond.size || '-' %></div>
+              </div>
+            <% }) %>
+          <% } %>
+        </div>
+        <input type="hidden" id="pondId" name="pondId" required>
+      </div>
+
+      <!-- วันที่ -->
+      <div class="row">
+        <div class="col-6 mb-3">
+          <label class="form-label">วันเริ่มต้น</label>
+          <input type="date" class="form-control" id="startDate" name="startDate" required>
+        </div>
+        <div class="col-6 mb-3">
+          <label class="form-label">วันสิ้นสุด</label>
+          <input type="date" class="form-control" id="endDate" name="endDate" required>
+        </div>
+      </div>
+
+      <!-- ข้อมูลผู้จอง -->
+      <div class="mb-3">
+        <label class="form-label">ชื่อผู้จอง</label>
+        <input type="text" class="form-control" id="name" name="name" placeholder="ชื่อ-นามสกุล" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">เบอร์โทรศัพท์</label>
+        <input type="tel" class="form-control" id="phone" name="phone" placeholder="0xx-xxx-xxxx" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">วัตถุประสงค์</label>
+        <textarea class="form-control" id="purpose" name="purpose" rows="3" placeholder="ระบุวัตถุประสงค์การใช้บ่อ" required></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-submit" id="submitBtn">
+        <i class="bi bi-check-circle me-2"></i>ส่งคำขอจอง
+      </button>
+    </form>
+  </div>
+
+  <!-- Success Overlay -->
+  <div class="success-overlay" id="successOverlay">
+    <i class="bi bi-check-circle success-icon"></i>
+    <div class="success-title">ส่งคำขอสำเร็จ!</div>
+    <div class="success-text">รอการอนุมัติจากผู้ดูแล<br>จะแจ้งผลทาง LINE</div>
+    <button class="btn btn-light" onclick="closeLiff()">ปิด</button>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    const LIFF_ID = '2008768325-oHaS2ARL';
+    let lineUserId = '';
+    let lineDisplayName = '';
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Set min date to today
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('startDate').min = today;
+      document.getElementById('endDate').min = today;
+
+      // Try to get LINE user info
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          lineUserId = profile.userId;
+          lineDisplayName = profile.displayName;
+          document.getElementById('name').value = profile.displayName;
+        }
+      } catch (e) {
+        console.log('Not in LIFF environment');
+        lineUserId = sessionStorage.getItem('lineUserId') || '';
+        lineDisplayName = sessionStorage.getItem('lineDisplayName') || '';
+        if (lineDisplayName) {
+          document.getElementById('name').value = lineDisplayName;
+        }
+      }
+    });
+
+    function selectPond(element, pondId) {
+      document.querySelectorAll('.pond-select-item').forEach(el => el.classList.remove('selected'));
+      element.classList.add('selected');
+      document.getElementById('pondId').value = pondId;
+    }
+
+    document.getElementById('reservationForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>กำลังส่ง...';
+
+      const formData = {
+        pondId: document.getElementById('pondId').value,
+        startDate: document.getElementById('startDate').value,
+        endDate: document.getElementById('endDate').value,
+        name: document.getElementById('name').value,
+        phone: document.getElementById('phone').value,
+        purpose: document.getElementById('purpose').value,
+        lineUserId: lineUserId,
+        lineDisplayName: lineDisplayName
+      };
+
+      try {
+        const response = await fetch('/liff/api/pond/reserve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          document.getElementById('successOverlay').style.display = 'flex';
+        } else {
+          alert('เกิดข้อผิดพลาด: ' + result.error);
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>ส่งคำขอจอง';
+        }
+      } catch (error) {
+        alert('เกิดข้อผิดพลาดในการส่งข้อมูล');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>ส่งคำขอจอง';
+      }
+    });
+
+    function closeLiff() {
+      if (liff.isInClient()) {
+        liff.closeWindow();
+      } else {
+        window.location.href = '/liff';
+      }
+    }
+  </script>
+</body>
+</html>

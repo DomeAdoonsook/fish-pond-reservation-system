@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ยืมอุปกรณ์ - LIFF</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Sarabun', sans-serif; }
+    body {
+      background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+      min-height: 100vh;
+      padding: 15px;
+      padding-bottom: 100px;
+    }
+    .back-btn {
+      color: white;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 15px;
+    }
+    .page-title {
+      color: white;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .form-card {
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    .form-label { font-weight: 500; color: #333; margin-bottom: 8px; }
+    .form-control, .form-select {
+      border-radius: 12px;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: #f39c12;
+      box-shadow: 0 0 0 3px rgba(243,156,18,0.1);
+    }
+    .btn-submit {
+      background: linear-gradient(135deg, #f39c12, #e67e22);
+      border: none;
+      border-radius: 12px;
+      padding: 15px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      width: 100%;
+      color: white;
+      margin-top: 20px;
+    }
+    .equipment-item {
+      padding: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .equipment-item:hover { border-color: #f39c12; }
+    .equipment-item.selected {
+      border-color: #f39c12;
+      background: #fef5e7;
+    }
+    .equipment-name { font-weight: 600; color: #333; }
+    .equipment-stock { font-size: 0.85rem; color: #666; }
+    .success-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(39, 174, 96, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 9999;
+      color: white;
+      text-align: center;
+      padding: 30px;
+    }
+  </style>
+</head>
+<body>
+  <a href="/liff" class="back-btn"><i class="bi bi-arrow-left"></i> กลับ</a>
+  <h1 class="page-title"><i class="bi bi-tools me-2"></i>ยืมอุปกรณ์</h1>
+
+  <div class="form-card">
+    <form id="borrowForm">
+      <div class="mb-4">
+        <label class="form-label">เลือกหมวดหมู่</label>
+        <select class="form-select" id="categorySelect" onchange="filterEquipment()">
+          <option value="">-- ทั้งหมด --</option>
+          <% categories.forEach(cat => { %>
+            <option value="<%= cat.id %>"><%= cat.name %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label">เลือกอุปกรณ์</label>
+        <div id="equipmentList">
+          <% equipment.filter(e => e.available_quantity > 0).forEach(eq => { %>
+            <div class="equipment-item" data-id="<%= eq.id %>" data-category="<%= eq.category_id %>" data-max="<%= eq.available_quantity %>" onclick="selectEquipment(this, <%= eq.id %>)">
+              <div class="equipment-name"><%= eq.name %></div>
+              <div class="equipment-stock">คงเหลือ: <%= eq.available_quantity %> <%= eq.unit || 'ชิ้น' %></div>
+            </div>
+          <% }) %>
+        </div>
+        <input type="hidden" id="equipmentId" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">จำนวนที่ต้องการยืม</label>
+        <input type="number" class="form-control" id="quantity" min="1" value="1" required>
+      </div>
+
+      <div class="row">
+        <div class="col-6 mb-3">
+          <label class="form-label">วันที่ยืม</label>
+          <input type="date" class="form-control" id="borrowDate" required>
+        </div>
+        <div class="col-6 mb-3">
+          <label class="form-label">วันที่คืน</label>
+          <input type="date" class="form-control" id="returnDate" required>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">ชื่อผู้ยืม</label>
+        <input type="text" class="form-control" id="name" placeholder="ชื่อ-นามสกุล" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">เบอร์โทรศัพท์</label>
+        <input type="tel" class="form-control" id="phone" placeholder="0xx-xxx-xxxx" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">วัตถุประสงค์</label>
+        <textarea class="form-control" id="purpose" rows="2" placeholder="ระบุวัตถุประสงค์" required></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-submit" id="submitBtn">
+        <i class="bi bi-check-circle me-2"></i>ส่งคำขอยืม
+      </button>
+    </form>
+  </div>
+
+  <div class="success-overlay" id="successOverlay">
+    <i class="bi bi-check-circle" style="font-size: 4rem; margin-bottom: 20px;"></i>
+    <div style="font-size: 1.5rem; font-weight: 600; margin-bottom: 10px;">ส่งคำขอสำเร็จ!</div>
+    <div style="margin-bottom: 30px;">รอการอนุมัติจากผู้ดูแล</div>
+    <button class="btn btn-light" onclick="closeLiff()">ปิด</button>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    const LIFF_ID = '2008768325-oHaS2ARL';
+    let lineUserId = '', lineDisplayName = '';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('borrowDate').min = today;
+      document.getElementById('returnDate').min = today;
+
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          lineUserId = profile.userId;
+          lineDisplayName = profile.displayName;
+          document.getElementById('name').value = profile.displayName;
+        }
+      } catch (e) {
+        lineUserId = sessionStorage.getItem('lineUserId') || '';
+        lineDisplayName = sessionStorage.getItem('lineDisplayName') || '';
+        if (lineDisplayName) document.getElementById('name').value = lineDisplayName;
+      }
+    });
+
+    function filterEquipment() {
+      const catId = document.getElementById('categorySelect').value;
+      document.querySelectorAll('.equipment-item').forEach(el => {
+        el.style.display = (!catId || el.dataset.category === catId) ? 'block' : 'none';
+      });
+    }
+
+    function selectEquipment(el, id) {
+      document.querySelectorAll('.equipment-item').forEach(e => e.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('equipmentId').value = id;
+      document.getElementById('quantity').max = el.dataset.max;
+    }
+
+    document.getElementById('borrowForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>กำลังส่ง...';
+
+      try {
+        const res = await fetch('/liff/api/equipment/borrow', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            equipmentId: document.getElementById('equipmentId').value,
+            quantity: document.getElementById('quantity').value,
+            borrowDate: document.getElementById('borrowDate').value,
+            returnDate: document.getElementById('returnDate').value,
+            name: document.getElementById('name').value,
+            phone: document.getElementById('phone').value,
+            purpose: document.getElementById('purpose').value,
+            lineUserId, lineDisplayName
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          document.getElementById('successOverlay').style.display = 'flex';
+        } else {
+          alert('เกิดข้อผิดพลาด: ' + result.error);
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>ส่งคำขอยืม';
+        }
+      } catch (err) {
+        alert('เกิดข้อผิดพลาด');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>ส่งคำขอยืม';
+      }
+    });
+
+    function closeLiff() {
+      if (liff.isInClient()) liff.closeWindow();
+      else window.location.href = '/liff';
+    }
+  </script>
+</body>
+</html>
