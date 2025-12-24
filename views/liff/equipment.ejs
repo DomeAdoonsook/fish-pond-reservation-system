@@ -105,13 +105,16 @@
       <div class="mb-4">
         <label class="form-label">เลือกอุปกรณ์</label>
         <div id="equipmentList">
-          <% equipment.filter(e => e.available_quantity > 0).forEach(eq => { %>
-            <div class="equipment-item" data-id="<%= eq.id %>" data-category="<%= eq.category_id %>" data-max="<%= eq.available_quantity %>" onclick="selectEquipment(this, <%= eq.id %>)">
+          <% equipment.filter(e => (e.available_quantity || 0) > 0 && e.status === 'active').forEach(eq => { %>
+            <div class="equipment-item" data-id="<%= eq.id %>" data-category="<%= eq.category_id %>" data-max="<%= eq.available_quantity || 0 %>" onclick="selectEquipment(this, <%= eq.id %>)">
               <div class="equipment-name"><%= eq.name %></div>
-              <div class="equipment-stock">คงเหลือ: <%= eq.available_quantity %> <%= eq.unit || 'ชิ้น' %></div>
+              <div class="equipment-stock">คงเหลือ: <%= eq.available_quantity || 0 %> <%= eq.unit || 'ชิ้น' %></div>
             </div>
           <% }) %>
         </div>
+        <% if (equipment.filter(e => (e.available_quantity || 0) > 0 && e.status === 'active').length === 0) { %>
+          <div class="text-center text-muted py-3">ไม่มีอุปกรณ์ที่พร้อมให้ยืม</div>
+        <% } %>
         <input type="hidden" id="equipmentId" required>
       </div>
 

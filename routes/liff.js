@@ -31,8 +31,17 @@ router.post('/api/pond/reserve', async (req, res) => {
   try {
     const { pondId, fishType, fishQuantity, startDate, endDate, name, phone, purpose, lineUserId, lineDisplayName } = req.body;
 
+    // Validate required fields
+    const pId = parseInt(pondId);
+    if (!pId || isNaN(pId)) {
+      return res.status(400).json({ success: false, error: 'กรุณาเลือกบ่อปลา' });
+    }
+    if (!startDate || !endDate) {
+      return res.status(400).json({ success: false, error: 'กรุณาระบุวันที่เริ่มต้นและสิ้นสุด' });
+    }
+
     const reservation = await Reservation.create({
-      pond_id: pondId,
+      pond_id: pId,
       user_name: name || lineDisplayName,
       phone: phone,
       fish_type: fishType || 'ไม่ระบุ',
@@ -67,10 +76,21 @@ router.post('/api/equipment/borrow', async (req, res) => {
   try {
     const { equipmentId, quantity, borrowDate, returnDate, name, phone, purpose, lineUserId, lineDisplayName } = req.body;
 
+    // Validate required fields
+    const eqId = parseInt(equipmentId);
+    const qty = parseInt(quantity) || 1;
+
+    if (!eqId || isNaN(eqId)) {
+      return res.status(400).json({ success: false, error: 'กรุณาเลือกอุปกรณ์' });
+    }
+    if (!borrowDate || !returnDate) {
+      return res.status(400).json({ success: false, error: 'กรุณาระบุวันที่ยืมและวันที่คืน' });
+    }
+
     // สร้าง items array
     const items = [{
-      equipment_id: parseInt(equipmentId),
-      quantity: parseInt(quantity) || 1
+      equipment_id: eqId,
+      quantity: qty
     }];
 
     const reservation = await EquipmentReservation.create({
@@ -107,11 +127,26 @@ router.post('/api/stock/request', async (req, res) => {
   try {
     const { items, name, phone, purpose, lineUserId, lineDisplayName } = req.body;
 
+    // Validate items
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'กรุณาเลือกวัสดุที่ต้องการเบิก' });
+    }
+
+    // Validate each item has valid item_id and quantity
+    const validatedItems = items.map(item => ({
+      item_id: parseInt(item.item_id),
+      quantity: parseInt(item.quantity) || 1
+    })).filter(item => item.item_id && !isNaN(item.item_id));
+
+    if (validatedItems.length === 0) {
+      return res.status(400).json({ success: false, error: 'กรุณาเลือกวัสดุที่ถูกต้อง' });
+    }
+
     const request = await StockRequest.create({
       user_name: name || lineDisplayName,
       phone: phone,
       purpose: purpose,
-      items: items,
+      items: validatedItems,
       line_user_id: lineUserId
     });
 
