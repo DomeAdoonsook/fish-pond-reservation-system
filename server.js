@@ -8,6 +8,10 @@ const cron = require('node-cron');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// LINE Webhook route - ต้องอยู่ก่อน express.json() เพื่อให้รับ raw body ได้
+const lineRoutes = require('./routes/line');
+app.use('/webhook', lineRoutes);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -32,7 +36,6 @@ app.set('views', path.join(__dirname, 'views'));
 // Routes
 const apiRoutes = require('./routes/api');
 const adminRoutes = require('./routes/admin');
-const lineRoutes = require('./routes/line');
 const publicRoutes = require('./routes/public');
 const equipmentRoutes = require('./routes/equipment');
 const equipmentPublicRoutes = require('./routes/equipment-public');
@@ -45,7 +48,7 @@ app.use('/admin/equipment', equipmentRoutes);
 app.use('/admin/stock', adminStockRoutes);
 app.use('/equipment', equipmentPublicRoutes);
 app.use('/stock', stockRoutes);
-app.use('/webhook', lineRoutes);
+// LINE webhook ถูกตั้งค่าไว้ด้านบนแล้ว (ก่อน express.json)
 app.use('/', publicRoutes);
 
 // Cron Job - ตรวจสอบการจองที่หมดอายุ ทุกวันเที่ยงคืน
