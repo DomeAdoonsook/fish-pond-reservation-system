@@ -106,7 +106,7 @@ class Equipment {
         data.status || 'active'
       ]
     });
-    return result.lastInsertRowid;
+    return Number(result.lastInsertRowid);
   }
 
   // แก้ไขอุปกรณ์

@@ -36,7 +36,7 @@ class EquipmentCategory {
       sql: 'INSERT INTO equipment_categories (name, description) VALUES (?, ?)',
       args: [data.name, data.description || null]
     });
-    return result.lastInsertRowid;
+    return Number(result.lastInsertRowid);
   }
 
   // แก้ไขหมวดหมู่

@@ -63,7 +63,7 @@ class Admin {
       sql: 'INSERT INTO admins (username, password, name, line_user_id) VALUES (?, ?, ?, ?)',
       args: [username, hashedPassword, name, lineUserId]
     });
-    return result.lastInsertRowid;
+    return Number(result.lastInsertRowid);
   }
 
   // อัพเดทข้อมูล admin

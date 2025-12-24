@@ -18,7 +18,7 @@ class Reservation {
         data.purpose || null
       ]
     });
-    return result.lastInsertRowid;
+    return Number(result.lastInsertRowid);
   }
 
   // ดึงการจองทั้งหมด

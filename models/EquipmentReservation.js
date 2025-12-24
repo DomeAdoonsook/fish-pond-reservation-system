@@ -126,7 +126,7 @@ class EquipmentReservation {
       ]
     });
 
-    const reservationId = reservationResult.lastInsertRowid;
+    const reservationId = Number(reservationResult.lastInsertRowid);
 
     // Insert items
     for (const item of itemsList) {

@@ -76,7 +76,7 @@ const StockRequest = {
             VALUES (?, ?, ?, ?)`,
       args: [data.user_name, data.line_user_id || null, data.phone || null, data.purpose]
     });
-    const requestId = result.lastInsertRowid;
+    const requestId = Number(result.lastInsertRowid);
 
     // Add items
     for (const item of data.items) {

@@ -24,7 +24,7 @@ const StockCategory = {
       sql: `INSERT INTO stock_categories (name, description) VALUES (?, ?)`,
       args: [data.name, data.description || null]
     });
-    return result.lastInsertRowid;
+    return Number(result.lastInsertRowid);
   },
 
   async update(id, data) {

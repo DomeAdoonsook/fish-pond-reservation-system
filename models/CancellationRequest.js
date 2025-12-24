@@ -7,7 +7,7 @@ class CancellationRequest {
       sql: `INSERT INTO cancellation_requests (reservation_id, reason, phone) VALUES (?, ?, ?)`,
       args: [data.reservation_id, data.reason || null, data.phone || null]
     });
-    return result.lastInsertRowid;
+    return Number(result.lastInsertRowid);
   }
 
   // ดึงคำขอยกเลิกทั้งหมด

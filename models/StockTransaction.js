@@ -48,7 +48,7 @@ const StockTransaction = {
         data.created_by || null
       ]
     });
-    return result.lastInsertRowid;
+    return Number(result.lastInsertRowid);
   },
 
   async stockIn(itemId, quantity, unitPrice, note, adminId) {

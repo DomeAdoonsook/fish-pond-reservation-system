@@ -64,7 +64,7 @@ const StockItem = {
         data.description || null
       ]
     });
-    return result.lastInsertRowid;
+    return Number(result.lastInsertRowid);
   },
 
   async update(id, data) {
