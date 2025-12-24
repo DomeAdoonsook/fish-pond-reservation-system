@@ -8,6 +8,42 @@ const EquipmentReservation = require('../models/EquipmentReservation');
 const StockRequest = require('../models/StockRequest');
 const Log = require('../models/Log');
 
+// ฟังก์ชันดึงโควต้า LINE Message
+async function getLINEQuota() {
+  try {
+    const accessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+    if (!accessToken) {
+      return { used: 0, limit: 0, remaining: 0, error: 'ไม่ได้ตั้งค่า LINE Token' };
+    }
+
+    const response = await fetch('https://api.line.me/v2/bot/message/quota/consumption', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    const consumption = await response.json();
+
+    // ดึงโควต้าทั้งหมด
+    const quotaResponse = await fetch('https://api.line.me/v2/bot/message/quota', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    const quota = await quotaResponse.json();
+
+    const used = consumption.totalUsage || 0;
+    const limit = quota.value || 500; // Free plan = 500
+    const remaining = Math.max(0, limit - used);
+
+    return { used, limit, remaining, error: null };
+  } catch (error) {
+    console.error('Error fetching LINE quota:', error);
+    return { used: 0, limit: 500, remaining: 500, error: error.message };
+  }
+}
+
 // Middleware ตรวจสอบ login
 const requireLogin = (req, res, next) => {
   if (!req.session.admin) {
@@ -93,6 +129,7 @@ router.get('/', optionalLogin, async (req, res) => {
   const pending = await Reservation.getPending();
   const pendingCount = pending.length;
   const savedPositions = await Pond.getPositions();
+  const lineQuota = await getLINEQuota();
 
   res.render('admin/dashboard', {
     admin: req.session.admin || { name: 'ผู้เยี่ยมชม' },
@@ -101,6 +138,7 @@ router.get('/', optionalLogin, async (req, res) => {
     status,
     pendingCount,
     savedPositions,
+    lineQuota,
     page: 'dashboard'
   });
 });
