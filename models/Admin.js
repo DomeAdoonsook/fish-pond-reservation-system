@@ -95,7 +95,7 @@ class Admin {
 
   // ลบ admin
   static async delete(id) {
-    // ตั้งค่า approved_by เป็น NULL ในตารางที่เชื่อมโยง
+    // ตั้งค่า foreign key เป็น NULL ในตารางที่เชื่อมโยง
     await db.execute({
       sql: 'UPDATE reservations SET approved_by = NULL WHERE approved_by = ?',
       args: [id]
@@ -114,6 +114,10 @@ class Admin {
     });
     await db.execute({
       sql: 'UPDATE stock_transactions SET created_by = NULL WHERE created_by = ?',
+      args: [id]
+    });
+    await db.execute({
+      sql: 'UPDATE logs SET admin_id = NULL WHERE admin_id = ?',
       args: [id]
     });
 
