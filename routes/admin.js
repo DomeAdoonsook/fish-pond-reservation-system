@@ -355,6 +355,67 @@ router.post('/pond/:id/status', requireLogin, async (req, res) => {
   }
 });
 
+// Admin ตั้งค่าการใช้งานบ่อ (สร้างการจองและอนุมัติทันที ไม่ส่ง LINE)
+router.post('/pond/:id/setup', requireLogin, async (req, res) => {
+  try {
+    const pondId = parseInt(req.params.id);
+    const { user_name, fish_type, fish_quantity, start_date, end_date, phone, purpose } = req.body;
+
+    // Validation
+    if (!user_name || !fish_type || !fish_quantity || !start_date || !end_date) {
+      return res.status(400).json({ error: 'กรุณากรอกข้อมูลให้ครบ' });
+    }
+
+    // ตรวจสอบบ่อ
+    const pond = await Pond.getById(pondId);
+    if (!pond) {
+      return res.status(404).json({ error: 'ไม่พบบ่อปลา' });
+    }
+
+    if (pond.user_name) {
+      return res.status(400).json({ error: 'บ่อนี้มีผู้ใช้งานอยู่แล้ว' });
+    }
+
+    if (pond.status === 'maintenance') {
+      return res.status(400).json({ error: 'บ่อนี้อยู่ระหว่างปรับปรุง' });
+    }
+
+    // สร้างการจองใหม่
+    const reservationId = await Reservation.create({
+      pond_id: pondId,
+      user_name: user_name,
+      fish_type: fish_type,
+      fish_quantity: parseInt(fish_quantity),
+      start_date: start_date,
+      end_date: end_date,
+      phone: phone || null,
+      purpose: purpose || null,
+      line_user_id: null // ไม่มี LINE User ID เพราะ Admin สร้างเอง
+    });
+
+    // อนุมัติทันที
+    await Reservation.approve(reservationId, req.session.admin.id);
+
+    // บันทึก Log
+    await Log.create('admin_pond_setup', {
+      pond_id: pondId,
+      reservation_id: reservationId,
+      admin_id: req.session.admin.id,
+      details: {
+        user_name,
+        fish_type,
+        fish_quantity,
+        note: 'Admin สร้างการจองและอนุมัติโดยตรง (ไม่ส่ง LINE)'
+      }
+    });
+
+    res.json({ success: true, reservationId });
+  } catch (error) {
+    console.error('Setup pond error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // หน้าตั้งค่า (ต้อง login)
 router.get('/settings', requireLogin, async (req, res) => {
   const pending = await Reservation.getPending();

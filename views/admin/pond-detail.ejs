@@ -71,9 +71,15 @@
 
                 <% if (!pond.user_name && pond.status !== 'maintenance') { %>
                   <hr>
-                  <a href="/booking/<%= pond.id %>" class="btn btn-primary w-100">
-                    <i class="bi bi-calendar-plus me-2"></i>ขอใช้บ่อนี้
-                  </a>
+                  <% if (typeof isLoggedIn !== 'undefined' && isLoggedIn) { %>
+                    <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#setupPondModal">
+                      <i class="bi bi-gear me-2"></i>ตั้งค่าการใช้งานบ่อนี้
+                    </button>
+                  <% } else { %>
+                    <a href="/booking/<%= pond.id %>" class="btn btn-primary w-100">
+                      <i class="bi bi-calendar-plus me-2"></i>ขอใช้บ่อนี้
+                    </a>
+                  <% } %>
                 <% } %>
 
                 <% if (pond.user_name) { %>
@@ -185,6 +191,62 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Setup Pond Modal (สำหรับ Admin ตั้งค่าการใช้งานบ่อ) -->
+  <div class="modal fade" id="setupPondModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title"><i class="bi bi-gear me-2"></i>ตั้งค่าการใช้งานบ่อ <%= pond.pond_code %></h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="setupPondForm">
+            <div class="mb-3">
+              <label class="form-label">ชื่อผู้ใช้บ่อ <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="setupUserName" required placeholder="ระบุชื่อผู้ใช้บ่อ">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">ชนิดปลา <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="setupFishType" required placeholder="เช่น ปลานิล, ปลาดุก">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">จำนวนปลา (ตัว) <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" id="setupFishQuantity" required min="1" placeholder="จำนวนปลา">
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">วันเริ่มต้น <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" id="setupStartDate" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">วันสิ้นสุด <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" id="setupEndDate" required>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">เบอร์โทร</label>
+              <input type="tel" class="form-control" id="setupPhone" placeholder="เบอร์โทรติดต่อ (ถ้ามี)">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">วัตถุประสงค์</label>
+              <textarea class="form-control" id="setupPurpose" rows="2" placeholder="วัตถุประสงค์ในการใช้บ่อ (ถ้ามี)"></textarea>
+            </div>
+          </form>
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            การจองนี้จะถูกอนุมัติทันทีโดย Admin และจะไม่ส่งแจ้งเตือน LINE
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="button" class="btn btn-primary" id="confirmSetupBtn">
+            <i class="bi bi-check-circle me-2"></i>ยืนยันการตั้งค่า
+          </button>
         </div>
       </div>
     </div>
@@ -306,6 +368,74 @@
         alert('เกิดข้อผิดพลาด');
       }
     });
+
+    // Setup Pond Modal (Admin สร้างการจองโดยตรง)
+    const setupPondModal = document.getElementById('setupPondModal');
+    if (setupPondModal) {
+      // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้
+      setupPondModal.addEventListener('show.bs.modal', function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('setupStartDate').value = today;
+        // ตั้งค่าวันสิ้นสุดเป็น 3 เดือนข้างหน้า
+        const threeMonthsLater = new Date();
+        threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
+        document.getElementById('setupEndDate').value = threeMonthsLater.toISOString().split('T')[0];
+      });
+
+      document.getElementById('confirmSetupBtn').addEventListener('click', async function() {
+        const userName = document.getElementById('setupUserName').value.trim();
+        const fishType = document.getElementById('setupFishType').value.trim();
+        const fishQuantity = document.getElementById('setupFishQuantity').value;
+        const startDate = document.getElementById('setupStartDate').value;
+        const endDate = document.getElementById('setupEndDate').value;
+        const phone = document.getElementById('setupPhone').value.trim();
+        const purpose = document.getElementById('setupPurpose').value.trim();
+
+        // Validation
+        if (!userName || !fishType || !fishQuantity || !startDate || !endDate) {
+          alert('กรุณากรอกข้อมูลที่จำเป็นให้ครบ');
+          return;
+        }
+
+        if (new Date(endDate) < new Date(startDate)) {
+          alert('วันสิ้นสุดต้องไม่น้อยกว่าวันเริ่มต้น');
+          return;
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>กำลังบันทึก...';
+
+        try {
+          const res = await fetch('/admin/pond/<%= pond.id %>/setup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_name: userName,
+              fish_type: fishType,
+              fish_quantity: parseInt(fishQuantity),
+              start_date: startDate,
+              end_date: endDate,
+              phone: phone,
+              purpose: purpose
+            })
+          });
+
+          const data = await res.json();
+
+          if (res.ok && data.success) {
+            alert('ตั้งค่าการใช้งานบ่อเรียบร้อย');
+            location.reload();
+          } else {
+            alert('เกิดข้อผิดพลาด: ' + (data.error || 'ไม่สามารถตั้งค่าได้'));
+          }
+        } catch (err) {
+          alert('เกิดข้อผิดพลาด: ' + err.message);
+        } finally {
+          this.disabled = false;
+          this.innerHTML = '<i class="bi bi-check-circle me-2"></i>ยืนยันการตั้งค่า';
+        }
+      });
+    }
   </script>
 </body>
 </html>
