@@ -95,6 +95,29 @@ class Admin {
 
   // ลบ admin
   static async delete(id) {
+    // ตั้งค่า approved_by เป็น NULL ในตารางที่เชื่อมโยง
+    await db.execute({
+      sql: 'UPDATE reservations SET approved_by = NULL WHERE approved_by = ?',
+      args: [id]
+    });
+    await db.execute({
+      sql: 'UPDATE equipment_reservations SET approved_by = NULL WHERE approved_by = ?',
+      args: [id]
+    });
+    await db.execute({
+      sql: 'UPDATE stock_requests SET approved_by = NULL WHERE approved_by = ?',
+      args: [id]
+    });
+    await db.execute({
+      sql: 'UPDATE cancellation_requests SET processed_by = NULL WHERE processed_by = ?',
+      args: [id]
+    });
+    await db.execute({
+      sql: 'UPDATE stock_transactions SET created_by = NULL WHERE created_by = ?',
+      args: [id]
+    });
+
+    // ลบ admin
     await db.execute({
       sql: 'DELETE FROM admins WHERE id = ?',
       args: [id]
