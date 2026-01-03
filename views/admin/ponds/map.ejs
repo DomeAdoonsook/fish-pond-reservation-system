@@ -92,6 +92,10 @@
       background: rgba(220, 53, 69, 0.85);
       border: 3px solid #dc3545;
     }
+    .pond-area.reserved {
+      background: rgba(253, 126, 20, 0.85);
+      border: 3px solid #fd7e14;
+    }
     .pond-area.pending {
       background: rgba(255, 193, 7, 0.85);
       border: 3px solid #ffc107;
@@ -145,6 +149,7 @@
     }
     .pond-tooltip .status-available { background: #28a745; }
     .pond-tooltip .status-occupied { background: #dc3545; }
+    .pond-tooltip .status-reserved { background: #fd7e14; }
     .pond-tooltip .status-pending { background: #ffc107; color: #333; }
     .pond-tooltip .status-maintenance { background: #6c757d; }
     .legend {
@@ -167,6 +172,7 @@
     }
     .legend-color.available { background: #28a745; }
     .legend-color.occupied { background: #dc3545; }
+    .legend-color.reserved { background: #fd7e14; }
     .legend-color.maintenance { background: #6c757d; }
     .legend-color.pending { background: #ffc107; }
   </style>
@@ -210,6 +216,10 @@
           <span>ใช้งานอยู่</span>
         </div>
         <div class="legend-item">
+          <div class="legend-color reserved"></div>
+          <span>จองแล้ว</span>
+        </div>
+        <div class="legend-item">
           <div class="legend-color pending"></div>
           <span>รออนุมัติ</span>
         </div>
@@ -231,8 +241,13 @@
             let statusClass = 'available';
             let statusText = 'ว่าง';
             if (pond.user_name) {
-              statusClass = 'occupied';
-              statusText = 'ใช้งาน';
+              if (pond.is_active) {
+                statusClass = 'occupied';
+                statusText = 'ใช้งาน';
+              } else {
+                statusClass = 'reserved';
+                statusText = 'จองแล้ว';
+              }
             } else if (pond.status === 'maintenance') {
               statusClass = 'maintenance';
               statusText = 'ปรับปรุง';
@@ -254,33 +269,41 @@
 
       <!-- Stats Summary -->
       <div class="row g-3 mt-4">
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md">
           <div class="card text-center">
-            <div class="card-body">
+            <div class="card-body py-2">
               <h3 class="text-success mb-1"><%= status.available %></h3>
               <small class="text-muted">บ่อว่าง</small>
             </div>
           </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md">
           <div class="card text-center">
-            <div class="card-body">
+            <div class="card-body py-2">
               <h3 class="text-danger mb-1"><%= status.occupied %></h3>
               <small class="text-muted">ใช้งานอยู่</small>
             </div>
           </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md">
           <div class="card text-center">
-            <div class="card-body">
+            <div class="card-body py-2">
+              <h3 class="mb-1" style="color: #fd7e14;"><%= status.reserved || 0 %></h3>
+              <small class="text-muted">จองแล้ว</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md">
+          <div class="card text-center">
+            <div class="card-body py-2">
               <h3 class="text-warning mb-1"><%= status.pending %></h3>
               <small class="text-muted">รออนุมัติ</small>
             </div>
           </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md">
           <div class="card text-center">
-            <div class="card-body">
+            <div class="card-body py-2">
               <h3 class="text-secondary mb-1"><%= status.maintenance %></h3>
               <small class="text-muted">ปิดปรับปรุง</small>
             </div>
@@ -304,8 +327,13 @@
         let statusClass = 'status-available';
         let statusText = 'ว่าง';
         if (pond.user_name) {
-          statusClass = 'status-occupied';
-          statusText = 'ใช้งาน';
+          if (pond.is_active) {
+            statusClass = 'status-occupied';
+            statusText = 'ใช้งาน';
+          } else {
+            statusClass = 'status-reserved';
+            statusText = 'จองแล้ว (รอเริ่ม)';
+          }
         } else if (pond.status === 'maintenance') {
           statusClass = 'status-maintenance';
           statusText = 'ปิดปรับปรุง';

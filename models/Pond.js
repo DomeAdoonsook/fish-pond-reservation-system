@@ -1,7 +1,7 @@
 const db = require('../config/database');
 
 class Pond {
-  // ดึงบ่อทั้งหมด
+  // ดึงบ่อทั้งหมด (รวมการจองที่อนุมัติแล้วแม้ยังไม่ถึงวันเริ่มต้น)
   static async getAll() {
     const result = await db.execute(`
       SELECT p.*,
@@ -10,11 +10,12 @@ class Pond {
         r.fish_quantity,
         r.start_date,
         r.end_date,
-        CAST(julianday('now') - julianday(r.start_date) AS INTEGER) as fish_age_days
+        CAST(julianday('now') - julianday(r.start_date) AS INTEGER) as fish_age_days,
+        CASE WHEN date('now') >= r.start_date THEN 1 ELSE 0 END as is_active
       FROM ponds p
       LEFT JOIN reservations r ON p.id = r.pond_id
         AND r.status = 'approved'
-        AND date('now') BETWEEN r.start_date AND r.end_date
+        AND date('now') <= r.end_date
       ORDER BY p.zone, p.pond_code
     `);
     return result.rows;
@@ -134,6 +135,7 @@ class Pond {
     const totalResult = await db.execute('SELECT COUNT(*) as count FROM ponds');
     const total = Number(totalResult.rows[0].count);
 
+    // กำลังใช้งาน (วันนี้อยู่ระหว่าง start_date และ end_date)
     const occupiedResult = await db.execute(`
       SELECT COUNT(DISTINCT p.id) as count
       FROM ponds p
@@ -143,6 +145,18 @@ class Pond {
     `);
     const occupied = Number(occupiedResult.rows[0].count);
 
+    // จองแล้ว รอเริ่มใช้งาน (อนุมัติแล้วแต่ยังไม่ถึงวันเริ่มต้น)
+    const reservedResult = await db.execute(`
+      SELECT COUNT(DISTINCT p.id) as count
+      FROM ponds p
+      INNER JOIN reservations r ON p.id = r.pond_id
+      WHERE r.status = 'approved'
+        AND date('now') < r.start_date
+        AND date('now') <= r.end_date
+    `);
+    const reserved = Number(reservedResult.rows[0].count);
+
+    // รออนุมัติ
     const pendingResult = await db.execute(`
       SELECT COUNT(DISTINCT pond_id) as count
       FROM reservations
@@ -155,12 +169,13 @@ class Pond {
     `);
     const maintenance = Number(maintenanceResult.rows[0].count);
 
-    const available = total - occupied - maintenance;
+    const available = total - occupied - reserved - maintenance - pending;
 
     return {
       total,
-      available: available - pending,
+      available,
       occupied,
+      reserved,
       pending,
       maintenance
     };
