@@ -196,6 +196,14 @@ class Pond {
     });
   }
 
+  // อัพเดทขนาดบ่อ
+  static async updateSize(id, size) {
+    return await db.execute({
+      sql: 'UPDATE ponds SET size = ? WHERE id = ?',
+      args: [size, id]
+    });
+  }
+
   // ดึงโซนทั้งหมด
   static async getZones() {
     const result = await db.execute('SELECT DISTINCT zone FROM ponds ORDER BY zone');

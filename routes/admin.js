@@ -337,6 +337,29 @@ router.get('/pond/:id', optionalLogin, async (req, res) => {
   });
 });
 
+// อัพเดทขนาดบ่อ
+router.post('/pond/:id/size', requireLogin, async (req, res) => {
+  try {
+    const { size } = req.body;
+
+    if (!['small', 'medium', 'large'].includes(size)) {
+      return res.status(400).json({ error: 'ขนาดไม่ถูกต้อง' });
+    }
+
+    await Pond.updateSize(req.params.id, size);
+
+    await Log.create('pond_size_change', {
+      pond_id: req.params.id,
+      admin_id: req.session.admin.id,
+      details: { new_size: size }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // อัพเดทสถานะบ่อ
 router.post('/pond/:id/status', requireLogin, async (req, res) => {
   try {
