@@ -166,7 +166,7 @@
             <% sortedPonds.forEach(pond => { %>
               <div class="pond-select-item" data-pond-id="<%= pond.id %>" onclick="selectPond(this, <%= pond.id %>)">
                 <div class="pond-name"><%= pond.pond_code || 'บ่อ #' + pond.id %></div>
-                <div class="pond-size"><%= pond.size === 'large' ? 'ใหญ่' : pond.size === 'medium' ? 'กลาง' : 'เล็ก' %></div>
+                <div class="pond-size"><%= pond.size_sqm ? pond.size_sqm + ' ตร.ม.' : (pond.size === 'large' ? 'ใหญ่' : pond.size === 'medium' ? 'กลาง' : 'เล็ก') %></div>
               </div>
             <% }) %>
           <% } %>

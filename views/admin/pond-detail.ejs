@@ -52,7 +52,7 @@
                   <tr>
                     <td class="text-muted">ขนาด:</td>
                     <td>
-                      <%= pond.size === 'large' ? 'ใหญ่' : pond.size === 'medium' ? 'กลาง' : 'เล็ก' %>
+                      <%= pond.size_sqm ? pond.size_sqm + ' ตร.ม.' : (pond.size === 'large' ? 'ใหญ่' : pond.size === 'medium' ? 'กลาง' : 'เล็ก') %>
                       <% if (typeof isLoggedIn !== 'undefined' && isLoggedIn) { %>
                         <button class="btn btn-sm btn-outline-primary ms-2" data-bs-toggle="modal" data-bs-target="#editSizeModal">
                           <i class="bi bi-pencil"></i>
@@ -268,12 +268,11 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <label class="form-label">ขนาดบ่อ</label>
-          <select class="form-select" id="editPondSize">
-            <option value="small" <%= pond.size === 'small' ? 'selected' : '' %>>เล็ก</option>
-            <option value="medium" <%= pond.size === 'medium' ? 'selected' : '' %>>กลาง</option>
-            <option value="large" <%= pond.size === 'large' ? 'selected' : '' %>>ใหญ่</option>
-          </select>
+          <label class="form-label">ขนาดบ่อ (ตารางเมตร)</label>
+          <div class="input-group">
+            <input type="number" class="form-control" id="editPondSizeSqm" value="<%= pond.size_sqm || '' %>" min="0" step="0.1" placeholder="เช่น 100">
+            <span class="input-group-text">ตร.ม.</span>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
@@ -333,9 +332,14 @@
       }
     }
 
-    // Edit pond size
+    // Edit pond size (ตารางเมตร)
     document.getElementById('confirmEditSizeBtn')?.addEventListener('click', async function() {
-      const size = document.getElementById('editPondSize').value;
+      const sizeSqm = document.getElementById('editPondSizeSqm').value;
+
+      if (!sizeSqm || parseFloat(sizeSqm) <= 0) {
+        alert('กรุณาระบุขนาดบ่อ');
+        return;
+      }
 
       this.disabled = true;
       this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>กำลังบันทึก...';
@@ -344,7 +348,7 @@
         const res = await fetch('/admin/pond/<%= pond.id %>/size', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ size })
+          body: JSON.stringify({ size_sqm: parseFloat(sizeSqm) })
         });
 
         if (res.ok) {

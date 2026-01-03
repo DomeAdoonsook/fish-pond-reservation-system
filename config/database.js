@@ -246,6 +246,14 @@ async function initDatabase() {
       // Column already exists
     }
 
+    // Migration: Add size_sqm column to ponds if not exists
+    try {
+      await db.execute('ALTER TABLE ponds ADD COLUMN size_sqm REAL');
+      console.log('✅ Added size_sqm column to ponds table');
+    } catch (e) {
+      // Column already exists
+    }
+
     console.log('✅ Database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);

@@ -337,21 +337,21 @@ router.get('/pond/:id', optionalLogin, async (req, res) => {
   });
 });
 
-// อัพเดทขนาดบ่อ
+// อัพเดทขนาดบ่อ (ตารางเมตร)
 router.post('/pond/:id/size', requireLogin, async (req, res) => {
   try {
-    const { size } = req.body;
+    const { size_sqm } = req.body;
 
-    if (!['small', 'medium', 'large'].includes(size)) {
-      return res.status(400).json({ error: 'ขนาดไม่ถูกต้อง' });
+    if (!size_sqm || parseFloat(size_sqm) <= 0) {
+      return res.status(400).json({ error: 'กรุณาระบุขนาดบ่อ' });
     }
 
-    await Pond.updateSize(req.params.id, size);
+    await Pond.updateSizeSqm(req.params.id, parseFloat(size_sqm));
 
     await Log.create('pond_size_change', {
       pond_id: req.params.id,
       admin_id: req.session.admin.id,
-      details: { new_size: size }
+      details: { new_size_sqm: size_sqm }
     });
 
     res.json({ success: true });

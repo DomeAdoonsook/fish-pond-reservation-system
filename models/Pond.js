@@ -196,11 +196,11 @@ class Pond {
     });
   }
 
-  // อัพเดทขนาดบ่อ
-  static async updateSize(id, size) {
+  // อัพเดทขนาดบ่อ (ตารางเมตร)
+  static async updateSizeSqm(id, sizeSqm) {
     return await db.execute({
-      sql: 'UPDATE ponds SET size = ? WHERE id = ?',
-      args: [size, id]
+      sql: 'UPDATE ponds SET size_sqm = ? WHERE id = ?',
+      args: [sizeSqm, id]
     });
   }
 
