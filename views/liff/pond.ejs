@@ -69,13 +69,18 @@
     .btn-submit:disabled {
       background: #ccc;
     }
+    .pond-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
     .pond-select-item {
-      padding: 15px;
+      padding: 12px 8px;
       border: 2px solid #e0e0e0;
       border-radius: 12px;
-      margin-bottom: 10px;
       cursor: pointer;
       transition: all 0.3s;
+      text-align: center;
     }
     .pond-select-item:hover {
       border-color: #3498db;
@@ -87,10 +92,12 @@
     .pond-name {
       font-weight: 600;
       color: #333;
+      font-size: 1.1rem;
     }
     .pond-size {
-      font-size: 0.85rem;
+      font-size: 0.7rem;
       color: #666;
+      margin-top: 2px;
     }
     .success-overlay {
       position: fixed;
@@ -136,17 +143,30 @@
       <!-- เลือกบ่อ -->
       <div class="mb-4">
         <label class="form-label">เลือกบ่อที่ต้องการจอง</label>
-        <div id="pondList">
+        <div id="pondList" class="pond-grid">
           <% if (ponds.length === 0) { %>
-            <div class="text-center text-muted py-4">
+            <div class="text-center text-muted py-4" style="grid-column: span 3;">
               <i class="bi bi-exclamation-circle" style="font-size: 2rem;"></i>
               <p class="mt-2">ไม่มีบ่อว่างในขณะนี้</p>
             </div>
           <% } else { %>
-            <% ponds.forEach(pond => { %>
+            <%
+              // Natural sort: A1, A2, A10 แทน A1, A10, A2
+              const sortedPonds = [...ponds].sort((a, b) => {
+                const codeA = a.pond_code || '';
+                const codeB = b.pond_code || '';
+                const zoneA = codeA.match(/^[A-Z]+/)?.[0] || '';
+                const zoneB = codeB.match(/^[A-Z]+/)?.[0] || '';
+                const numA = parseInt(codeA.match(/\d+/)?.[0]) || 0;
+                const numB = parseInt(codeB.match(/\d+/)?.[0]) || 0;
+                if (zoneA !== zoneB) return zoneA.localeCompare(zoneB);
+                return numA - numB;
+              });
+            %>
+            <% sortedPonds.forEach(pond => { %>
               <div class="pond-select-item" data-pond-id="<%= pond.id %>" onclick="selectPond(this, <%= pond.id %>)">
-                <div class="pond-name"><%= pond.pond_code || pond.name || 'บ่อ #' + pond.id %></div>
-                <div class="pond-size">ขนาด: <%= pond.size || '-' %> | โซน: <%= pond.zone || '-' %></div>
+                <div class="pond-name"><%= pond.pond_code || 'บ่อ #' + pond.id %></div>
+                <div class="pond-size"><%= pond.size === 'large' ? 'ใหญ่' : pond.size === 'medium' ? 'กลาง' : 'เล็ก' %></div>
               </div>
             <% }) %>
           <% } %>
