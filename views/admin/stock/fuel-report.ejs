@@ -102,11 +102,16 @@
                   </button>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
-                  <button type="button" onclick="window.print()" class="btn btn-outline-secondary w-100">
-                    <i class="bi bi-printer"></i> พิมพ์
-                  </button>
+                  <a href="/admin/stock/fuel-report/export?month=<%= selectedMonth %>&year=<%= selectedYear %>" class="btn btn-success w-100">
+                    <i class="bi bi-file-earmark-spreadsheet"></i> Export Excel
+                  </a>
                 </div>
               </form>
+              <div class="mt-2 text-end">
+                <button type="button" onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+                  <i class="bi bi-printer"></i> พิมพ์
+                </button>
+              </div>
             </div>
           </div>
         </div>

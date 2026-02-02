@@ -360,6 +360,142 @@ router.post('/stock-adjust', async (req, res) => {
 });
 
 // ======= รายงานการใช้น้ำมัน =======
+// Export รายงานการใช้น้ำมันเป็น Excel
+router.get('/fuel-report/export', async (req, res) => {
+  try {
+    const XLSX = require('xlsx');
+    const db = require('../config/database');
+    const { month, year } = req.query;
+
+    const now = new Date();
+    const selectedMonth = month || (now.getMonth() + 1);
+    const selectedYear = year || now.getFullYear();
+
+    // Query fuel transactions
+    const result = await db.execute({
+      sql: `
+        SELECT
+          t.id,
+          t.created_at,
+          t.quantity,
+          t.unit_price,
+          t.total_price,
+          t.note,
+          i.name as item_name,
+          i.unit,
+          e.name as equipment_name,
+          ec.name as equipment_category,
+          a.name as admin_name
+        FROM stock_transactions t
+        JOIN stock_items i ON t.item_id = i.id
+        LEFT JOIN equipment e ON t.equipment_id = e.id
+        LEFT JOIN equipment_categories ec ON e.category_id = ec.id
+        LEFT JOIN admins a ON t.created_by = a.id
+        JOIN stock_categories sc ON i.category_id = sc.id
+        WHERE t.transaction_type = 'out'
+        AND sc.name LIKE '%น้ำมัน%'
+        AND strftime('%m', t.created_at) = ?
+        AND strftime('%Y', t.created_at) = ?
+        ORDER BY t.created_at DESC
+      `,
+      args: [String(selectedMonth).padStart(2, '0'), String(selectedYear)]
+    });
+
+    const transactions = result.rows;
+
+    // Calculate summary
+    const totalQuantity = transactions.reduce((sum, t) => sum + (t.quantity || 0), 0);
+    const totalPrice = transactions.reduce((sum, t) => sum + (t.total_price || 0), 0);
+
+    // Prepare Excel data - Summary sheet
+    const summaryData = [
+      { 'รายการ': 'จำนวนการเบิกทั้งหมด', 'ค่า': `${transactions.length} ครั้ง` },
+      { 'รายการ': 'ปริมาณน้ำมันรวม', 'ค่า': `${totalQuantity.toLocaleString('th-TH', {maximumFractionDigits: 2})} ลิตร` },
+      { 'รายการ': 'มูลค่ารวม', 'ค่า': `${totalPrice.toLocaleString('th-TH', {maximumFractionDigits: 2})} บาท` }
+    ];
+
+    // Prepare detail data
+    const detailData = transactions.map(t => {
+      const date = new Date(t.created_at);
+      return {
+        'วันที่': date.toLocaleDateString('th-TH', {day: '2-digit', month: 'short', year: 'numeric'}),
+        'รายการน้ำมัน': t.item_name,
+        'อุปกรณ์': t.equipment_name || '-',
+        'ประเภทอุปกรณ์': t.equipment_category || '-',
+        'ปริมาณ': t.quantity,
+        'หน่วย': t.unit,
+        'ราคา/หน่วย': t.unit_price || 0,
+        'รวม': t.total_price || 0,
+        'หมายเหตุ': t.note || '-',
+        'ผู้บันทึก': t.admin_name || '-'
+      };
+    });
+
+    // Group by equipment
+    const byEquipment = {};
+    transactions.forEach(t => {
+      const equipKey = t.equipment_name || 'ไม่ระบุอุปกรณ์';
+      if (!byEquipment[equipKey]) {
+        byEquipment[equipKey] = {
+          equipment_name: t.equipment_name,
+          equipment_category: t.equipment_category,
+          quantity: 0,
+          total_price: 0,
+          count: 0
+        };
+      }
+      byEquipment[equipKey].quantity += t.quantity || 0;
+      byEquipment[equipKey].total_price += t.total_price || 0;
+      byEquipment[equipKey].count += 1;
+    });
+
+    const equipmentData = Object.entries(byEquipment).map(([key, data]) => ({
+      'อุปกรณ์': data.equipment_name || 'ไม่ระบุอุปกรณ์',
+      'ประเภท': data.equipment_category || '-',
+      'จำนวนครั้ง': data.count,
+      'ปริมาณ (ลิตร)': data.quantity.toFixed(2),
+      'มูลค่า (บาท)': data.total_price.toFixed(2)
+    }));
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+
+    // Add summary sheet
+    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+    wsSummary['!cols'] = [{ wch: 25 }, { wch: 30 }];
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'สรุป');
+
+    // Add equipment sheet
+    const wsEquipment = XLSX.utils.json_to_sheet(equipmentData);
+    wsEquipment['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 12 }, { wch: 15 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, wsEquipment, 'สรุปตามอุปกรณ์');
+
+    // Add detail sheet
+    const wsDetail = XLSX.utils.json_to_sheet(detailData);
+    wsDetail['!cols'] = [
+      { wch: 12 }, { wch: 25 }, { wch: 20 }, { wch: 20 },
+      { wch: 10 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 30 }, { wch: 15 }
+    ];
+    XLSX.utils.book_append_sheet(wb, wsDetail, 'รายละเอียด');
+
+    // Generate buffer
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    // Set headers
+    const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+    const monthName = thaiMonths[parseInt(selectedMonth) - 1];
+    const fileName = `รายงานการใช้น้ำมัน_${monthName}_${parseInt(selectedYear) + 543}.xlsx`;
+
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (error) {
+    console.error('Export fuel report error:', error);
+    res.status(500).send('เกิดข้อผิดพลาดในการ Export');
+  }
+});
+
 router.get('/fuel-report', async (req, res) => {
   try {
     const db = require('../config/database');

@@ -186,6 +186,104 @@ router.get('/api/request/:id', async (req, res) => {
   }
 });
 
+// Export รายงานการใช้น้ำมันเป็น Excel
+router.get('/fuel-report/export', async (req, res) => {
+  try {
+    const XLSX = require('xlsx');
+    const db = require('../config/database');
+    const { month, year } = req.query;
+
+    const now = new Date();
+    const selectedMonth = month || (now.getMonth() + 1);
+    const selectedYear = year || now.getFullYear();
+
+    // Query fuel transactions
+    const result = await db.execute({
+      sql: `
+        SELECT
+          t.id,
+          t.created_at,
+          t.quantity,
+          t.unit_price,
+          t.total_price,
+          t.note,
+          i.name as item_name,
+          i.unit,
+          e.name as equipment_name,
+          ec.name as equipment_category,
+          a.name as admin_name
+        FROM stock_transactions t
+        JOIN stock_items i ON t.item_id = i.id
+        LEFT JOIN equipment e ON t.equipment_id = e.id
+        LEFT JOIN equipment_categories ec ON e.category_id = ec.id
+        LEFT JOIN admins a ON t.created_by = a.id
+        JOIN stock_categories sc ON i.category_id = sc.id
+        WHERE t.transaction_type = 'out'
+        AND sc.name LIKE '%น้ำมัน%'
+        AND strftime('%m', t.created_at) = ?
+        AND strftime('%Y', t.created_at) = ?
+        ORDER BY t.created_at DESC
+      `,
+      args: [String(selectedMonth).padStart(2, '0'), String(selectedYear)]
+    });
+
+    const transactions = result.rows;
+
+    // Prepare Excel data
+    const excelData = transactions.map(t => {
+      const date = new Date(t.created_at);
+      return {
+        'วันที่': date.toLocaleDateString('th-TH', {day: '2-digit', month: 'short', year: 'numeric'}),
+        'รายการน้ำมัน': t.item_name,
+        'อุปกรณ์': t.equipment_name || '-',
+        'ประเภทอุปกรณ์': t.equipment_category || '-',
+        'ปริมาณ': t.quantity,
+        'หน่วย': t.unit,
+        'ราคา/หน่วย': t.unit_price || 0,
+        'รวม': t.total_price || 0,
+        'หมายเหตุ': t.note || '-',
+        'ผู้บันทึก': t.admin_name || '-'
+      };
+    });
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 12 }, // วันที่
+      { wch: 25 }, // รายการน้ำมัน
+      { wch: 20 }, // อุปกรณ์
+      { wch: 20 }, // ประเภทอุปกรณ์
+      { wch: 10 }, // ปริมาณ
+      { wch: 8 },  // หน่วย
+      { wch: 12 }, // ราคา/หน่วย
+      { wch: 12 }, // รวม
+      { wch: 30 }, // หมายเหตุ
+      { wch: 15 }  // ผู้บันทึก
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'รายงานการใช้น้ำมัน');
+
+    // Generate buffer
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    // Set headers
+    const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+    const monthName = thaiMonths[parseInt(selectedMonth) - 1];
+    const fileName = `รายงานการใช้น้ำมัน_${monthName}_${parseInt(selectedYear) + 543}.xlsx`;
+
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (error) {
+    console.error('Export fuel report error:', error);
+    res.status(500).send('เกิดข้อผิดพลาดในการ Export');
+  }
+});
+
 // หน้ารายงานการใช้น้ำมัน
 router.get('/fuel-report', async (req, res) => {
   try {
