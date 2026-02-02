@@ -227,6 +227,138 @@
           <span class="badge bg-warning text-dark me-2">รออนุมัติ</span>
           <span class="badge bg-secondary">ปิดปรับปรุง</span>
         </div>
+
+        <!-- ตารางแสดงรายละเอียดการใช้งานบ่อ -->
+        <div class="card mt-4">
+          <div class="card-header bg-info text-white">
+            <i class="bi bi-table me-2"></i>รายละเอียดการใช้งานบ่อ
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover table-striped mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th class="text-center" width="10%">รหัสบ่อ</th>
+                    <th width="15%">โซน</th>
+                    <th width="10%" class="text-center">สถานะ</th>
+                    <th width="20%">ผู้ใช้งาน</th>
+                    <th width="20%">วัตถุประสงค์ / ชนิดปลา</th>
+                    <th width="15%" class="text-center">ใช้ถึงวันที่</th>
+                    <th width="10%" class="text-center">อายุปลา</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <%
+                  // เรียงข้อมูลตามสถานะ: ใช้งาน > จองแล้ว > รออนุมัติ > ว่าง > ปิดปรับปรุง
+                  const sortedPonds = [...ponds].sort((a, b) => {
+                    const getStatusPriority = (pond) => {
+                      if (pond.user_name && pond.is_active) return 1; // ใช้งาน
+                      if (pond.user_name && !pond.is_active) return 2; // จองแล้ว
+                      if (pond.status === 'pending') return 3; // รออนุมัติ
+                      if (pond.status === 'available' && !pond.user_name) return 4; // ว่าง
+                      if (pond.status === 'maintenance') return 5; // ปิดปรับปรุง
+                      return 6;
+                    };
+                    return getStatusPriority(a) - getStatusPriority(b);
+                  });
+
+                  sortedPonds.forEach(function(pond) {
+                    let statusClass = '';
+                    let statusText = '';
+                    let statusBadge = '';
+
+                    if (pond.user_name) {
+                      if (pond.is_active) {
+                        statusClass = 'table-danger';
+                        statusBadge = '<span class="badge bg-danger">ใช้งาน</span>';
+                        statusText = 'ใช้งาน';
+                      } else {
+                        statusClass = 'table-warning';
+                        statusBadge = '<span class="badge" style="background: #fd7e14;">จองแล้ว</span>';
+                        statusText = 'จองแล้ว';
+                      }
+                    } else if (pond.status === 'maintenance') {
+                      statusClass = 'table-secondary';
+                      statusBadge = '<span class="badge bg-secondary">ปิดปรับปรุง</span>';
+                      statusText = 'ปิดปรับปรุง';
+                    } else if (pond.status === 'pending') {
+                      statusClass = 'table-warning';
+                      statusBadge = '<span class="badge bg-warning text-dark">รออนุมัติ</span>';
+                      statusText = 'รออนุมัติ';
+                    } else {
+                      statusClass = 'table-success';
+                      statusBadge = '<span class="badge bg-success">ว่าง</span>';
+                      statusText = 'ว่าง';
+                    }
+
+                    // Format date
+                    const formatDate = (dateStr) => {
+                      if (!dateStr) return '-';
+                      const date = new Date(dateStr);
+                      const day = String(date.getDate()).padStart(2, '0');
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const year = date.getFullYear() + 543;
+                      return `${day}/${month}/${year}`;
+                    };
+                  %>
+                    <tr class="<%= statusClass %>" style="cursor: pointer;" onclick="showPondPopup(<%= pond.id %>)">
+                      <td class="text-center fw-bold">
+                        <i class="bi bi-droplet me-1"></i><%= pond.pond_code %>
+                      </td>
+                      <td><%= pond.zone %></td>
+                      <td class="text-center"><%- statusBadge %></td>
+                      <td>
+                        <% if (pond.user_name) { %>
+                          <i class="bi bi-person-fill me-1"></i><%= pond.user_name %>
+                          <% if (pond.phone) { %>
+                            <br><small class="text-muted"><i class="bi bi-telephone"></i> <%= pond.phone %></small>
+                          <% } %>
+                        <% } else { %>
+                          <span class="text-muted">-</span>
+                        <% } %>
+                      </td>
+                      <td>
+                        <% if (pond.fish_type) { %>
+                          <i class="bi bi-fish me-1"></i><%= pond.fish_type %>
+                          <% if (pond.fish_quantity) { %>
+                            <br><small class="text-muted">จำนวน: <%= pond.fish_quantity.toLocaleString() %> ตัว</small>
+                          <% } %>
+                          <% if (pond.purpose) { %>
+                            <br><small class="text-muted"><i class="bi bi-clipboard-check"></i> <%= pond.purpose %></small>
+                          <% } %>
+                        <% } else { %>
+                          <span class="text-muted">-</span>
+                        <% } %>
+                      </td>
+                      <td class="text-center">
+                        <% if (pond.end_date) { %>
+                          <i class="bi bi-calendar-event"></i> <%= formatDate(pond.end_date) %>
+                        <% } else { %>
+                          <span class="text-muted">-</span>
+                        <% } %>
+                      </td>
+                      <td class="text-center">
+                        <% if (pond.fish_age_days !== null && pond.fish_age_days !== undefined) { %>
+                          <span class="badge bg-info"><%= pond.fish_age_days %> วัน</span>
+                        <% } else { %>
+                          <span class="text-muted">-</span>
+                        <% } %>
+                      </td>
+                    </tr>
+                  <%
+                  });
+                  %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card-footer text-muted">
+            <small>
+              <i class="bi bi-info-circle me-1"></i>
+              คลิกที่แถวเพื่อดูรายละเอียดเพิ่มเติม
+            </small>
+          </div>
+        </div>
       </div>
     </div>
   </div>
