@@ -315,7 +315,12 @@
                         <div><i class="bi bi-droplet me-1"></i><%= pond.pond_code %></div>
                         <small class="text-muted"><%= pond.zone %></small>
                       </td>
-                      <td class="text-center"><%- statusBadge %></td>
+                      <td class="text-center">
+                        <div><%- statusBadge %></div>
+                        <% if (pond.user_name && pond.fish_age_days !== null && pond.fish_age_days !== undefined) { %>
+                          <div class="mt-1"><span class="badge bg-info"><%= pond.fish_age_days %>d</span></div>
+                        <% } %>
+                      </td>
                       <td>
                         <% if (pond.user_name) { %>
                           <div class="mb-1"><strong><%= pond.user_name %></strong></div>
@@ -325,9 +330,6 @@
                               (<%= (pond.fish_quantity/1000).toFixed(0) %>k)
                             <% } %>
                             </small>
-                          <% } %>
-                          <% if (pond.fish_age_days !== null && pond.fish_age_days !== undefined) { %>
-                            <div><span class="badge bg-info"><%= pond.fish_age_days %>d</span></div>
                           <% } %>
                         <% } else { %>
                           <span class="text-muted">-</span>
