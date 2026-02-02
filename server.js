@@ -74,8 +74,8 @@ async function startServer() {
     await initDatabase();
     console.log('✅ Database initialized');
 
-    // Start server
-    app.listen(PORT, () => {
+    // Start server - bind to 0.0.0.0 for Render deployment
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`🐟 Fish Pond Reservation System running on port ${PORT}`);
       console.log(`📊 Dashboard: http://localhost:${PORT}/admin`);
       console.log(`🔗 LINE Webhook: http://localhost:${PORT}/webhook`);
