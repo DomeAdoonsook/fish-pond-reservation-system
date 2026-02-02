@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - ระบบงานฟาร์ม</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+  <style>
+    .summary-card {
+      border-left: 4px solid #0d6efd;
+      transition: transform 0.2s;
+    }
+    .summary-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+    .equipment-summary {
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border-left: 4px solid #198754;
+    }
+    .table-responsive {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <%- include('../partials/sidebar-stock') %>
+
+    <div id="content">
+      <!-- Top navbar -->
+      <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container-fluid">
+          <button type="button" id="sidebarCollapse" class="btn btn-success">
+            <i class="bi bi-list"></i>
+          </button>
+          <span class="navbar-text ms-3">
+            <i class="bi bi-file-earmark-text me-2"></i>รายงานการใช้น้ำมัน
+          </span>
+        </div>
+      </nav>
+
+      <div class="container-fluid py-4">
+        <!-- Month/Year Selection -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-body">
+                <h6 class="card-title mb-3"><i class="bi bi-calendar3 me-2"></i>เลือกช่วงเวลา</h6>
+                <form method="GET" action="/stock/fuel-report" class="row g-2">
+                  <div class="col-md-6">
+                    <label class="form-label small">เดือน</label>
+                    <select name="month" class="form-select">
+                      <% for (let m = 1; m <= 12; m++) { %>
+                        <option value="<%= m %>" <%= selectedMonth == m ? 'selected' : '' %>>
+                          <%= ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                               'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'][m-1] %>
+                        </option>
+                      <% } %>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small">ปี พ.ศ.</label>
+                    <select name="year" class="form-select">
+                      <% for (let y = parseInt(selectedYear); y >= parseInt(selectedYear) - 3; y--) { %>
+                        <option value="<%= y %>" <%= selectedYear == y ? 'selected' : '' %>><%= y + 543 %></option>
+                      <% } %>
+                    </select>
+                  </div>
+                  <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                      <i class="bi bi-search"></i>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+          <div class="col-md-4">
+            <div class="card summary-card">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <p class="text-muted mb-1 small">จำนวนการเบิกทั้งหมด</p>
+                    <h3 class="mb-0"><%= transactions.length %> <small class="fs-6 text-muted">ครั้ง</small></h3>
+                  </div>
+                  <div class="text-primary" style="font-size: 2.5rem;">
+                    <i class="bi bi-card-list"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card summary-card" style="border-left-color: #198754;">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <p class="text-muted mb-1 small">ปริมาณน้ำมันทั้งหมด</p>
+                    <h3 class="mb-0"><%= totalQuantity.toLocaleString('th-TH', {maximumFractionDigits: 2}) %> <small class="fs-6 text-muted">ลิตร</small></h3>
+                  </div>
+                  <div class="text-success" style="font-size: 2.5rem;">
+                    <i class="bi bi-droplet-fill"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card summary-card" style="border-left-color: #ffc107;">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <p class="text-muted mb-1 small">มูลค่ารวม</p>
+                    <h3 class="mb-0"><%= totalPrice.toLocaleString('th-TH', {maximumFractionDigits: 2}) %> <small class="fs-6 text-muted">บาท</small></h3>
+                  </div>
+                  <div class="text-warning" style="font-size: 2.5rem;">
+                    <i class="bi bi-cash-stack"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Equipment Summary -->
+        <div class="row mb-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>สรุปการใช้น้ำมันแยกตามอุปกรณ์</h5>
+              </div>
+              <div class="card-body">
+                <% if (Object.keys(byEquipment).length === 0) { %>
+                  <div class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                    <p class="mt-2">ยังไม่มีข้อมูลการใช้น้ำมันในเดือนนี้</p>
+                  </div>
+                <% } else { %>
+                  <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                      <thead class="table-success sticky-header">
+                        <tr>
+                          <th>อุปกรณ์</th>
+                          <th>ประเภท</th>
+                          <th class="text-end">จำนวนครั้ง</th>
+                          <th class="text-end">ปริมาณ (ลิตร)</th>
+                          <th class="text-end">มูลค่า (บาท)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% Object.entries(byEquipment).forEach(([key, data]) => { %>
+                          <tr>
+                            <td>
+                              <% if (data.equipment_name) { %>
+                                <i class="bi bi-wrench text-success me-2"></i><%= data.equipment_name %>
+                              <% } else { %>
+                                <i class="bi bi-question-circle text-muted me-2"></i>ไม่ระบุอุปกรณ์
+                              <% } %>
+                            </td>
+                            <td><%= data.equipment_category || '-' %></td>
+                            <td class="text-end"><span class="badge bg-info"><%= data.count %></span></td>
+                            <td class="text-end fw-bold text-success"><%= data.quantity.toLocaleString('th-TH', {maximumFractionDigits: 2}) %></td>
+                            <td class="text-end fw-bold text-warning"><%= data.total_price.toLocaleString('th-TH', {maximumFractionDigits: 2}) %></td>
+                          </tr>
+                        <% }); %>
+                      </tbody>
+                    </table>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transaction Details -->
+        <div class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>รายละเอียดการเบิกน้ำมัน</h5>
+              </div>
+              <div class="card-body">
+                <% if (transactions.length === 0) { %>
+                  <div class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                    <p class="mt-2">ยังไม่มีรายการเบิกน้ำมันในเดือนนี้</p>
+                  </div>
+                <% } else { %>
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                      <thead class="table-light sticky-header">
+                        <tr>
+                          <th style="width: 10%;">วันที่</th>
+                          <th style="width: 20%;">รายการน้ำมัน</th>
+                          <th style="width: 20%;">อุปกรณ์</th>
+                          <th style="width: 10%;" class="text-end">ปริมาณ</th>
+                          <th style="width: 10%;" class="text-end">ราคา/หน่วย</th>
+                          <th style="width: 10%;" class="text-end">รวม</th>
+                          <th style="width: 15%;">หมายเหตุ</th>
+                          <th style="width: 10%;">ผู้บันทึก</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% transactions.forEach(t => {
+                          const date = new Date(t.created_at);
+                          const dateStr = date.toLocaleDateString('th-TH', {day: '2-digit', month: 'short'});
+                        %>
+                          <tr>
+                            <td><%= dateStr %></td>
+                            <td><%= t.item_name %></td>
+                            <td>
+                              <% if (t.equipment_name) { %>
+                                <span class="text-success"><i class="bi bi-wrench me-1"></i><%= t.equipment_name %></span>
+                              <% } else { %>
+                                <span class="text-muted">-</span>
+                              <% } %>
+                            </td>
+                            <td class="text-end"><%= t.quantity.toLocaleString('th-TH', {maximumFractionDigits: 2}) %> <%= t.unit %></td>
+                            <td class="text-end"><%= t.unit_price ? t.unit_price.toLocaleString('th-TH', {maximumFractionDigits: 2}) : '-' %></td>
+                            <td class="text-end fw-bold"><%= t.total_price ? t.total_price.toLocaleString('th-TH', {maximumFractionDigits: 2}) : '-' %></td>
+                            <td><small class="text-muted"><%= t.note || '-' %></small></td>
+                            <td><small><%= t.admin_name || '-' %></small></td>
+                          </tr>
+                        <% }); %>
+                      </tbody>
+                    </table>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Sidebar toggle
+    document.getElementById('sidebarCollapse').addEventListener('click', function() {
+      document.getElementById('sidebar').classList.toggle('active');
+    });
+
+    // Print functionality
+    function printReport() {
+      window.print();
+    }
+  </script>
+</body>
+</html>

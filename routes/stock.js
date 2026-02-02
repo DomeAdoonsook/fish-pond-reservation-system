@@ -186,4 +186,84 @@ router.get('/api/request/:id', async (req, res) => {
   }
 });
 
+// หน้ารายงานการใช้น้ำมัน
+router.get('/fuel-report', async (req, res) => {
+  try {
+    const db = require('../config/database');
+    const { month, year } = req.query;
+
+    // Default to current month/year
+    const now = new Date();
+    const selectedMonth = month || (now.getMonth() + 1);
+    const selectedYear = year || now.getFullYear();
+
+    // Query fuel transactions with equipment details
+    const result = await db.execute({
+      sql: `
+        SELECT
+          t.id,
+          t.created_at,
+          t.quantity,
+          t.unit_price,
+          t.total_price,
+          t.note,
+          i.name as item_name,
+          i.unit,
+          e.name as equipment_name,
+          ec.name as equipment_category,
+          a.name as admin_name
+        FROM stock_transactions t
+        JOIN stock_items i ON t.item_id = i.id
+        LEFT JOIN equipment e ON t.equipment_id = e.id
+        LEFT JOIN equipment_categories ec ON e.category_id = ec.id
+        LEFT JOIN admins a ON t.created_by = a.id
+        JOIN stock_categories sc ON i.category_id = sc.id
+        WHERE t.transaction_type = 'out'
+        AND sc.name LIKE '%น้ำมัน%'
+        AND strftime('%m', t.created_at) = ?
+        AND strftime('%Y', t.created_at) = ?
+        ORDER BY t.created_at DESC
+      `,
+      args: [String(selectedMonth).padStart(2, '0'), String(selectedYear)]
+    });
+
+    // Calculate summary
+    const transactions = result.rows;
+    const totalQuantity = transactions.reduce((sum, t) => sum + (t.quantity || 0), 0);
+    const totalPrice = transactions.reduce((sum, t) => sum + (t.total_price || 0), 0);
+
+    // Group by equipment
+    const byEquipment = {};
+    transactions.forEach(t => {
+      const equipKey = t.equipment_name || 'ไม่ระบุอุปกรณ์';
+      if (!byEquipment[equipKey]) {
+        byEquipment[equipKey] = {
+          equipment_name: t.equipment_name,
+          equipment_category: t.equipment_category,
+          quantity: 0,
+          total_price: 0,
+          count: 0
+        };
+      }
+      byEquipment[equipKey].quantity += t.quantity || 0;
+      byEquipment[equipKey].total_price += t.total_price || 0;
+      byEquipment[equipKey].count += 1;
+    });
+
+    res.render('stock/fuel-report', {
+      title: 'รายงานการใช้น้ำมัน',
+      page: 'fuel-report',
+      transactions,
+      byEquipment,
+      selectedMonth,
+      selectedYear,
+      totalQuantity,
+      totalPrice
+    });
+  } catch (error) {
+    console.error('Fuel report error:', error);
+    res.status(500).send('เกิดข้อผิดพลาด');
+  }
+});
+
 module.exports = router;

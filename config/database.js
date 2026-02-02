@@ -254,6 +254,14 @@ async function initDatabase() {
       // Column already exists
     }
 
+    // Migration: Add equipment_id column to stock_transactions if not exists
+    try {
+      await db.execute('ALTER TABLE stock_transactions ADD COLUMN equipment_id INTEGER REFERENCES equipment(id)');
+      console.log('✅ Added equipment_id column to stock_transactions table');
+    } catch (e) {
+      // Column already exists
+    }
+
     console.log('✅ Database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);
